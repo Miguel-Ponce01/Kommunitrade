@@ -8,15 +8,29 @@ export default function Home() {
   const navigate = useNavigate();
   const [selectedBarangay, setSelectedBarangay] = useState("All Barangays");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  const CATEGORIES = ["All", "House", "Electronic", "Service", "Food", "Waste"];
 
   const filteredListings = MOCK_LISTINGS.filter(item => {
     const matchesBarangay = selectedBarangay === "All Barangays" || item.barangay === selectedBarangay;
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesBarangay && matchesSearch;
+    const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+    return matchesBarangay && matchesSearch && matchesCategory;
   });
 
   return (
     <div className="animate-fade-in">
+      {/* Welcome Banner */}
+      <div style={{ padding: '0 0.25rem 1rem 0.25rem' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+          Local Deals
+        </h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+          Discover items and services near you
+        </p>
+      </div>
+
       {/* Header Actions */}
       <div style={{ marginBottom: '1.5rem' }}>
         <div className="form-group" style={{ position: 'relative', marginBottom: '1rem' }}>
@@ -45,6 +59,19 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Category Filter Scroll */}
+      <div className="category-filter-container">
+        {CATEGORIES.map(category => (
+          <button
+            key={category}
+            className={`category-pill ${selectedCategory === category ? 'active' : ''}`}
+            onClick={() => setSelectedCategory(category)}
+          >
+            {category}
+          </button>
+        ))}
+      </div>
+
       {/* Feed */}
       <div className="masonry-grid">
         {filteredListings.length > 0 ? (
@@ -52,7 +79,7 @@ export default function Home() {
             <ItemCard 
               key={item.id} 
               item={item} 
-              onClick={(id) => navigate(`/item/${id}`)}
+              onClick={(id) => navigate(`/app/item/${id}`)}
             />
           ))
         ) : (

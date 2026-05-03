@@ -4,38 +4,69 @@ import { Home, Plus, MessageCircle, User, MapPin } from 'lucide-react';
 export default function Layout() {
   return (
     <div className="app-container">
-      {/* Top Nav */}
-      <header className="top-nav glass">
-        <div className="logo">
-          <MapPin size={24} color="var(--primary)" />
-          KomuniTrade
+      {/* Sidebar Navigation */}
+      <nav className="app-sidebar">
+        <div className="sidebar-logo">
+          <MapPin size={28} color="var(--primary)" />
+          <span className="logo-text">KomuniTrade</span>
         </div>
-      </header>
+        
+        <div className="sidebar-links">
+          <NavLink to="/app" end className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+            <div className="active-pill"></div>
+            <Home className="nav-icon" />
+            <span className="nav-label">Home</span>
+          </NavLink>
+          
+          <NavLink to="/app/messages" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+            <div className="active-pill"></div>
+            <MessageCircle className="nav-icon" />
+            <span className="nav-label">Chat</span>
+          </NavLink>
+          
+          <NavLink to="/app/profile" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+            <div className="active-pill"></div>
+            <User className="nav-icon" />
+            <span className="nav-label">Profile</span>
+          </NavLink>
+        </div>
 
-      {/* Main Content Area */}
+        {/* Global Action Button inside Sidebar for Desktop */}
+        <div className="sidebar-action">
+          <NavLink to="/app/post" className="nav-item post-btn">
+            <Plus size={24} />
+            <span className="nav-label">New Listing</span>
+          </NavLink>
+        </div>
+      </nav>
+
+      {/* Main Content Stage */}
       <main className="main-content">
-        <Outlet />
+        <header className="mobile-header">
+          <MapPin size={24} color="var(--primary)" />
+          <span className="logo-text">KomuniTrade</span>
+        </header>
+        <div className="content-scroll">
+          <Outlet />
+        </div>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="bottom-nav glass">
-        <NavLink to="/" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+      {/* Mobile Bottom Navigation (Visible only on small screens) */}
+      <nav className="mobile-bottom-nav">
+        <NavLink to="/app" end className={({isActive}) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
           <Home />
-          <span>Home</span>
         </NavLink>
         
-        <NavLink to="/messages" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+        <NavLink to="/app/messages" className={({isActive}) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
           <MessageCircle />
-          <span>Chat</span>
         </NavLink>
         
-        <NavLink to="/post" className="nav-item post-btn">
-          <Plus size={32} />
+        <NavLink to="/app/post" className="mobile-nav-item mobile-post-btn">
+          <Plus size={24} />
         </NavLink>
 
-        <NavLink to="/profile" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+        <NavLink to="/app/profile" className={({isActive}) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
           <User />
-          <span>Profile</span>
         </NavLink>
       </nav>
     </div>
