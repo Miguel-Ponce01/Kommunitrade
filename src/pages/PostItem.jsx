@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Bot, Loader2, Save } from 'lucide-react';
-import { MOCK_BARANGAYS } from '../data/mockData';
+import { MOCK_BARANGAYS, CATEGORIES } from '../data/mockData';
 
 export default function PostItem() {
   const navigate = useNavigate();
@@ -241,11 +241,9 @@ Response Schema MUST BE EXACTLY this JSON format without markdown blocks:
               <label>Category</label>
               <select className="form-control" required value={category} onChange={(e) => setCategory(e.target.value)}>
                 <option value="" disabled>Select category...</option>
-                <option value="House">House</option>
-                <option value="Electronic">Electronic</option>
-                <option value="Service">Service</option>
-                <option value="Food">Food</option>
-                <option value="Waste">Waste</option>
+                {CATEGORIES.filter(c => c.id !== "All").map(c => (
+                  <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
+                ))}
               </select>
             </div>
           </div>

@@ -32,22 +32,22 @@ export default function Landing() {
 
       {/* Hero Section */}
       <section className="editorial-hero">
-        <Link to="/features" className="back-link">← Back to Features</Link>
+        <div className="location-badge">📍 Your Barangay, Your Marketplace</div>
         
         <h1 className="hero-heading">
           Smart 
-          <span className="inline-img img-1" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=150)' }}></span> 
+          <span className="inline-img img-1" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=150)' }}></span> 
           trading built for <em className="italic-serif">modern</em>
           <br />
-          local <span className="inline-img img-2" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1595039011702-861f1c29e1f5?auto=format&fit=crop&q=80&w=150)' }}></span> communities
+          local <span className="inline-img img-2" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1513530534585-c7b1394c6d51?auto=format&fit=crop&q=80&w=150)' }}></span> communities
         </h1>
 
         <div className="hero-sub">
           <p className="hero-text">
             In a world where neighborhoods thrive on trust, trading locally shouldn't slow you down—it should bring you closer.
           </p>
-          <button className="explore-link" onClick={() => openAuth('register')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: 'inherit' }}>
-            Start Trading Now <ArrowRight size={16} />
+          <button className="hero-cta-btn" onClick={() => openAuth('register')}>
+            Start Trading Now <ArrowRight size={20} />
           </button>
         </div>
       </section>
@@ -55,8 +55,8 @@ export default function Landing() {
       {/* Main Banner Image */}
       <div className="editorial-banner">
         <img 
-          src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&q=80&w=1200" 
-          alt="Local trading" 
+          src="https://images.unsplash.com/photo-1533900298318-6b8da08a523e?auto=format&fit=crop&q=80&w=1200" 
+          alt="Local community trading" 
           className="banner-img"
         />
       </div>
@@ -73,15 +73,15 @@ export default function Landing() {
 
         <div className="masonry-grid">
           <div className="grid-col col-1">
-             <img src="https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=400" alt="Trade 1" className="grid-img" />
-             <img src="https://images.unsplash.com/photo-1556656793-08538906a9f8?auto=format&fit=crop&q=80&w=400" alt="Trade 2" className="grid-img" />
+             <img src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&q=80&w=400" alt="Home Decor" className="grid-img" />
+             <img src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=400" alt="Fashion and Sneakers" className="grid-img" />
           </div>
           <div className="grid-col col-2">
-             <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=600" alt="Trade 3" className="grid-img main-grid-img" />
+             <img src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&q=80&w=600" alt="Second hand clothing rack" className="grid-img main-grid-img" />
           </div>
           <div className="grid-col col-3">
-             <img src="https://images.unsplash.com/photo-1565151443681-49651cfa85bf?auto=format&fit=crop&q=80&w=400" alt="Trade 4" className="grid-img" />
-             <img src="https://images.unsplash.com/photo-1576871337622-98d48d1cf531?auto=format&fit=crop&q=80&w=400" alt="Trade 5" className="grid-img" />
+             <img src="https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&q=80&w=400" alt="Vintage camera and bike" className="grid-img" />
+             <img src="https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&q=80&w=400" alt="Potted plants" className="grid-img" />
           </div>
         </div>
       </section>

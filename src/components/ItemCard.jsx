@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { MapPin, Heart, CheckCircle2 } from 'lucide-react';
+import { MapPin, Heart, CheckCircle2, Clock } from 'lucide-react';
 
 export default function ItemCard({ item, onClick }) {
   const [isSaved, setIsSaved] = useState(false);
 
   const handleSave = (e) => {
-    e.stopPropagation(); // Prevent card click
+    e.stopPropagation();
     setIsSaved(!isSaved);
   };
 
@@ -13,7 +13,9 @@ export default function ItemCard({ item, onClick }) {
     <div className="item-card" onClick={() => onClick(item.id)}>
       <div className="item-img-wrap">
         {item.condition && (
-          <div className="item-badge-top-left">{item.condition}</div>
+          <div className={`item-badge-top-left ${item.condition === 'New' ? 'badge-new' : item.condition === 'Like New' ? 'badge-like-new' : ''}`}>
+            {item.condition}
+          </div>
         )}
         <button 
           className={`item-wishlist-btn ${isSaved ? 'active' : ''}`}
@@ -43,7 +45,14 @@ export default function ItemCard({ item, onClick }) {
             </span>
           )}
         </span>
-        <div className="item-price">₱{item.price.toLocaleString()}</div>
+        <div className="item-card-footer">
+          <div className="item-price">₱{item.price.toLocaleString()}</div>
+          {item.createdAt && (
+            <span className="item-time">
+              <Clock size={10} /> {item.createdAt}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
