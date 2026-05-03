@@ -16,6 +16,7 @@ This repository contains the **Phase 1 MVP Prototype**, which focuses on a premi
 * **Routing**: React Router
 * **Styling**: Vanilla CSS (Custom Variables, Mobile-First)
 * **Icons**: Lucide React
+* **Containerization**: Docker
 
 ## 🚀 Getting Started
 
@@ -33,6 +34,14 @@ Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
    ```
 
 ### Running the App Locally
+
+**Using Docker (Recommended)**
+Start the Vite development server within a Docker container:
+```bash
+docker compose up
+```
+
+**Using npm directly**
 Start the Vite development server:
 ```bash
 npm run dev
