@@ -8,17 +8,22 @@ KomuniTrade is a modern, mobile-first web application designed to simplify buyin
 
 ## ✨ Key Features (MVP Prototype)
 
-📱 **Mobile-First Experience**
-A highly polished, app-like interface optimized for smartphones, ensuring seamless accessibility.
+📱 **Mobile-First & Desktop Ready**
+A highly polished, app-like interface optimized for smartphones (bottom dock navigation), alongside a sophisticated editorial desktop view featuring a persistent sidebar and grid layouts.
 
-📍 **Hyperlocal Geographic Filtering**
-Browse and discover listings specific to your local barangay in Davao City instantly via intuitive filtering.
+🤖 **AI-Powered "Zero-Friction" Posting**
+Integrated natively with **Google's Gemini 1.5 Flash AI**. Simply snap or upload a photo, and the AI will analyze the image to instantly generate a high-conversion title, accurate categorization, and optimized descriptions—reducing listing time to seconds.
 
-🤖 **AI-Assisted Frictionless Posting**
-A streamlined "Sell an Item" interface. Upload an image, and our simulated AI instantly categorizes and drafts a listing for you.
+🎨 **Premium Editorial Brand Identity**
+Built with a vibrant, trustworthy design system:
+- **Linen Base (#FAF9F6)**: A warm, eye-comforting background.
+- **Deep Indigo (#4834D4)**: Structural anchors and sidebar navigation.
+- **Muted Apricot (#FD9644)**: High-energy primary actions.
+- **Pale Turquoise (#81ECEC)**: Subtle micro-interaction hover states and system feedback.
+- **Typography**: Utilizing the native Apple ecosystem font `SF Pro Display` paired with elegant `Georgia` serif accents.
 
-🎨 **Modern & Premium UI/UX**
-Built with a vibrant, trustworthy color palette, stunning glassmorphism effects, interactive animations, and modern typography (Plus Jakarta Sans).
+🔐 **Seamless Glassmorphic Authentication**
+A beautiful, pop-up modal authentication system (inspired by Carousell) directly on the landing page, allowing users to sign up or log in without jarring redirects.
 
 ---
 
@@ -29,7 +34,8 @@ Built with a vibrant, trustworthy color palette, stunning glassmorphism effects,
 | **Frontend Framework** | ⚛️ React 18 |
 | **Build Tool** | ⚡ Vite |
 | **Routing** | 🛣️ React Router v6 |
-| **Styling** | 🎨 Vanilla CSS (Custom Variables, Flexbox/Grid) |
+| **Styling** | 🎨 Vanilla CSS (Custom Variables, Flexbox/Grid/Masonry) |
+| **AI Integration** | 🧠 Google Gemini 1.5 Flash API |
 | **Icons** | 🌠 Lucide React |
 | **Containerization** | 🐳 Docker |
 
@@ -73,9 +79,9 @@ Once running, open your browser and navigate to `http://localhost:5173`.
 
 Currently, in the **Phase 1 MVP Prototype**, the application operates entirely on the client side using the following external services:
 
-* 🗺️ **OpenStreetMap / Leaflet API**: Powers the interactive community map on the landing page.
+* 🧠 **Gemini API**: Powers the automated image recognition and text generation for new listings.
 * 🖼️ **Unsplash Source API**: Dynamically fetches high-quality, realistic placeholder images for dummy listings.
-* ⚡ **Simulated Endpoints**: Core features like Authentication and AI Image Processing utilize simulated delays (`setTimeout`) to mimic real backend behavior.
+* ⚡ **Simulated Endpoints**: Core features like Authentication utilize simulated data to mimic real backend behavior for presentation purposes.
 
 ---
 
@@ -93,10 +99,11 @@ To guarantee that the KomuniTrade backend cannot be breached and that user data 
 
 ## 🗺️ Project Roadmap
 
-- [x] **Phase 1 (Current)**: High-Fidelity UI Prototype & Mock Data generation.
-- [ ] **Phase 2**: Backend Integration with Firebase (Firestore & Storage) for real-time data and image uploads.
-- [ ] **Phase 3**: Integration of Real AI (Computer Vision & OCR) for automated, zero-friction listing creation.
-- [ ] **Phase 4**: Anonymous real-time chat system implementation for buyer-seller communication.
+- [x] **Phase 1**: High-Fidelity UI Prototype & Mock Data generation.
+- [x] **Phase 2**: Integration of Real AI (Google Gemini) for automated, zero-friction listing creation.
+- [x] **Phase 3**: Editorial Rebrand (Linen/Indigo aesthetic, Masonry grids, Glassmorphic Modals).
+- [ ] **Phase 4**: Backend Integration with Firebase (Firestore & Storage) for real-time data persistence and image uploads.
+- [ ] **Phase 5**: Anonymous real-time chat system implementation for buyer-seller communication.
 
 ---
 *🎓 Built as a Capstone Project focusing on community trust, safety, and hyperlocal commerce.*
