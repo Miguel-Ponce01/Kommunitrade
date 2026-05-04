@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Moon, Sun, Smartphone, Bell, Shield, LogOut, Database, Check, Loader2 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { doc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { MOCK_LISTINGS } from '../data/mockData';
 import { isListingActive } from '../utils/geo';
@@ -17,10 +17,18 @@ export default function Settings() {
 
   const seedDatabase = async () => {
     setIsSeeding(true);
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      alert("Please wait for authentication to complete.");
+      setIsSeeding(false);
+      return;
+    }
+
     try {
       for (const item of MOCK_LISTINGS) {
         await setDoc(doc(db, 'listings', item.id), {
           ...item,
+          sellerId: currentUser.uid, // Associate with current demo user
           createdAt: new Date().toISOString(),
         });
       }

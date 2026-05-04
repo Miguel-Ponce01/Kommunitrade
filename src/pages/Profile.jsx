@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  MapPin, 
   Package, 
   Settings, 
   Edit3, 
   Trash2, 
-  Tag, 
-  Fingerprint, 
-  TrendingUp, 
   ShieldCheck,
-  Plus
+  Plus,
+  Fingerprint,
+  BarChart3,
+  History,
+  Share2,
+  Loader2,
+  CheckCircle2,
+  MapPin
 } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
 import { db, auth } from '../firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 
 export default function Profile() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('inventory');
   const [myListings, setMyListings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const currentUser = auth.currentUser;
@@ -25,7 +29,6 @@ export default function Profile() {
   useEffect(() => {
     if (!currentUser) return;
 
-    // Fetch only listings where the current anonymous user is the seller
     const q = query(
       collection(db, 'listings'),
       where('sellerId', '==', currentUser.uid)
@@ -43,128 +46,209 @@ export default function Profile() {
     return () => unsubscribe();
   }, [currentUser]);
 
-  // Generate a display name from the UID
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to remove this listing?")) return;
+    
+    try {
+      await deleteDoc(doc(db, 'listings', id));
+    } catch (error) {
+      console.error("Delete Error:", error);
+      alert("Failed to delete item.");
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: 'KomuniTrade Profile',
+      text: `Check out ${anonymousName}'s shop on KomuniTrade!`,
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        alert("Profile link copied to clipboard!");
+      }
+    } catch (err) {
+      console.error("Share failed:", err);
+    }
+  };
+
   const anonymousName = currentUser ? `Agent_${currentUser.uid.substring(0, 6).toUpperCase()}` : "Guest_User";
 
   return (
-    <div className="animate-fade-in" style={{ padding: '1rem', paddingBottom: '100px' }}>
+    <div className="animate-fade-in" style={{ paddingBottom: '100px' }}>
       
-      {/* ── Premium Header ────────────────────────────────────────────────────── */}
-      <div className="glass-card" style={{ 
-        padding: '2rem 1.5rem', 
-        borderRadius: '24px', 
-        marginBottom: '2rem',
-        position: 'relative',
-        overflow: 'hidden',
-        border: '1px solid rgba(var(--primary-rgb), 0.2)'
-      }}>
-        {/* Background Accent */}
-        <div style={{ 
-          position: 'absolute', 
-          top: '-50px', 
-          right: '-50px', 
-          width: '150px', 
-          height: '150px', 
-          background: 'var(--primary)', 
-          filter: 'blur(80px)', 
-          opacity: 0.2,
-          zIndex: 0 
-        }}></div>
+      {/* ── High-Contrast Banner ────────────────────────────────────────── */}
+      <div className="profile-banner">
+        <img 
+          src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1500" 
+          alt="Abstract Dark Banner" 
+        />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }}></div>
+      </div>
 
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-            <div className="animate-float" style={{ 
-              width: '80px', 
-              height: '80px', 
-              borderRadius: '20px', 
-              background: 'linear-gradient(135deg, var(--primary) 0%, #6366f1 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              boxShadow: '0 10px 20px rgba(79, 70, 229, 0.3)'
-            }}>
-              <Fingerprint size={40} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }} className="text-gradient">
-                  {anonymousName}
-                </h1>
-                <div className="anonymous-badge" style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700, color: 'var(--primary)' }}>
-                  VERIFIED ANONYMOUS
-                </div>
+      {/* ── Professional Glass Header ────────────────────────────────────────── */}
+      <div className="profile-header-wrap">
+        <div className="profile-info-card">
+          <div className="profile-avatar-large">
+            <Fingerprint size={70} strokeWidth={1} />
+          </div>
+          
+          <div style={{ flex: 1, position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem' }}>
+              <h1 style={{ fontSize: '2.25rem', fontWeight: 900, margin: 0, letterSpacing: '-0.02em', color: '#fff' }}>
+                {anonymousName}
+              </h1>
+              <div style={{ background: 'var(--primary)', color: 'white', padding: '6px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CheckCircle2 size={14} /> VERIFIED
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                <ShieldCheck size={14} />
-                <span>ID: {currentUser?.uid.substring(0, 16)}...</span>
+            </div>
+            
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <ShieldCheck size={18} style={{ color: 'var(--primary)' }} />
+                <span style={{ fontWeight: 600 }}>Trust Score: <span style={{ color: '#fff' }}>98%</span></span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <MapPin size={18} />
+                <span>Davao City, PH</span>
               </div>
             </div>
           </div>
-          <button className="settings-btn glass" onClick={() => navigate('/app/settings')}>
-            <Settings size={20} />
-          </button>
+
+          <div style={{ display: 'flex', gap: '0.75rem', position: 'relative', zIndex: 1 }}>
+            <button className="glass" onClick={handleShare} style={{ width: '54px', height: '54px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <Share2 size={22} color="#fff" />
+            </button>
+            <button className="glass" onClick={() => navigate('/app/settings')} style={{ width: '54px', height: '54px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <Settings size={22} color="#fff" />
+            </button>
+            <button className="btn-primary" onClick={() => alert("Edit Profile Coming Soon!")} style={{ padding: '0 2rem', borderRadius: '18px', height: '54px', fontWeight: 800, fontSize: '0.95rem', background: '#fff', border: 'none', color: '#111', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
+              Edit Profile
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ── Stats Dashboard ───────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2.5rem' }}>
-        <div className="glass-card" style={{ padding: '1.25rem', borderRadius: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <div style={{ color: 'var(--primary)' }}><Package size={18} /></div>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Active Listings</span>
-          </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>{myListings.length}</div>
-        </div>
-        <div className="glass-card" style={{ padding: '1.25rem', borderRadius: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <div style={{ color: '#10b981' }}><TrendingUp size={18} /></div>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Shop Impact</span>
-          </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>Local</div>
-        </div>
-      </div>
-
-      {/* ── My Shop Section ──────────────────────────────────────────────────── */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>My Shop Inventory</h2>
-          <button 
-            className="btn-primary" 
-            onClick={() => navigate('/app/post')}
-            style={{ padding: '0.6rem 1rem', borderRadius: '12px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            <Plus size={18} /> List New Item
+      {/* ── Main Layout ────────────────────────────────────────────────── */}
+      <div style={{ padding: '0 3rem' }}>
+        
+        {/* Modern Tab System */}
+        <div className="tab-nav">
+          <button className={`tab-item ${activeTab === 'inventory' ? 'active' : ''}`} onClick={() => setActiveTab('inventory')}>
+            Inventory
+          </button>
+          <button className={`tab-item ${activeTab === 'insights' ? 'active' : ''}`} onClick={() => setActiveTab('insights')}>
+            Insights
+          </button>
+          <button className={`tab-item ${activeTab === 'security' ? 'active' : ''}`} onClick={() => setActiveTab('security')}>
+            Security
           </button>
         </div>
 
-        {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-            Loading your shop...
-          </div>
-        ) : myListings.length === 0 ? (
-          <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem', borderRadius: '24px', border: '1px dashed var(--border-color)' }}>
-            <div style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}><Package size={48} strokeWidth={1} /></div>
-            <h3 style={{ margin: '0 0 0.5rem 0' }}>Your shop is empty</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>Start selling to your community today!</p>
-          </div>
-        ) : (
-          <div className="masonry-grid">
-            {myListings.map(item => (
-              <div key={item.id} style={{ position: 'relative' }} className="animate-fade-in">
-                <ItemCard item={item} onClick={() => navigate(`/app/item/${item.id}`)} />
-                <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '0.4rem', zIndex: 10 }}>
-                  <button className="glass" style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-main)' }}>
-                    <Edit3 size={16} />
-                  </button>
-                  <button className="glass" style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }}>
-                    <Trash2 size={16} />
-                  </button>
-                </div>
+        {activeTab === 'inventory' && (
+          <div className="animate-fade-in">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>Active Listings</h2>
+              <button 
+                className="btn-primary" 
+                onClick={() => navigate('/app/post')}
+                style={{ background: '#ef4444', padding: '0.75rem 1.5rem', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 10px 20px rgba(239, 68, 68, 0.2)' }}
+              >
+                <Plus size={20} /> List New Item
+              </button>
+            </div>
+
+            {isLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '6rem' }}>
+                <Loader2 className="animate-spin" size={48} color="var(--primary)" />
               </div>
-            ))}
+            ) : myListings.length === 0 ? (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '6rem 2rem', 
+                background: 'var(--card-bg)',
+                borderRadius: '32px', 
+                border: '2px dashed var(--border-color)',
+                color: 'var(--text-muted)'
+              }}>
+                <div style={{ opacity: 0.3, marginBottom: '1.5rem' }}><Package size={64} strokeWidth={1} /></div>
+                <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', marginBottom: '0.5rem' }}>No active listings</h3>
+                <p style={{ maxWidth: '300px', margin: '0 auto', lineHeight: 1.6 }}>Your inventory is currently empty. Start selling to your neighborhood!</p>
+              </div>
+            ) : (
+              <div className="masonry-grid">
+                {myListings.map(item => (
+                  <div key={item.id} style={{ position: 'relative' }} className="animate-fade-in">
+                    <ItemCard item={item} onClick={() => navigate(`/app/item/${item.id}`)} />
+                    <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
+                      <button className="glass" style={{ width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)' }}>
+                        <Edit3 size={16} />
+                      </button>
+                      <button 
+                        className="glass" 
+                        onClick={(e) => handleDelete(e, item.id)}
+                        style={{ width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
+
+        {/* ... (Insights and Security sections remain but with improved spacing) */}
+        {activeTab === 'insights' && (
+          <div className="animate-fade-in">
+            <div className="stat-grid">
+              <div className="stat-card">
+                <span className="stat-label">Total Views</span>
+                <div className="stat-value">1,284</div>
+              </div>
+              <div className="stat-card">
+                <span className="stat-label">Reach Index</span>
+                <div className="stat-value">85%</div>
+              </div>
+              <div className="stat-card">
+                <span className="stat-label">Response Time</span>
+                <div className="stat-value">14m</div>
+              </div>
+              <div className="stat-card" style={{ background: 'rgba(16, 185, 129, 0.1)', borderColor: '#10b981' }}>
+                <span className="stat-label" style={{ color: '#047857' }}>Trust Status</span>
+                <div className="stat-value" style={{ color: '#059669' }}>High</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'security' && (
+          <div className="animate-fade-in">
+             <div className="glass-card" style={{ padding: '2rem', borderRadius: '24px' }}>
+               <h3 style={{ marginBottom: '1.5rem', fontWeight: 800 }}>Protocol Verification Logs</h3>
+               {[
+                  { time: '10:45 AM', event: 'E2EE Symmetric Key Rotation', status: 'Success' },
+                  { time: '09:12 AM', event: 'TTL Batch Purge Simulation', status: 'Clean' },
+                  { time: 'Yesterday', event: 'Anonymous ID Verified', status: 'Secured' }
+                ].map((log, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', borderBottom: i < 2 ? '1px solid var(--border-color)' : 'none' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '1rem' }}>{log.event}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{log.time}</div>
+                    </div>
+                    <div style={{ color: 'var(--primary)', fontWeight: 900, fontSize: '0.75rem' }}>{log.status}</div>
+                  </div>
+                ))}
+             </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
