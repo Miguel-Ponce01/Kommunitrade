@@ -1,15 +1,56 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, MapPin, Clock } from 'lucide-react';
-import { MOCK_LISTINGS } from '../data/mockData';
+import { ArrowLeft, MessageCircle, MapPin, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import ChatModal from '../components/ChatModal';
 
 export default function ItemDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [item, setItem] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   
-  const item = MOCK_LISTINGS.find(l => l.id === id);
+  useEffect(() => {
+    async function fetchItem() {
+      try {
+        const docRef = doc(db, 'listings', id);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          setItem({ id: docSnap.id, ...docSnap.data() });
+        } else {
+          setError("Listing not found");
+        }
+      } catch (err) {
+        console.error("Fetch Error:", err);
+        setError("Failed to load item details");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchItem();
+  }, [id]);
 
-  if (!item) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Item not found</div>;
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '80vh', gap: '1rem', color: 'var(--text-muted)' }}>
+        <Loader2 className="animate-spin" size={48} color="var(--primary)" />
+        <p>Fetching listing details...</p>
+      </div>
+    );
+  }
+
+  if (error || !item) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '80vh', gap: '1rem', color: 'var(--text-muted)' }}>
+        <AlertCircle size={48} color="#ef4444" />
+        <h3>{error || "Item not found"}</h3>
+        <button className="btn" onClick={() => navigate('/app')} style={{ width: 'auto' }}>Go back home</button>
+      </div>
+    );
   }
 
   return (
@@ -33,7 +74,7 @@ export default function ItemDetails() {
           <MapPin size={16} /> {item.barangay}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <Clock size={16} /> {item.createdAt}
+          <Clock size={16} /> {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString() : item.createdAt}
         </span>
       </div>
 
@@ -57,10 +98,16 @@ export default function ItemDetails() {
         borderTop: '1px solid var(--border-color)',
         zIndex: 40
       }}>
-        <button className="btn btn-primary" onClick={() => alert("Opening anonymous chat...")}>
+        <button className="btn btn-primary" onClick={() => setIsChatOpen(true)}>
           <MessageCircle size={20} /> Contact Seller
         </button>
       </div>
+
+      <ChatModal 
+        isOpen={isChatOpen} 
+        onClose={() => setIsChatOpen(false)} 
+        item={item} 
+      />
     </div>
   );
 }

@@ -1,10 +1,59 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Moon, Sun, Smartphone, Bell, Shield, LogOut } from 'lucide-react';
+import { ChevronLeft, Moon, Sun, Smartphone, Bell, Shield, LogOut, Database, Check, Loader2 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
+import { db } from '../firebase';
+import { doc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { MOCK_LISTINGS } from '../data/mockData';
+import { isListingActive } from '../utils/geo';
 
 export default function Settings() {
   const navigate = useNavigate();
   const [theme, setTheme] = useTheme();
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [isPurging, setIsPurging] = useState(false);
+  const [seedSuccess, setSeedSuccess] = useState(false);
+  const [purgeCount, setPurgeCount] = useState(0);
+
+  const seedDatabase = async () => {
+    setIsSeeding(true);
+    try {
+      for (const item of MOCK_LISTINGS) {
+        await setDoc(doc(db, 'listings', item.id), {
+          ...item,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      setSeedSuccess(true);
+      setTimeout(() => setSeedSuccess(false), 3000);
+    } catch (error) {
+      console.error("Seeding Error:", error);
+      alert("Failed to seed. Check console or Firestore rules.");
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  const purgeExpired = async () => {
+    setIsPurging(true);
+    try {
+      const querySnapshot = await getDocs(collection(db, 'listings'));
+      let deleted = 0;
+      for (const listingDoc of querySnapshot.docs) {
+        const data = listingDoc.data();
+        if (!isListingActive(data.expiresAt)) {
+          await deleteDoc(doc(db, 'listings', listingDoc.id));
+          deleted++;
+        }
+      }
+      setPurgeCount(deleted);
+      setTimeout(() => setPurgeCount(0), 4000);
+    } catch (error) {
+      console.error("Purge Error:", error);
+    } finally {
+      setIsPurging(false);
+    }
+  };
 
   return (
     <div className="animate-fade-in" style={{ padding: '1rem', paddingBottom: '80px' }}>
@@ -80,6 +129,65 @@ export default function Settings() {
               <Shield size={20} color="var(--text-muted)" />
               <span style={{ fontWeight: 500 }}>Privacy & Safety</span>
             </div>
+          </div>
+        </div>
+      </div>
+      <div className="settings-section" style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: '1rem', paddingLeft: '0.5rem' }}>Developer Tools</h2>
+        <div style={{ background: 'var(--card-bg)', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Database size={20} color="var(--text-muted)" />
+              <div>
+                <span style={{ fontWeight: 500, display: 'block' }}>Seed Database</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Populate Firestore with mock data</span>
+              </div>
+            </div>
+            <button 
+              onClick={seedDatabase}
+              disabled={isSeeding || seedSuccess}
+              style={{ 
+                background: seedSuccess ? 'var(--primary)' : 'transparent',
+                color: seedSuccess ? 'white' : 'var(--primary)',
+                border: '1px solid var(--primary)',
+                borderRadius: '8px',
+                padding: '0.4rem 0.8rem',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              {isSeeding ? <Loader2 className="animate-spin" size={14} /> : (seedSuccess ? <Check size={14} /> : 'Seed Now')}
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Shield size={20} color="#ef4444" />
+              <div>
+                <span style={{ fontWeight: 500, display: 'block' }}>Purge Expired</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Simulate automated TTL cleanup</span>
+              </div>
+            </div>
+            <button 
+              onClick={purgeExpired}
+              disabled={isPurging}
+              style={{ 
+                background: purgeCount > 0 ? '#ef4444' : 'transparent',
+                color: purgeCount > 0 ? 'white' : '#ef4444',
+                border: '1px solid #ef4444',
+                borderRadius: '8px',
+                padding: '0.4rem 0.8rem',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              {isPurging ? <Loader2 className="animate-spin" size={14} /> : (purgeCount > 0 ? `Deleted ${purgeCount}` : 'Purge Now')}
+            </button>
           </div>
         </div>
       </div>

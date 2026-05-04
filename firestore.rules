@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Listings: Anyone can read, only authenticated users can post/delete
+    match /listings/{listingId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+    
+    // Chats: Only participants can read/write to their specific chat threads
+    // Note: Chat ID is composed as [uid1, uid2, itemId].sort().join('_')
+    match /chats/{chatId}/{document=**} {
+      allow read, write: if request.auth != null && 
+        (chatId.contains(request.auth.uid));
+    }
+  }
+}

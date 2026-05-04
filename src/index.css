@@ -1611,6 +1611,11 @@ ul {
   to { transform: translateY(0); opacity: 1; }
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .auth-modal-overlay {
   position: fixed;
   top: 0;
@@ -1707,6 +1712,7 @@ ul {
 
 .location-modal-content {
   background: #252525;
+  color-scheme: dark;
   color: #f1f1f1;
   width: 100%;
   max-width: 450px;
@@ -1834,12 +1840,18 @@ ul {
 .radius-select-container select {
   background: transparent;
   border: none;
+  color-scheme: dark;
   color: #fff;
   font-size: 0.95rem;
   outline: none;
   width: 100%;
   appearance: none;
   cursor: pointer;
+}
+
+.radius-select-container select option {
+  background: #252525;
+  color: #fff;
 }
 
 .radius-chevron {
@@ -1957,3 +1969,45 @@ ul {
   border-color: var(--primary);
   background: var(--primary-light);
 }
+
+/* ── Dashboard & Magic UI ────────────────────────────────────────────────── */
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+.dark .glass-card {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.anonymous-badge {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(79, 70, 229, 0.05) 10px,
+    rgba(79, 70, 229, 0.05) 20px
+  );
+  border: 1px dashed var(--primary);
+  font-family: monospace;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+

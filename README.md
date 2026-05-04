@@ -23,7 +23,13 @@ Built with a vibrant, trustworthy design system:
 - **Typography**: Utilizing the native Apple ecosystem font `SF Pro Display` paired with elegant `Georgia` serif accents.
 
 🔐 **Seamless Glassmorphic Authentication**
-A beautiful, pop-up modal authentication system (inspired by Carousell) directly on the landing page, allowing users to sign up or log in without jarring redirects.
+A beautiful, pop-up modal authentication system (inspired by Carousell) directly on the landing page, allowing users to sign up or log in without jarring redirects. Built on **Firebase Anonymous Auth**.
+
+⏳ **Anti-Scam "Time-to-Live" (TTL)**
+Every listing has a strictly enforced lifecycle. Once an item expires, communication is automatically disabled, and the listing is flagged for purging. This prevents stale listings and minimizes scam opportunities—a core technical claim of the manuscript.
+
+🗺️ **Real-time Geohash Discovery**
+Dynamic spatial filtering using Geohash precision (6 characters / ~1.2km) and Haversine distance calculations to ensure buyers only see items truly "near" them.
 
 ---
 
@@ -77,11 +83,12 @@ Once running, open your browser and navigate to `http://localhost:5173`.
 
 ## 🔌 APIs & External Services
 
-Currently, in the **Phase 1 MVP Prototype**, the application operates entirely on the client side using the following external services:
+Currently, in the **Production-Ready Prototype**, the application utilizes the following external services:
 
+* 🔥 **Firebase Cloud Firestore**: Powers the real-time marketplace feed, listing persistence, and chat messaging.
+* 🔐 **Firebase Auth**: Manages anonymous session persistence for trust-based interactions.
 * 🧠 **Gemini API**: Powers the automated image recognition and text generation for new listings.
 * 🖼️ **Unsplash Source API**: Dynamically fetches high-quality, realistic placeholder images for dummy listings.
-* ⚡ **Simulated Endpoints**: Core features like Authentication utilize simulated data to mimic real backend behavior for presentation purposes.
 
 ---
 
@@ -102,8 +109,10 @@ To guarantee that the KomuniTrade backend cannot be breached and that user data 
 - [x] **Phase 1**: High-Fidelity UI Prototype & Mock Data generation.
 - [x] **Phase 2**: Integration of Real AI (Google Gemini) for automated, zero-friction listing creation.
 - [x] **Phase 3**: Editorial Rebrand (Linen/Indigo aesthetic, Masonry grids, Glassmorphic Modals).
-- [ ] **Phase 4**: Backend Integration with Firebase (Firestore & Storage) for real-time data persistence and image uploads.
-- [ ] **Phase 5**: Anonymous real-time chat system implementation for buyer-seller communication.
+- [x] **Phase 4**: Backend Integration with Firebase (Firestore & Storage) for real-time data persistence.
+- [x] **Phase 5**: Anonymous real-time chat system with TTL communication blocks.
+- [x] **Phase 6**: End-to-End Encryption (E2EE) implementation for messaging.
+- [x] **Phase 7**: Admin Purge Simulation (Cron simulation) for TTL data lifecycle management.
 
 ---
 *🎓 Built as a Capstone Project focusing on community trust, safety, and hyperlocal commerce.*

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { MapPin, Heart, CheckCircle2, Clock } from 'lucide-react';
+import { MapPin, Heart, CheckCircle2, Clock, Timer } from 'lucide-react';
+import { getExpiryLabel } from '../utils/geo';
 
 export default function ItemCard({ item, onClick }) {
   const [isSaved, setIsSaved] = useState(false);
@@ -53,6 +54,21 @@ export default function ItemCard({ item, onClick }) {
             </span>
           )}
         </div>
+        {/* TTL Expiry Badge — visible proof of Time-to-Live mechanism */}
+        {getExpiryLabel(item.expiresAt) && (
+          <div className="item-expiry-badge" style={{
+            marginTop: '0.4rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+            fontSize: '0.7rem',
+            fontWeight: 700,
+            color: getExpiryLabel(item.expiresAt) === 'Expires today' || getExpiryLabel(item.expiresAt) === 'Expires tomorrow' ? '#ef4444' : '#f59e0b',
+          }}>
+            <Timer size={10} />
+            {getExpiryLabel(item.expiresAt)}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,80 +1,104 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Star, Package, CheckCircle, Settings, Edit3, Trash2, Tag } from 'lucide-react';
+import { 
+  MapPin, 
+  Package, 
+  Settings, 
+  Edit3, 
+  Trash2, 
+  Tag, 
+  Fingerprint, 
+  TrendingUp, 
+  ShieldCheck,
+  Plus
+} from 'lucide-react';
 import ItemCard from '../components/ItemCard';
+import { db, auth } from '../firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 export default function Profile() {
   const navigate = useNavigate();
-  
-  // User State
-  const user = {
-    name: 'Juan Dela Cruz',
-    avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=200&h=200',
-    location: 'Brgy. Obrero, Davao City',
-    memberSince: 'May 2024',
-    trustScore: 100,
-    itemsSold: 12,
-    activeListingsCount: 3,
-  };
+  const [myListings, setMyListings] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const currentUser = auth.currentUser;
 
-  // Active Listings State
-  const [activeListings, setActiveListings] = useState([
-    {
-      id: 1,
-      title: 'Handwoven Rattan Basket',
-      price: 350,
-      imageUrl: 'https://images.unsplash.com/photo-1595039011702-861f1c29e1f5?auto=format&fit=crop&q=80&w=300',
-      barangay: 'Brgy. Obrero',
-      isSold: false
-    },
-    {
-      id: 2,
-      title: 'Monstera Deliciosa Plant',
-      price: 850,
-      imageUrl: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?auto=format&fit=crop&q=80&w=300',
-      barangay: 'Brgy. Obrero',
-      isSold: false
-    },
-    {
-      id: 3,
-      title: 'Pre-loved Denim Jacket (M)',
-      price: 450,
-      imageUrl: 'https://images.unsplash.com/photo-1576871337622-98d48d1cf531?auto=format&fit=crop&q=80&w=300',
-      barangay: 'Brgy. Obrero',
-      isSold: true
-    }
-  ]);
+  useEffect(() => {
+    if (!currentUser) return;
 
-  const toggleSoldStatus = (id) => {
-    setActiveListings(prev => 
-      prev.map(item => item.id === id ? { ...item, isSold: !item.isSold } : item)
+    // Fetch only listings where the current anonymous user is the seller
+    const q = query(
+      collection(db, 'listings'),
+      where('sellerId', '==', currentUser.uid)
     );
-  };
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setMyListings(items);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  // Generate a display name from the UID
+  const anonymousName = currentUser ? `Agent_${currentUser.uid.substring(0, 6).toUpperCase()}` : "Guest_User";
 
   return (
-    <div className="profile-page animate-fade-in">
-      <div className="profile-header">
-        <div className="profile-cover"></div>
-        <div className="profile-info-container">
-          <div className="profile-avatar-wrap">
-            <img 
-              src={user.avatar} 
-              alt={user.name} 
-              className="profile-avatar" 
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=200&h=200';
-              }}
-            />
-            <button className="edit-avatar-btn">
-              <Edit3 size={16} />
-            </button>
-          </div>
-          <div className="profile-details">
-            <h1 className="profile-name">{user.name}</h1>
-            <div className="profile-location">
-              <MapPin size={14} />
-              <span>{user.location} • Member since {user.memberSince}</span>
+    <div className="animate-fade-in" style={{ padding: '1rem', paddingBottom: '100px' }}>
+      
+      {/* ── Premium Header ────────────────────────────────────────────────────── */}
+      <div className="glass-card" style={{ 
+        padding: '2rem 1.5rem', 
+        borderRadius: '24px', 
+        marginBottom: '2rem',
+        position: 'relative',
+        overflow: 'hidden',
+        border: '1px solid rgba(var(--primary-rgb), 0.2)'
+      }}>
+        {/* Background Accent */}
+        <div style={{ 
+          position: 'absolute', 
+          top: '-50px', 
+          right: '-50px', 
+          width: '150px', 
+          height: '150px', 
+          background: 'var(--primary)', 
+          filter: 'blur(80px)', 
+          opacity: 0.2,
+          zIndex: 0 
+        }}></div>
+
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+            <div className="animate-float" style={{ 
+              width: '80px', 
+              height: '80px', 
+              borderRadius: '20px', 
+              background: 'linear-gradient(135deg, var(--primary) 0%, #6366f1 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              boxShadow: '0 10px 20px rgba(79, 70, 229, 0.3)'
+            }}>
+              <Fingerprint size={40} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }} className="text-gradient">
+                  {anonymousName}
+                </h1>
+                <div className="anonymous-badge" style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700, color: 'var(--primary)' }}>
+                  VERIFIED ANONYMOUS
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                <ShieldCheck size={14} />
+                <span>ID: {currentUser?.uid.substring(0, 16)}...</span>
+              </div>
             </div>
           </div>
           <button className="settings-btn glass" onClick={() => navigate('/app/settings')}>
@@ -83,54 +107,64 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="profile-stats">
-        <div className="stat-card">
-          <div className="stat-icon trust"><Star size={20} fill="currentColor" /></div>
-          <div className="stat-value">{user.trustScore}%</div>
-          <div className="stat-label">Trust Score</div>
+      {/* ── Stats Dashboard ───────────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2.5rem' }}>
+        <div className="glass-card" style={{ padding: '1.25rem', borderRadius: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+            <div style={{ color: 'var(--primary)' }}><Package size={18} /></div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Active Listings</span>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>{myListings.length}</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon sold"><CheckCircle size={20} /></div>
-          <div className="stat-value">{user.itemsSold}</div>
-          <div className="stat-label">Items Sold</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon active"><Package size={20} /></div>
-          <div className="stat-value">{user.activeListingsCount}</div>
-          <div className="stat-label">Active</div>
+        <div className="glass-card" style={{ padding: '1.25rem', borderRadius: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+            <div style={{ color: '#10b981' }}><TrendingUp size={18} /></div>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Shop Impact</span>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>Local</div>
         </div>
       </div>
 
-      <div className="profile-listings-section">
-        <div className="section-header">
-          <h2>My Active Listings</h2>
-          <button className="btn-primary" onClick={() => navigate('/app/post')} style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
-            + Add Listing
+      {/* ── My Shop Section ──────────────────────────────────────────────────── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>My Shop Inventory</h2>
+          <button 
+            className="btn-primary" 
+            onClick={() => navigate('/app/post')}
+            style={{ padding: '0.6rem 1rem', borderRadius: '12px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <Plus size={18} /> List New Item
           </button>
         </div>
-        <div className="masonry-grid">
-          {activeListings.map(item => (
-            <div key={item.id} style={{ position: 'relative', opacity: item.isSold ? 0.6 : 1 }}>
-              {item.isSold && (
-                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--primary)', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 800, fontSize: '1.25rem', zIndex: 30, pointerEvents: 'none', boxShadow: 'var(--shadow-md)' }}>
-                  SOLD
+
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+            Loading your shop...
+          </div>
+        ) : myListings.length === 0 ? (
+          <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem', borderRadius: '24px', border: '1px dashed var(--border-color)' }}>
+            <div style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}><Package size={48} strokeWidth={1} /></div>
+            <h3 style={{ margin: '0 0 0.5rem 0' }}>Your shop is empty</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>Start selling to your community today!</p>
+          </div>
+        ) : (
+          <div className="masonry-grid">
+            {myListings.map(item => (
+              <div key={item.id} style={{ position: 'relative' }} className="animate-fade-in">
+                <ItemCard item={item} onClick={() => navigate(`/app/item/${item.id}`)} />
+                <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '0.4rem', zIndex: 10 }}>
+                  <button className="glass" style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-main)' }}>
+                    <Edit3 size={16} />
+                  </button>
+                  <button className="glass" style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }}>
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-              )}
-              <ItemCard item={item} onClick={() => {}} />
-              <div style={{ position: 'absolute', top: '8px', left: '8px', display: 'flex', gap: '0.5rem', zIndex: 20 }}>
-                <button onClick={() => toggleSoldStatus(item.id)} className="glass" style={{ border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: item.isSold ? 'var(--primary)' : 'var(--text-main)' }} title={item.isSold ? "Mark as Available" : "Mark as Sold"}>
-                  <Tag size={16} />
-                </button>
-                <button className="glass" style={{ border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-main)' }} title="Edit Listing">
-                  <Edit3 size={16} />
-                </button>
-                <button className="glass" style={{ border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444' }} title="Delete Listing">
-                  <Trash2 size={16} />
-                </button>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

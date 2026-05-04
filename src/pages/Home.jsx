@@ -1,26 +1,81 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, Sparkles } from 'lucide-react';
+import { Search, MapPin, Sparkles, Loader2 } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
 import LocationModal from '../components/LocationModal';
-import { MOCK_LISTINGS, CATEGORIES } from '../data/mockData';
+import { CATEGORIES } from '../data/mockData';
+import { haversineDistance, isListingActive, resolveLocationCoords } from '../utils/geo';
+import { initializeSearchIndex, performSearch } from '../utils/searchIndex';
+import { db } from '../firebase';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+
+// Default to Davao City center
+const DAVAO_CENTER = { lat: 7.0731, lng: 125.6128 };
 
 export default function Home() {
   const navigate = useNavigate();
   const [location, setLocation] = useState("Davao City");
   const [radius, setRadius] = useState(20);
+  const [userLat, setUserLat] = useState(DAVAO_CENTER.lat);
+  const [userLng, setUserLng] = useState(DAVAO_CENTER.lng);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  const filteredListings = MOCK_LISTINGS.filter(item => {
-    // Mock location filter: if searching for "Davao" assume all local mock data matches
-    const isMockMatch = location.toLowerCase().includes('davao') || item.barangay.toLowerCase().includes(location.toLowerCase());
-    const matchesLocation = isMockMatch;
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
+  const [listings, setListings] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, 'listings'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const liveListings = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        // Handle Firestore timestamps vs ISO strings
+        createdAt: doc.data().createdAt?.toDate ? "Just now" : doc.data().createdAt 
+      }));
+      setListings(liveListings);
+      initializeSearchIndex(liveListings);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const searchResults = performSearch(searchQuery);
+
+  const filteredListings = listings.filter(item => {
+    // ── TTL Filter ─────────────────────────────────────────────────────────────
+    if (!isListingActive(item.expiresAt)) return false;
+
+    // ── Inverted Index Search Filter ──────────────────────────────────────────
+    if (searchResults !== null && !searchResults.includes(item.id)) return false;
+
+    // ── Geohash/Proximity Filter ───────────────────────────────────────────────
+    if (item.lat && item.lng) {
+      const distKm = haversineDistance(userLat, userLng, item.lat, item.lng);
+      if (distKm > radius) return false;
+    }
+
+    // ── Category Filter ───────────────────────────────────────────────────────
     const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
-    return matchesLocation && matchesSearch && matchesCategory;
+
+    return matchesCategory;
   });
+
+  const handleLocationApply = (locName, rad, lat, lng) => {
+    setLocation(locName || "Davao City");
+    setRadius(rad);
+    // Use provided coordinates or resolve from name
+    if (lat && lng) {
+      setUserLat(lat);
+      setUserLng(lng);
+    } else {
+      const coords = resolveLocationCoords(locName);
+      setUserLat(coords.lat);
+      setUserLng(coords.lng);
+    }
+  };
 
   return (
     <div className="animate-fade-in">
@@ -32,7 +87,7 @@ export default function Home() {
             <span>AI-Powered Marketplace</span>
           </div>
           <h1 className="home-hero-title">Discover Local Deals</h1>
-          <p className="home-hero-subtitle">Buy & sell within your barangay — safe, fast, and easy</p>
+          <p className="home-hero-subtitle">Buy &amp; sell within your barangay — safe, fast, and easy</p>
         </div>
       </div>
 
@@ -83,7 +138,11 @@ export default function Home() {
 
       {/* Feed */}
       <div className="masonry-grid">
-        {filteredListings.length > 0 ? (
+        {isLoading ? (
+          <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', padding: '4rem' }}>
+            <Loader2 className="animate-spin" size={40} color="var(--primary)" />
+          </div>
+        ) : filteredListings.length > 0 ? (
           filteredListings.map(item => (
             <ItemCard 
               key={item.id} 
@@ -95,7 +154,7 @@ export default function Home() {
           <div className="empty-state">
             <div className="empty-icon">🔍</div>
             <h3>No items found</h3>
-            <p>Try adjusting your filters or search query</p>
+            <p>Try adjusting your filters, radius, or search query</p>
           </div>
         )}
       </div>
@@ -105,10 +164,7 @@ export default function Home() {
         onClose={() => setIsLocationModalOpen(false)}
         initialLocation={location}
         initialRadius={radius}
-        onApply={(loc, rad) => {
-          setLocation(loc || "Davao City");
-          setRadius(rad);
-        }}
+        onApply={handleLocationApply}
       />
     </div>
   );
