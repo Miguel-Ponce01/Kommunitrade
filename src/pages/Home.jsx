@@ -2,19 +2,24 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, Sparkles } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
-import { MOCK_LISTINGS, MOCK_BARANGAYS, CATEGORIES } from '../data/mockData';
+import LocationModal from '../components/LocationModal';
+import { MOCK_LISTINGS, CATEGORIES } from '../data/mockData';
 
 export default function Home() {
   const navigate = useNavigate();
-  const [selectedBarangay, setSelectedBarangay] = useState("All Barangays");
+  const [location, setLocation] = useState("Davao City");
+  const [radius, setRadius] = useState(20);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   const filteredListings = MOCK_LISTINGS.filter(item => {
-    const matchesBarangay = selectedBarangay === "All Barangays" || item.barangay === selectedBarangay;
+    // Mock location filter: if searching for "Davao" assume all local mock data matches
+    const isMockMatch = location.toLowerCase().includes('davao') || item.barangay.toLowerCase().includes(location.toLowerCase());
+    const matchesLocation = isMockMatch;
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
-    return matchesBarangay && matchesSearch && matchesCategory;
+    return matchesLocation && matchesSearch && matchesCategory;
   });
 
   return (
@@ -44,18 +49,13 @@ export default function Home() {
           />
         </div>
         
-        <div className="barangay-select-wrapper">
-          <MapPin size={16} className="select-icon" />
-          <select 
-            className="form-control barangay-select" 
-            value={selectedBarangay}
-            onChange={(e) => setSelectedBarangay(e.target.value)}
-          >
-            {MOCK_BARANGAYS.map(b => (
-              <option key={b} value={b}>{b}</option>
-            ))}
-          </select>
-        </div>
+        <button 
+          className="location-trigger-btn"
+          onClick={() => setIsLocationModalOpen(true)}
+        >
+          <MapPin size={16} style={{ color: 'var(--primary)' }} />
+          <span>{location} • {radius}km</span>
+        </button>
       </div>
 
       {/* Category Filter Scroll */}
@@ -99,6 +99,17 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      <LocationModal 
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        initialLocation={location}
+        initialRadius={radius}
+        onApply={(loc, rad) => {
+          setLocation(loc || "Davao City");
+          setRadius(rad);
+        }}
+      />
     </div>
   );
 }
