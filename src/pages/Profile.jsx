@@ -18,9 +18,11 @@ import {
 import ItemCard from '../components/ItemCard';
 import { db, auth } from '../firebase';
 import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
+import { useLanguage } from '../hooks/useLanguage.jsx';
 
 export default function Profile() {
   const navigate = useNavigate();
+  const [lang, setLang, t] = useLanguage();
   const [activeTab, setActiveTab] = useState('inventory');
   const [myListings, setMyListings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,7 +50,7 @@ export default function Profile() {
 
   const handleDelete = async (e, id) => {
     e.stopPropagation();
-    if (!window.confirm("Are you sure you want to remove this listing?")) return;
+    if (!window.confirm(t('prof_del_confirm'))) return;
     
     try {
       await deleteDoc(doc(db, 'listings', id));
@@ -70,7 +72,7 @@ export default function Profile() {
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(window.location.href);
-        alert("Profile link copied to clipboard!");
+        alert(t('prof_share_msg'));
       }
     } catch (err) {
       console.error("Share failed:", err);
@@ -104,14 +106,14 @@ export default function Profile() {
                 {anonymousName}
               </h1>
               <div style={{ background: 'var(--primary)', color: 'white', padding: '6px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <CheckCircle2 size={14} /> VERIFIED
+                <CheckCircle2 size={14} /> {t('prof_verified')}
               </div>
             </div>
             
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <ShieldCheck size={18} style={{ color: 'var(--primary)' }} />
-                <span style={{ fontWeight: 600 }}>Trust Score: <span style={{ color: '#fff' }}>98%</span></span>
+                <span style={{ fontWeight: 600 }}>{t('prof_trust_score')}: <span style={{ color: '#fff' }}>98%</span></span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <MapPin size={18} />
@@ -127,8 +129,8 @@ export default function Profile() {
             <button className="glass" onClick={() => navigate('/app/settings')} style={{ width: '54px', height: '54px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)' }}>
               <Settings size={22} color="#fff" />
             </button>
-            <button className="btn-primary" onClick={() => alert("Edit Profile Coming Soon!")} style={{ padding: '0 2rem', borderRadius: '18px', height: '54px', fontWeight: 800, fontSize: '0.95rem', background: '#fff', border: 'none', color: '#111', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
-              Edit Profile
+            <button className="btn-primary" onClick={() => alert(t('prof_coming_soon'))} style={{ padding: '0 2rem', borderRadius: '18px', height: '54px', fontWeight: 800, fontSize: '0.95rem', background: '#fff', border: 'none', color: '#111', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
+              {t('prof_edit')}
             </button>
           </div>
         </div>
@@ -140,26 +142,26 @@ export default function Profile() {
         {/* Modern Tab System */}
         <div className="tab-nav">
           <button className={`tab-item ${activeTab === 'inventory' ? 'active' : ''}`} onClick={() => setActiveTab('inventory')}>
-            Inventory
+            {t('prof_inventory')}
           </button>
           <button className={`tab-item ${activeTab === 'insights' ? 'active' : ''}`} onClick={() => setActiveTab('insights')}>
-            Insights
+            {t('prof_insights')}
           </button>
           <button className={`tab-item ${activeTab === 'security' ? 'active' : ''}`} onClick={() => setActiveTab('security')}>
-            Security
+            {t('prof_security')}
           </button>
         </div>
 
         {activeTab === 'inventory' && (
           <div className="animate-fade-in">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>Active Listings</h2>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>{t('prof_active_listings')}</h2>
               <button 
                 className="btn-primary" 
                 onClick={() => navigate('/app/post')}
                 style={{ background: '#ef4444', padding: '0.75rem 1.5rem', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 10px 20px rgba(239, 68, 68, 0.2)' }}
               >
-                <Plus size={20} /> List New Item
+                <Plus size={20} /> {t('prof_list_new')}
               </button>
             </div>
 
@@ -177,8 +179,8 @@ export default function Profile() {
                 color: 'var(--text-muted)'
               }}>
                 <div style={{ opacity: 0.3, marginBottom: '1.5rem' }}><Package size={64} strokeWidth={1} /></div>
-                <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', marginBottom: '0.5rem' }}>No active listings</h3>
-                <p style={{ maxWidth: '300px', margin: '0 auto', lineHeight: 1.6 }}>Your inventory is currently empty. Start selling to your neighborhood!</p>
+                <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', marginBottom: '0.5rem' }}>{t('prof_no_listings')}</h3>
+                <p style={{ maxWidth: '300px', margin: '0 auto', lineHeight: 1.6 }}>{t('prof_no_listings_desc')}</p>
               </div>
             ) : (
               <div className="masonry-grid">
@@ -204,7 +206,7 @@ export default function Profile() {
           </div>
         )}
 
-        {/* ... (Insights and Security sections remain but with improved spacing) */}
+        {/* ... (Insights and Security sections localized) */}
         {activeTab === 'insights' && (
           <div className="animate-fade-in">
             <div className="stat-grid">
@@ -221,7 +223,7 @@ export default function Profile() {
                 <div className="stat-value">14m</div>
               </div>
               <div className="stat-card" style={{ background: 'rgba(16, 185, 129, 0.1)', borderColor: '#10b981' }}>
-                <span className="stat-label" style={{ color: '#047857' }}>Trust Status</span>
+                <span className="stat-label" style={{ color: '#047857' }}>{t('prof_trust_score')} Status</span>
                 <div className="stat-value" style={{ color: '#059669' }}>High</div>
               </div>
             </div>

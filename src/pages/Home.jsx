@@ -8,12 +8,14 @@ import { haversineDistance, isListingActive, resolveLocationCoords } from '../ut
 import { initializeSearchIndex, performSearch } from '../utils/searchIndex';
 import { db } from '../firebase';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { useLanguage } from '../hooks/useLanguage.jsx';
 
 // Default to Davao City center
 const DAVAO_CENTER = { lat: 7.0731, lng: 125.6128 };
 
 export default function Home() {
   const navigate = useNavigate();
+  const [lang, setLang, t] = useLanguage();
   const [location, setLocation] = useState("Davao City");
   const [radius, setRadius] = useState(20);
   const [userLat, setUserLat] = useState(DAVAO_CENTER.lat);
@@ -84,10 +86,10 @@ export default function Home() {
         <div className="home-hero-content">
           <div className="home-hero-badge">
             <Sparkles size={14} />
-            <span>AI-Powered Marketplace</span>
+            <span>{t('dash_ai_badge')}</span>
           </div>
-          <h1 className="home-hero-title">Discover Local Deals</h1>
-          <p className="home-hero-subtitle">Buy &amp; sell within your barangay — safe, fast, and easy</p>
+          <h1 className="home-hero-title">{t('dash_title')}</h1>
+          <p className="home-hero-subtitle">{t('dash_subtitle')}</p>
         </div>
       </div>
 
@@ -98,7 +100,7 @@ export default function Home() {
           <input 
             type="text" 
             className="form-control search-input" 
-            placeholder="Search items, services..." 
+            placeholder={t('dash_search_ph')} 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -128,10 +130,10 @@ export default function Home() {
 
       {/* Results Count */}
       <div className="results-bar">
-        <span className="results-count">{filteredListings.length} items found</span>
+        <span className="results-count">{filteredListings.length} {t('dash_results')}</span>
         {selectedCategory !== "All" && (
           <button className="clear-filter" onClick={() => setSelectedCategory("All")}>
-            Clear filter ✕
+            {t('dash_clear')} ✕
           </button>
         )}
       </div>
@@ -153,8 +155,8 @@ export default function Home() {
         ) : (
           <div className="empty-state">
             <div className="empty-icon">🔍</div>
-            <h3>No items found</h3>
-            <p>Try adjusting your filters, radius, or search query</p>
+            <h3>{t('dash_empty_title')}</h3>
+            <p>{t('dash_empty_desc')}</p>
           </div>
         )}
       </div>
