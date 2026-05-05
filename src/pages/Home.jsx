@@ -6,8 +6,7 @@ import LocationModal from '../components/LocationModal';
 import { CATEGORIES } from '../data/mockData';
 import { haversineDistance, isListingActive, resolveLocationCoords } from '../utils/geo';
 import { initializeSearchIndex, performSearch } from '../utils/searchIndex';
-import { db } from '../firebase';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db, collection, onSnapshot, query, orderBy } from '../firebase';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 
 // Default to Davao City center
@@ -43,6 +42,13 @@ export default function Home() {
 
     return () => unsubscribe();
   }, []);
+
+  // Update search index when listings change
+  useEffect(() => {
+    if (listings.length > 0) {
+      initializeSearchIndex(listings);
+    }
+  }, [listings]);
 
   const searchResults = performSearch(searchQuery);
 
@@ -141,9 +147,14 @@ export default function Home() {
       {/* Feed */}
       <div className="masonry-grid">
         {isLoading ? (
-          <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', padding: '4rem' }}>
-            <Loader2 className="animate-spin" size={40} color="var(--primary)" />
-          </div>
+          Array(6).fill(0).map((_, i) => (
+            <div key={i} className="skeleton-card">
+              <div className="skeleton skeleton-img"></div>
+              <div className="skeleton skeleton-title"></div>
+              <div className="skeleton skeleton-text"></div>
+              <div className="skeleton skeleton-price"></div>
+            </div>
+          ))
         ) : filteredListings.length > 0 ? (
           filteredListings.map(item => (
             <ItemCard 

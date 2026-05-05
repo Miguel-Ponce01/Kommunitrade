@@ -16,8 +16,7 @@ import {
   MapPin
 } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
-import { db, auth } from '../firebase';
-import { collection, query, where, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
+import { db, auth, collection, query, where, onSnapshot, doc, deleteDoc } from '../firebase';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 
 export default function Profile() {

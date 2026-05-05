@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, User, Bot, AlertTriangle } from 'lucide-react';
-import { db, auth } from '../firebase';
-import { isListingActive } from '../utils/geo';
-import { encryptMessage, decryptMessage } from '../utils/crypto';
 import { 
+  db, 
+  auth,
   collection, 
   addDoc, 
   query, 
@@ -11,7 +10,9 @@ import {
   orderBy, 
   onSnapshot, 
   serverTimestamp 
-} from 'firebase/firestore';
+} from '../firebase';
+import { isListingActive } from '../utils/geo';
+import { encryptMessage, decryptMessage } from '../utils/crypto';
 
 export default function ChatModal({ isOpen, onClose, item }) {
   const [messages, setMessages] = useState([]);

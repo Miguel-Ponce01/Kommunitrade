@@ -163,6 +163,28 @@ export const BARANGAY_COORDS = {
 };
 
 /**
+ * Finds the nearest Barangay from the BARANGAY_COORDS map.
+ * @param {number} lat 
+ * @param {number} lng 
+ * @returns {string} Barangay name
+ */
+export function findNearestBarangay(lat, lng) {
+  let nearest = 'Davao City';
+  let minDistance = Infinity;
+
+  Object.entries(BARANGAY_COORDS).forEach(([name, coords]) => {
+    if (name === 'Davao City') return; // Skip the default fallback
+    const dist = haversineDistance(lat, lng, coords.lat, coords.lng);
+    if (dist < minDistance) {
+      minDistance = dist;
+      nearest = name;
+    }
+  });
+
+  return nearest;
+}
+
+/**
  * Resolves a location name string to coordinates.
  * Falls back to Davao City center if unrecognized.
  * @param {string} locationName

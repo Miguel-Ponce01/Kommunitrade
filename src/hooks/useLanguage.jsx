@@ -119,7 +119,9 @@ const translations = {
     sett_purge_exp: "Purge Expired",
     sett_purge_desc: "Simulate automated TTL cleanup",
     sett_purge_now: "Purge Now",
-    sett_sign_out: "Sign Out"
+    sett_sign_out: "Sign Out",
+    set_signout_confirm: "Are you sure you want to log out?",
+    help_coming_soon: "Help Center: Community guidelines and safety tips coming soon!"
   },
   tl: {
     // Nav
@@ -239,7 +241,9 @@ const translations = {
     sett_purge_exp: "I-purge ang Expired",
     sett_purge_desc: "Simulan ang automated TTL cleanup",
     sett_purge_now: "I-purge Na",
-    sett_sign_out: "Mag-Logout"
+    sett_sign_out: "Mag-Logout",
+    set_signout_confirm: "Sigurado ka bang gusto mong mag-logout?",
+    help_coming_soon: "Help Center: Gabay para sa komunidad at mga safety tips ay parating na!"
   }
 };
 

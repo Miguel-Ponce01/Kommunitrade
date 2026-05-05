@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { MapPin, Heart, CheckCircle2, Clock, Timer } from 'lucide-react';
 import { getExpiryLabel } from '../utils/geo';
 
-export default function ItemCard({ item, onClick }) {
+const ItemCard = memo(({ item, onClick }) => {
   const [isSaved, setIsSaved] = useState(false);
 
   const handleSave = (e) => {
@@ -72,4 +72,6 @@ export default function ItemCard({ item, onClick }) {
       </div>
     </div>
   );
-}
+});
+
+export default ItemCard;

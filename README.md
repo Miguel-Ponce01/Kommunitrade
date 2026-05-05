@@ -1,30 +1,35 @@
 # 🛒 KomuniTrade
 
-> **Your Trusted Hyper-local, Community-Driven Marketplace in Davao City** 🏙️
+> **Davao's Premier Hyper-local Marketplace Engine** 🏙️🚀
 
-KomuniTrade is a modern, mobile-first web application designed to simplify buying and selling within immediate neighborhoods (barangays). By focusing on geographic proximity and community trust, it ensures a safe, frictionless, and convenient commerce experience for everyone.
+KomuniTrade is a high-velocity, community-driven marketplace application designed to revolutionize commerce within Davao City's barangays. Built as a high-fidelity prototype for academic defense, it leverages **Computer Vision (AI)** and **Geospatial Authentication** to ensure that every listing is verified, local, and trustworthy.
 
 ---
 
-## ✨ Key Features (MVP Prototype)
+## ✨ Key Features (Academic Defense Edition)
 
-📱 **Mobile-First & Theme-Aware UI**
-A highly polished, app-like interface optimized for smartphones with a premium bottom-dock navigation. Features a sophisticated **High-Contrast Dark Mode** and a **Clean Light Mode**, both using glassmorphic design principles and fluid typography (`clamp`).
+### 🛰️ **Anti-Gravity AI Marketplace Engine**
+Native integration with **Google Gemini 1.5 Flash** for "Zero-Friction" listing creation.
+- **Visual Intelligence**: Automated item identification, categorization, and fair-market price estimation (₱).
+- **Dual-Model Failover**: Integrated redundancy that automatically pivots to `gemini-pro-vision` if the primary signal is interrupted.
+- **Hardware-Level Processing**: On-device image compression ensures lightning-fast uploads even on low-bandwidth neighborhood networks.
 
-🛡️ **Security Protocol Dashboard**
-A dedicated command-center interface that visualizes the application's underlying security layers. This includes real-time monitoring of:
-- **E2EE Symmetric Key Rotation**: Visual proof of end-to-end encrypted messaging.
-- **TTL Batch Purge Protocol**: Real-time status of the automated data lifecycle management.
-- **Anonymous ID Verification**: Cryptographic signature validation for temporary community sessions.
+### ⏱️ **Context & Time Mark Engine**
+A proprietary verification system that anchors digital listings to physical reality.
+- **GPS Authentication**: Captures real-time coordinates and maps them to the nearest Davao City barangay.
+- **Time-Stamping**: Hard-coded digital "Time Marks" prevent listing spoofing and ensure all items are current.
+- **Visual Evidence**: Real-time overlays on item photos provide immediate proof of location and time for potential buyers.
 
-🤖 **AI-Powered "Zero-Friction" Posting**
-Integrated natively with **Google's Gemini 1.5 Flash AI**. Simply snap or upload a photo, and the AI analyzes the image to instantly generate high-conversion titles, accurate categorization, and optimized descriptions—reducing listing time to seconds.
+### 🛡️ **Academic Defense Mode (TTL)**
+A specialized evaluation mode designed to showcase the system's "Anti-Scam" logic.
+- **Rapid Lifecycle**: Toggles a strict **1-hour Time-to-Live (TTL)** for listings, demonstrating the automated expiration and cleanup mechanism.
+- **Technical Module Output**: A real-time developer console (Tech-Log) that exposes the system's raw JSON payloads, API status codes, and confidence scores for faculty review.
 
-🎨 **Localized Community Identity**
-Deeply integrated with the **Davao City** local context. The UI features immersive nature-themed banners (Mount Apo area) and community-centric labels to build trust and familiarity within Philippine barangays.
-
-🔗 **Personalized Shop Sharing**
-Functional profile personalization allowing users to customize their anonymous identity and generate personalized shop links. Integrated with the browser's native sharing API for effortless community growth.
+### 🎨 **Premium "Nature-Tech" Identity**
+A sophisticated, emerald-themed design system optimized for trust and high-performance.
+- **Primary Brand**: Deep Emerald Green (`#10B981`) and Sleek Slate (`#0F172A`).
+- **Glassmorphic UI**: High-fidelity frosted glass panels, shimmering skeleton loaders, and hardware-accelerated animations (60FPS).
+- **Typography**: Utilizing `Outfit` for bold technical headings and `Inter` for precise metadata.
 
 ---
 
@@ -32,76 +37,54 @@ Functional profile personalization allowing users to customize their anonymous i
 
 | Category | Technology |
 | :--- | :--- |
-| **Frontend Framework** | ⚛️ React 18 |
-| **Build Tool** | ⚡ Vite |
-| **State Management** | 🎣 React Hooks (useContext, useTheme, useLanguage) |
-| **Routing** | 🛣️ React Router v6 (Deep Linking Support) |
-| **Styling** | 🎨 Vanilla CSS (Theme-Aware Variables, Fluid Design) |
-| **Backend / DB** | 🔥 Firebase (Auth, Firestore, Storage) |
-| **AI Integration** | 🧠 Google Gemini 1.5 Flash API |
+| **Frontend Core** | ⚛️ React 18 + Vite |
+| **Backend / Database** | 🔥 Firebase Cloud Firestore |
+| **Authentication** | 🔐 Firebase Anonymous Auth |
+| **Computer Vision** | 🧠 Google Gemini 1.5 (Multi-modal) |
+| **Geospatial Logic** | 🗺️ Geohash Encoding & Haversine Algorithms |
+| **Animations** | ✨ CSS Keyframes (GPU Accelerated) |
 | **Icons** | 🌠 Lucide React |
-| **Containerization** | 🐳 Docker |
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
+- [Node.js](https://nodejs.org/) (v16+)
+- A valid **Gemini API Key** from [Google AI Studio](https://aistudio.google.com/)
 
 ### 📥 Installation
-1. Clone the repository or navigate to the project folder.
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/Miguel-Ponce01/KomuniTrade.git
+    cd KomuniTrade
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Configure Environment Variables (`.env.local`):
+    ```env
+    VITE_GEMINI_API_KEY="YOUR_API_KEY_HERE"
+    ```
 
-### 💻 Running the App Locally
-
-**🐳 Using Docker (Recommended)**
-```bash
-docker compose up
-```
-
-**📦 Using npm directly**
+### 💻 Running the App
 ```bash
 npm run dev
 ```
-Once running, open your browser and navigate to `http://localhost:5173`.
+Navigate to `http://localhost:5174` (or your local Vite port).
 
 ---
 
-## 🔌 APIs & External Services
+## 🗺️ Implementation Roadmap
 
-Currently, in the **Production-Ready Prototype**, the application utilizes the following external services:
-
-* 🔥 **Firebase Cloud Firestore**: Powers the real-time marketplace feed, listing persistence, and chat messaging.
-* 🔐 **Firebase Auth**: Manages anonymous session persistence for trust-based interactions.
-* 🧠 **Gemini API**: Powers the automated image recognition and text generation for new listings.
-* 🏙️ **Unsplash Source API**: Dynamically fetches localized, high-quality community imagery.
-
----
-
-## 🔒 Security Architecture (Defense Ready)
-
-To guarantee that the KomuniTrade ecosystem remains strictly private and secure, we have implemented the following core protocols:
-
-1. 🔐 **End-to-End Encryption (E2EE)**: Messaging payloads are encrypted on the client side before reaching Firestore, ensuring only the buyer and seller can read the content.
-2. 🔑 **Anonymous Identity Protocol**: Users are identified by unique, cryptographic `Agent_IDs`, removing the need for personally identifiable information (PII).
-3. 🛡️ **TTL (Time-to-Live) Data Purging**: Automated cleanup scripts expire and delete old listings and expired communication keys from the distributed cache.
-4. 🚦 **Rate Limiting & CORS**: Strictly configured access controls to prevent brute-force attacks and unauthorized origin requests.
+- [x] **Phase 1**: High-Fidelity UI Prototype & Brand Identity.
+- [x] **Phase 2**: Integration of "Anti-Gravity" AI Engine for Computer Vision.
+- [x] **Phase 3**: Real-time Firebase Backend (Firestore Sync).
+- [x] **Phase 4**: Geospatial Authentication & Barangay Mapping.
+- [x] **Phase 5**: "Context & Time Mark" Engine for physical verification.
+- [x] **Phase 6**: "Defense Mode" Toggle & Technical Module Console.
+- [x] **Phase 7**: Performance Optimization (Skeleton Loading & Memoization).
 
 ---
-
-## 🗺️ Project Roadmap
-
-- [x] **Phase 1**: High-Fidelity UI Prototype & AI Image Recognition (Gemini 1.5).
-- [x] **Phase 2**: Real-time Firebase Integration (Firestore, Storage, Anonymous Auth).
-- [x] **Phase 3**: Editorial Rebrand & Theme-Aware Design System.
-- [x] **Phase 4**: **Security Protocol Dashboard** implementation for academic demo.
-- [x] **Phase 5**: Anonymous real-time chat with E2EE payload encryption.
-- [x] **Phase 6**: Localization (Davao City context & multi-language support).
-- [x] **Phase 7**: Deployment to Google Cloud / Firebase Hosting.
-
----
-*🎓 Built as a Capstone Project focusing on community trust, safety, and hyperlocal commerce.*
+*🎓 Built as an Advanced Information Management Capstone Project.*

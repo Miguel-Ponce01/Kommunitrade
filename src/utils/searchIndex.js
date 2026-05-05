@@ -72,6 +72,13 @@ class InvertedIndex {
 
     return resultIds ? Array.from(resultIds) : [];
   }
+
+  /**
+   * Clears the index
+   */
+  clear() {
+    this.index = {};
+  }
 }
 
 // ─── Singleton instance ───────────────────────────────────────────────────────
@@ -82,6 +89,7 @@ const searchIndex = new InvertedIndex();
  * @param {Array} listings 
  */
 export const initializeSearchIndex = (listings) => {
+  searchIndex.clear();
   listings.forEach(item => {
     searchIndex.addListing(item.id, item.title, item.description);
   });
