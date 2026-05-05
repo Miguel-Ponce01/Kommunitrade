@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { 
   Home, 
   MessageCircle, 
@@ -22,6 +22,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 
 export default function Layout() {
+  const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [theme, setTheme] = useTheme();
   const [lang, setLang, t] = useLanguage();
@@ -34,6 +35,17 @@ export default function Layout() {
 
   const toggleLanguage = () => {
     setLang(lang === 'en' ? 'tl' : 'en');
+  };
+
+  const handleLogout = async () => {
+    if (window.confirm(t('set_signout_confirm') || 'Are you sure you want to log out?')) {
+      await auth.signOut();
+      navigate('/');
+    }
+  };
+
+  const handleHelp = () => {
+    alert(t('help_coming_soon') || 'Help Center: Community guidelines and safety tips coming soon!');
   };
 
   return (
@@ -99,7 +111,7 @@ export default function Layout() {
               <Settings className="nav-icon" />
               <span className="nav-label">{t('side_app_settings')}</span>
             </NavLink>
-            <NavLink to="/app/security" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+            <NavLink to="/app/profile?tab=security" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
               <ShieldCheck className="nav-icon" />
               <span className="nav-label">{t('side_privacy')}</span>
             </NavLink>
@@ -147,14 +159,14 @@ export default function Layout() {
 
         {/* Footer Actions */}
         <div className="sidebar-footer">
-          <div className="nav-item" style={{ cursor: 'pointer' }}>
+          <button className="nav-item" onClick={handleHelp} style={{ width: '100%', background: 'none', border: 'none', textAlign: 'left' }}>
             <HelpCircle className="nav-icon" />
             <span className="nav-label">{t('side_help')}</span>
-          </div>
-          <div className="nav-item" style={{ cursor: 'pointer', color: '#ef4444' }}>
+          </button>
+          <button className="nav-item" onClick={handleLogout} style={{ width: '100%', background: 'none', border: 'none', textAlign: 'left', color: '#ef4444' }}>
             <LogOut className="nav-icon" />
             <span className="nav-label">{t('side_logout')} ({anonymousID})</span>
-          </div>
+          </button>
         </div>
       </nav>
 

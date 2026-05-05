@@ -201,8 +201,8 @@ ul {
   position: absolute;
   top: 1.5rem;
   right: -14px;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 50%;
@@ -210,15 +210,18 @@ ul {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 10;
-  color: var(--text-muted);
-  box-shadow: var(--shadow-sm);
-  transition: var(--transition);
+  z-index: 50;
+  color: var(--text-main);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-toggle:hover {
-  color: var(--primary);
+  color: #fff;
+  background: var(--primary);
   border-color: var(--primary);
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.2);
 }
 
 .sidebar-logo {
@@ -1396,7 +1399,7 @@ ul {
 }
 
 .hero-cta-btn {
-  background: var(--text-main);
+  background: var(--primary);
   color: #fff;
   border: none;
   font-size: 1.25rem;

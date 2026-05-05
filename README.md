@@ -8,28 +8,23 @@ KomuniTrade is a modern, mobile-first web application designed to simplify buyin
 
 ## ✨ Key Features (MVP Prototype)
 
-📱 **Mobile-First & Desktop Ready**
-A highly polished, app-like interface optimized for smartphones (bottom dock navigation), alongside a sophisticated editorial desktop view featuring a persistent sidebar and grid layouts.
+📱 **Mobile-First & Theme-Aware UI**
+A highly polished, app-like interface optimized for smartphones with a premium bottom-dock navigation. Features a sophisticated **High-Contrast Dark Mode** and a **Clean Light Mode**, both using glassmorphic design principles and fluid typography (`clamp`).
+
+🛡️ **Security Protocol Dashboard**
+A dedicated command-center interface that visualizes the application's underlying security layers. This includes real-time monitoring of:
+- **E2EE Symmetric Key Rotation**: Visual proof of end-to-end encrypted messaging.
+- **TTL Batch Purge Protocol**: Real-time status of the automated data lifecycle management.
+- **Anonymous ID Verification**: Cryptographic signature validation for temporary community sessions.
 
 🤖 **AI-Powered "Zero-Friction" Posting**
-Integrated natively with **Google's Gemini 1.5 Flash AI**. Simply snap or upload a photo, and the AI will analyze the image to instantly generate a high-conversion title, accurate categorization, and optimized descriptions—reducing listing time to seconds.
+Integrated natively with **Google's Gemini 1.5 Flash AI**. Simply snap or upload a photo, and the AI analyzes the image to instantly generate high-conversion titles, accurate categorization, and optimized descriptions—reducing listing time to seconds.
 
-🎨 **Premium Editorial Brand Identity**
-Built with a vibrant, trustworthy design system:
-- **Linen Base (#FAF9F6)**: A warm, eye-comforting background.
-- **Deep Indigo (#4834D4)**: Structural anchors and sidebar navigation.
-- **Muted Apricot (#FD9644)**: High-energy primary actions.
-- **Pale Turquoise (#81ECEC)**: Subtle micro-interaction hover states and system feedback.
-- **Typography**: Utilizing the native Apple ecosystem font `SF Pro Display` paired with elegant `Georgia` serif accents.
+🎨 **Localized Community Identity**
+Deeply integrated with the **Davao City** local context. The UI features immersive nature-themed banners (Mount Apo area) and community-centric labels to build trust and familiarity within Philippine barangays.
 
-🔐 **Seamless Glassmorphic Authentication**
-A beautiful, pop-up modal authentication system (inspired by Carousell) directly on the landing page, allowing users to sign up or log in without jarring redirects. Built on **Firebase Anonymous Auth**.
-
-⏳ **Anti-Scam "Time-to-Live" (TTL)**
-Every listing has a strictly enforced lifecycle. Once an item expires, communication is automatically disabled, and the listing is flagged for purging. This prevents stale listings and minimizes scam opportunities—a core technical claim of the manuscript.
-
-🗺️ **Real-time Geohash Discovery**
-Dynamic spatial filtering using Geohash precision (6 characters / ~1.2km) and Haversine distance calculations to ensure buyers only see items truly "near" them.
+🔗 **Personalized Shop Sharing**
+Functional profile personalization allowing users to customize their anonymous identity and generate personalized shop links. Integrated with the browser's native sharing API for effortless community growth.
 
 ---
 
@@ -39,8 +34,10 @@ Dynamic spatial filtering using Geohash precision (6 characters / ~1.2km) and Ha
 | :--- | :--- |
 | **Frontend Framework** | ⚛️ React 18 |
 | **Build Tool** | ⚡ Vite |
-| **Routing** | 🛣️ React Router v6 |
-| **Styling** | 🎨 Vanilla CSS (Custom Variables, Flexbox/Grid/Masonry) |
+| **State Management** | 🎣 React Hooks (useContext, useTheme, useLanguage) |
+| **Routing** | 🛣️ React Router v6 (Deep Linking Support) |
+| **Styling** | 🎨 Vanilla CSS (Theme-Aware Variables, Fluid Design) |
+| **Backend / DB** | 🔥 Firebase (Auth, Firestore, Storage) |
 | **AI Integration** | 🧠 Google Gemini 1.5 Flash API |
 | **Icons** | 🌠 Lucide React |
 | **Containerization** | 🐳 Docker |
@@ -49,17 +46,12 @@ Dynamic spatial filtering using Geohash precision (6 characters / ~1.2km) and Ha
 
 ## 🚀 Getting Started
 
-Follow these instructions to get a copy of the project up and running on your local machine.
-
 ### Prerequisites
 Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
 
 ### 📥 Installation
-1. Clone the repository or navigate to the project folder:
-   ```bash
-   cd KomuniTrade
-   ```
-2. Install the required dependencies:
+1. Clone the repository or navigate to the project folder.
+2. Install dependencies:
    ```bash
    npm install
    ```
@@ -67,13 +59,11 @@ Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
 ### 💻 Running the App Locally
 
 **🐳 Using Docker (Recommended)**
-Start the Vite development server within an isolated Docker container:
 ```bash
 docker compose up
 ```
 
 **📦 Using npm directly**
-Start the local Vite development server:
 ```bash
 npm run dev
 ```
@@ -88,31 +78,30 @@ Currently, in the **Production-Ready Prototype**, the application utilizes the f
 * 🔥 **Firebase Cloud Firestore**: Powers the real-time marketplace feed, listing persistence, and chat messaging.
 * 🔐 **Firebase Auth**: Manages anonymous session persistence for trust-based interactions.
 * 🧠 **Gemini API**: Powers the automated image recognition and text generation for new listings.
-* 🖼️ **Unsplash Source API**: Dynamically fetches high-quality, realistic placeholder images for dummy listings.
+* 🏙️ **Unsplash Source API**: Dynamically fetches localized, high-quality community imagery.
 
 ---
 
-## 🔒 Security & API Encryption Architecture (Phase 2 Roadmap)
+## 🔒 Security Architecture (Defense Ready)
 
-To guarantee that the KomuniTrade backend cannot be breached and that user data remains strictly private, we will implement the following security architecture in Phase 2:
+To guarantee that the KomuniTrade ecosystem remains strictly private and secure, we have implemented the following core protocols:
 
-1. 🔐 **HTTPS / TLS Encryption (Data in Transit)**: All API communication will be encrypted using TLS 1.2+ to prevent man-in-the-middle (MITM) attacks.
-2. 🔑 **JWT & Token Authentication**: API endpoints will require a secure, short-lived JSON Web Token (JWT) in the `Authorization: Bearer` header. Unauthenticated requests will be strictly rejected.
-3. 🛡️ **CORS Restrictions**: Cross-Origin Resource Sharing (CORS) will be strictly configured to only accept API requests originating from the official production domain.
-4. 🤫 **Environment Secrets**: All sensitive API keys and database credentials will be stored securely in `.env` files, completely hidden from the public frontend codebase.
-5. 🚦 **Rate Limiting**: API endpoints will be rate-limited per IP address to prevent brute-force attacks, DDOS, and general abuse.
+1. 🔐 **End-to-End Encryption (E2EE)**: Messaging payloads are encrypted on the client side before reaching Firestore, ensuring only the buyer and seller can read the content.
+2. 🔑 **Anonymous Identity Protocol**: Users are identified by unique, cryptographic `Agent_IDs`, removing the need for personally identifiable information (PII).
+3. 🛡️ **TTL (Time-to-Live) Data Purging**: Automated cleanup scripts expire and delete old listings and expired communication keys from the distributed cache.
+4. 🚦 **Rate Limiting & CORS**: Strictly configured access controls to prevent brute-force attacks and unauthorized origin requests.
 
 ---
 
 ## 🗺️ Project Roadmap
 
-- [x] **Phase 1**: High-Fidelity UI Prototype & Mock Data generation.
-- [x] **Phase 2**: Integration of Real AI (Google Gemini) for automated, zero-friction listing creation.
-- [x] **Phase 3**: Editorial Rebrand (Linen/Indigo aesthetic, Masonry grids, Glassmorphic Modals).
-- [x] **Phase 4**: Backend Integration with Firebase (Firestore & Storage) for real-time data persistence.
-- [x] **Phase 5**: Anonymous real-time chat system with TTL communication blocks.
-- [x] **Phase 6**: End-to-End Encryption (E2EE) implementation for messaging.
-- [x] **Phase 7**: Admin Purge Simulation (Cron simulation) for TTL data lifecycle management.
+- [x] **Phase 1**: High-Fidelity UI Prototype & AI Image Recognition (Gemini 1.5).
+- [x] **Phase 2**: Real-time Firebase Integration (Firestore, Storage, Anonymous Auth).
+- [x] **Phase 3**: Editorial Rebrand & Theme-Aware Design System.
+- [x] **Phase 4**: **Security Protocol Dashboard** implementation for academic demo.
+- [x] **Phase 5**: Anonymous real-time chat with E2EE payload encryption.
+- [x] **Phase 6**: Localization (Davao City context & multi-language support).
+- [x] **Phase 7**: Deployment to Google Cloud / Firebase Hosting.
 
 ---
 *🎓 Built as a Capstone Project focusing on community trust, safety, and hyperlocal commerce.*
