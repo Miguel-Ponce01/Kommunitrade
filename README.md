@@ -27,9 +27,15 @@ A specialized evaluation mode designed to showcase the system's "Anti-Scam" logi
 
 ### 🎨 **Premium "Nature-Tech" Identity**
 A sophisticated, emerald-themed design system optimized for trust and high-performance.
-- **Primary Brand**: Deep Emerald Green (`#10B981`) and Sleek Slate (`#0F172A`).
+- **Premium Item Cards**: Enhanced layout with bold typography, color-coded condition badges, and high-visibility price/time metadata.
 - **Glassmorphic UI**: High-fidelity frosted glass panels, shimmering skeleton loaders, and hardware-accelerated animations (60FPS).
 - **Typography**: Utilizing `Outfit` for bold technical headings and `Inter` for precise metadata.
+
+### 🌍 **Hyper-Local Personalization**
+Ensuring the app feels like it was built for your specific Davao neighborhood.
+- **Multi-Language Engine**: Seamless toggling between **English** and **Natural Tagalog**, with community-aware phrasing.
+- **Condition Scale**: A standardized 5-point quality assessment (New to Poor) with color-coded visual indicators.
+- **Enhanced Profile**: Robust personalization including Bio, Profile Photo, and an editable "Community Status" box.
 
 ---
 

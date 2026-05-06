@@ -149,36 +149,37 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Preferences Group */}
+      {/* Regional Group */}
       <div className="settings-section">
         <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', paddingLeft: '0.5rem' }}>
-          {t('sett_prefs')}
+          Regional & Language
         </h2>
         <div className="settings-card-group">
           
-          <div className="settings-item-row">
+          <div className="settings-item-row" onClick={() => setLang('en')}>
             <div className="settings-item-left">
-              <div className="settings-icon-box" style={{ background: '#DCFCE7', color: '#16A34A' }}>
-                <Bell size={20} />
+              <div className="settings-icon-box" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>
+                <Globe size={20} />
               </div>
               <div className="settings-label-wrap">
-                <span className="settings-label-main">{t('sett_notifs')}</span>
-                <span className="settings-label-sub">Real-time alerts for trades</span>
+                <span className="settings-label-main">English</span>
+                <span className="settings-label-sub">Default system language</span>
               </div>
             </div>
-            <span style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.8rem' }}>ENABLED</span>
+            {lang === 'en' && <Check size={20} color="var(--primary)" strokeWidth={3} />}
           </div>
 
-          <div className="settings-item-row">
+          <div className="settings-item-row" onClick={() => setLang('tl')}>
             <div className="settings-item-left">
-              <div className="settings-icon-box" style={{ background: '#DBEAFE', color: '#2563EB' }}>
-                <Lock size={20} />
+              <div className="settings-icon-box" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>
+                <Globe size={20} />
               </div>
               <div className="settings-label-wrap">
-                <span className="settings-label-main">{t('sett_privacy')}</span>
-                <span className="settings-label-sub">Manage your security keys</span>
+                <span className="settings-label-main">Tagalog</span>
+                <span className="settings-label-sub">Lokal na wika ng komunidad</span>
               </div>
             </div>
+            {lang === 'tl' && <Check size={20} color="var(--primary)" strokeWidth={3} />}
           </div>
 
         </div>

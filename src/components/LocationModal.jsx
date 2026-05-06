@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, MapPin, ChevronDown, Navigation, Loader2 } from 'lucide-react';
 import '../index.css';
 import { encodeGeohash, resolveLocationCoords, resolveBarangayFromGeohash } from '../utils/geo';
+import GoogleMap from './GoogleMap';
 
 export default function LocationModal({ isOpen, onClose, initialLocation, initialRadius, onApply }) {
   const [location, setLocation] = useState(initialLocation || "Davao City");
@@ -9,7 +10,7 @@ export default function LocationModal({ isOpen, onClose, initialLocation, initia
   const [isGeolocating, setIsGeolocating] = useState(false);
   const [geoError, setGeoError] = useState(null);
   const [detectedGeohash, setDetectedGeohash] = useState(null);
-  const [resolvedCoords, setResolvedCoords] = useState(null);
+  const [resolvedCoords, setResolvedCoords] = useState(initialLocation ? resolveLocationCoords(initialLocation) : { lat: 7.0707, lng: 125.6092 });
 
   if (!isOpen) return null;
 
@@ -133,25 +134,24 @@ export default function LocationModal({ isOpen, onClose, initialLocation, initia
             </div>
           </div>
 
-          <div className="map-placeholder">
-            <div 
-              className="map-circle-overlay"
-              style={{
-                width: `${Math.max(40, Math.min(180, 60 + (radius / 100) * 120))}px`,
-                height: `${Math.max(40, Math.min(180, 60 + (radius / 100) * 120))}px`,
-                transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          <div className="map-placeholder" style={{ padding: 0, overflow: 'hidden' }}>
+            <GoogleMap 
+              center={resolvedCoords}
+              radius={radius}
+              onLocationSelect={(coords) => {
+                setResolvedCoords(coords);
+                const gh = encodeGeohash(coords.lat, coords.lng);
+                const brgy = resolveBarangayFromGeohash(gh);
+                setLocation(brgy);
+                setDetectedGeohash(gh);
               }}
-            >
-              <div className="map-pin-center">
-                <div className="pin-head"></div>
-                <div className="pin-point"></div>
-              </div>
-            </div>
+            />
             <button
               className="current-location-btn"
               onClick={handleUseMyLocation}
               disabled={isGeolocating}
               title="Use my current location"
+              style={{ zIndex: 10 }}
             >
               {isGeolocating
                 ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />

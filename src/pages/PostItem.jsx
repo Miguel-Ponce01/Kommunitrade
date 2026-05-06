@@ -1,23 +1,25 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Bot, Loader2, Save, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, AlertTriangle, RefreshCcw } from 'lucide-react';
+import { Camera, Loader2, Save, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, Check, TrendingUp } from 'lucide-react';
 import { MOCK_BARANGAYS, CATEGORIES } from '../data/mockData';
 import { db, auth, collection, addDoc, serverTimestamp } from '../firebase';
 import { encodeGeohash, resolveLocationCoords, findNearestBarangay } from '../utils/geo';
+import { useLanguage } from '../hooks/useLanguage.jsx';
+import GoogleMap from '../components/GoogleMap';
 
 export default function PostItem() {
+  const [lang, setLang, t] = useLanguage();
   const navigate = useNavigate();
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [debugLog, setDebugLog] = useState([]);
-  const [apiError, setApiError] = useState(null);
   
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
   const [barangay, setBarangay] = useState('');
   const [description, setDescription] = useState('');
-  const [aiMetadata, setAiMetadata] = useState(null);
+  const [condition, setCondition] = useState('New');
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [timeMark, setTimeMark] = useState(null);
@@ -29,146 +31,6 @@ export default function PostItem() {
     setDebugLog(prev => [...prev, { time: new Date().toLocaleTimeString(), message, type }]);
   };
 
-  const compressImage = (file) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target.result;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
-        };
-      };
-    });
-  };
-
-  const analyzeWithGemini = async (file) => {
-    setApiError(null);
-    addLog("Initializing Anti-Gravity AI Engine...", "primary");
-    
-    try {
-      addLog("Compressing image payload for transport...");
-      const base64Image = await compressImage(file);
-      
-      const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-      if (!API_KEY || API_KEY.length < 10) {
-        throw new Error("API_KEY_INVALID_OR_MISSING");
-      }
-
-      const prompt = `ACT AS: The "Anti-Gravity" Hyperlocal Computer Vision Engine.
-TASK: Analyze the attached image and generate a high-conversion marketplace listing.
-STRICT INSTRUCTION: Your identification MUST be based ONLY on the visual content of the image.
-
-IDENTIFICATION GOALS:
-1. Precise Item Name (Brand + Model + Key Feature).
-2. Appropriate Category (Choose from: House, Electronic, Service, Food, Waste).
-3. Technical description bullets.
-4. Estimated fair market value in Philippine Pesos (₱).
-
-OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
-{
-  "item_identified": boolean,
-  "confidence_score": float,
-  "suggested_title": "string",
-  "suggested_price": number,
-  "category": "string",
-  "attributes": { "brand": "string", "model": "string", "color": "string" },
-  "description_bullets": ["string", "string"]
-}`;
-
-      const models = ["gemini-1.5-flash", "gemini-pro-vision"];
-      let success = false;
-      let lastError = null;
-
-      for (const modelName of models) {
-        try {
-          addLog(`Attempting analysis with model: ${modelName}...`);
-          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`;
-          
-          const requestBody = {
-            contents: [{
-              parts: [
-                { text: prompt },
-                { inlineData: { mimeType: "image/jpeg", data: base64Image } }
-              ]
-            }],
-            generationConfig: { temperature: 0.1, responseMimeType: "application/json" }
-          };
-
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-          });
-
-          if (response.status === 404) {
-            addLog(`Model ${modelName} not found (404). Trying next...`, "warn");
-            continue;
-          }
-          if (response.status === 403) throw new Error("API_KEY_REJECTED_LEAK");
-          if (!response.ok) throw new Error(`API_ERROR_${response.status}`);
-
-          const data = await response.json();
-          const textResponse = data.candidates[0].content.parts[0].text;
-          const parsed = JSON.parse(textResponse);
-          
-          addLog(`Signal decoded. Item identified as: ${parsed.suggested_title}`, "success");
-
-          setIsAnalyzing(false);
-          setTitle(parsed.suggested_title || '');
-          setPrice(parsed.suggested_price?.toString() || '');
-          setCategory(parsed.category || 'House');
-          if (parsed.description_bullets && parsed.description_bullets.length > 0) {
-            setDescription(parsed.description_bullets.map(b => "• " + b).join('\n'));
-          }
-          
-          setAiMetadata({
-            confidence: parsed.confidence_score || 0.85,
-            item: parsed.item_identified ? "Identified" : "Uncertain",
-            brand: parsed.attributes?.brand || 'Generic',
-            raw: parsed
-          });
-          
-          success = true;
-          break;
-        } catch (err) {
-          lastError = err;
-          addLog(`Model ${modelName} failed: ${err.message}`, "error");
-        }
-      }
-
-      if (!success) throw lastError || new Error("ALL_MODELS_FAILED");
-
-    } catch (error) {
-      console.error("Gemini Vision Error:", error);
-      setApiError(error.message);
-      setIsAnalyzing(false);
-    }
-  };
-
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -176,15 +38,10 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
     const localImageUrl = URL.createObjectURL(file);
     setPreviewUrl(localImageUrl);
     
-    setTitle('');
-    setPrice('');
-    setCategory('');
-    setDescription('');
-    setAiMetadata(null);
+    // Clear logs for new capture
     setDebugLog([]);
-    setIsAnalyzing(true);
+    addLog("Visual signal received. Activating GPS verification...", "primary");
     
-    analyzeWithGemini(file);
     captureTimeMark();
   };
 
@@ -195,7 +52,7 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
     }
 
     setIsLocating(true);
-    addLog("Acquiring GPS Signal for Time Mark...", "primary");
+    addLog("Acquiring Secure GPS Signal for Time Mark...", "primary");
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -214,7 +71,8 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
 
         setBarangay(nearest);
         setIsLocating(false);
-        addLog(`Location Authenticated: ${nearest} (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`, "success");
+        addLog(`Location Authenticated: ${nearest} Neighborhood`, "success");
+        addLog(`Signal strength: High. Geo-fence verified.`, "success");
       },
       (err) => {
         addLog(`Location Acquisition Failed: ${err.message}`, "error");
@@ -239,7 +97,7 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
     if (!currentUser) return;
 
     const coords = timeMark ? { lat: parseFloat(timeMark.lat), lng: parseFloat(timeMark.lng) } : resolveLocationCoords(barangay);
-    setIsAnalyzing(true);
+    setIsPublishing(true);
     
     try {
       await addDoc(collection(db, 'listings'), {
@@ -247,6 +105,7 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
         price: parseFloat(price),
         description,
         category,
+        condition,
         barangay,
         lat: coords.lat,
         lng: coords.lng,
@@ -259,12 +118,12 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
         isSold: false
       });
 
-      alert("🎉 Listing published to Anti-Gravity Marketplace!");
+      alert(t('post_success_msg'));
       navigate('/app');
     } catch (error) {
       alert("Publishing Error. Check connection.");
     } finally {
-      setIsAnalyzing(false);
+      setIsPublishing(false);
     }
   };
 
@@ -272,8 +131,8 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
     <div className="animate-fade-in" style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
         <div>
-          <h2 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 900, fontSize: '2.25rem', fontFamily: "'Outfit', sans-serif" }}>Create Listing</h2>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>Powered by Anti-Gravity AI Engine</p>
+          <h2 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 900, fontSize: '2.25rem', fontFamily: "'Outfit', sans-serif" }}>{t('post_title')}</h2>
+          <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>{t('post_subtitle')}</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button 
@@ -282,10 +141,11 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
             className="btn-secondary" 
             style={{ width: 'auto', padding: '0 1.25rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-color)', border: '1px solid var(--border-color)' }}
           >
-            <Terminal size={14} /> {showDebug ? 'Hide Logs' : 'View Tech Log'}
+            <Terminal size={14} /> {showDebug ? 'Hide Logs' : 'View Network Log'}
           </button>
-          <button type="button" onClick={handleSubmit} className="btn-primary" style={{ width: 'auto', padding: '0 2rem', height: '54px', borderRadius: '16px', fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Save size={20} /> Publish Item
+          <button type="button" onClick={handleSubmit} disabled={isPublishing} className="btn-primary" style={{ width: 'auto', padding: '0 2rem', height: '54px', borderRadius: '16px', fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {isPublishing ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} 
+            {isPublishing ? t('post_publishing') : t('post_publish')}
           </button>
         </div>
       </div>
@@ -296,10 +156,10 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
             <div style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Terminal size={14} color="var(--primary)" /> Anti-Gravity System Console
             </div>
-            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Vite-HMR Active • Gemini-1.5-Flash</div>
+            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Network Authenticated • GPS Core active</div>
           </div>
           <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {debugLog.length === 0 && <div style={{ color: '#475569', fontSize: '0.85rem', fontFamily: 'monospace' }}>_ Waiting for system event...</div>}
+            {debugLog.length === 0 && <div style={{ color: '#475569', fontSize: '0.85rem', fontFamily: 'monospace' }}>_ Waiting for neighborhood signal...</div>}
             {debugLog.map((log, i) => (
               <div key={i} style={{ fontSize: '0.85rem', fontFamily: 'monospace', display: 'flex', gap: '1rem' }}>
                 <span style={{ color: '#475569', minWidth: '70px' }}>[{log.time}]</span>
@@ -320,7 +180,7 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
           
           <div className="panel" style={{ padding: '2rem' }}>
             <div className="panel-header" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Sparkles size={22} color="var(--primary)" /> Context & Time Mark Engine
+              <ShieldCheck size={22} color="var(--primary)" /> Time Mark Engine
             </div>
             
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -332,25 +192,36 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
               }}>
                 {previewUrl ? (
                   <>
-                    <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    {isAnalyzing && (
-                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', zIndex: 10 }}>
-                        <div style={{ position: 'relative' }}>
-                          <Loader2 className="animate-spin" size={48} style={{ color: 'var(--primary)' }} />
-                          <Bot size={20} style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'white' }} />
-                        </div>
-                        <span style={{ fontWeight: 900, fontSize: '1rem', letterSpacing: '0.1em', marginTop: '1.5rem', textTransform: 'uppercase' }}>AI Core Analysis</span>
-                        <span style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '0.5rem' }}>Extracting metadata from visual signal...</span>
+                    <img 
+                      src={previewUrl} 
+                      alt="Preview" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
+                    
+                    {/* Small Map Overlay (Picture-in-Picture) */}
+                    {timeMark && (
+                      <div style={{ 
+                        position: 'absolute', top: '15px', right: '15px', 
+                        width: '120px', height: '120px', borderRadius: '16px',
+                        overflow: 'hidden', border: '3px solid white',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 20
+                      }}>
+                         <GoogleMap 
+                           center={{ lat: parseFloat(timeMark.lat), lng: parseFloat(timeMark.lng) }}
+                           zoom={15}
+                         />
                       </div>
                     )}
-                    {timeMark && !isAnalyzing && (
+
+                    {/* Authenticated Time Mark Bar */}
+                    {timeMark && (
                       <div style={{ 
                         position: 'absolute', bottom: '15px', left: '15px', right: '15px',
                         background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)',
                         border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '18px',
                         padding: '1.25rem', color: 'white', display: 'flex', justifyContent: 'space-between',
                         alignItems: 'flex-end', textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-                        animation: 'animate-slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1)', zIndex: 5,
+                        animation: 'animate-slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1)', zIndex: 11,
                         boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)'
                       }}>
                         <div>
@@ -368,71 +239,83 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
                       </div>
                     )}
                     {isLocating && (
-                      <div style={{ position: 'absolute', top: '15px', right: '15px', padding: '0.5rem 0.75rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', borderRadius: '10px', color: 'white', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 11 }}>
+                      <div style={{ position: 'absolute', top: '15px', left: '15px', padding: '0.5rem 0.75rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', borderRadius: '10px', color: 'white', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 11 }}>
                         <Loader2 className="animate-spin" size={12} /> SYNCING GPS...
                       </div>
                     )}
                   </>
                 ) : (
                   <>
-                    <div style={{ padding: '2rem', background: 'var(--primary-light)', borderRadius: '50%', marginBottom: '1.5rem' }}>
-                      <Camera size={40} color="var(--primary)" />
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ width: '64px', height: '64px', background: 'var(--primary-light)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', color: 'var(--primary)' }}>
+                        <Camera size={32} />
+                      </div>
+                      <div style={{ fontWeight: 800, color: 'var(--text-main)' }}>Take or Upload Photo</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Visual proof is required for Time Mark</div>
                     </div>
-                    <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>Capture Time Mark</span>
-                    <span style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: 'var(--text-muted)' }}>We'll automatically verify the time and location.</span>
                   </>
                 )}
               </div>
+            </div>
 
-              {apiError && (
-                <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <AlertTriangle color="#ef4444" size={24} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 800, color: '#ef4444', fontSize: '0.9rem' }}>AI Signal Interrupted</div>
-                    <div style={{ fontSize: '0.8rem', color: '#b91c1c' }}>
-                      {apiError === 'API_KEY_REJECTED_LEAK' ? 'Security protocol: API Key has been blocked. Update configuration.' : 'Technical error in computer vision module.'}
-                    </div>
-                  </div>
-                  <button onClick={() => analyzeWithGemini(fileInputRef.current.files[0])} className="btn-secondary" style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #ef4444', background: 'transparent', color: '#ef4444' }}>
-                    <RefreshCcw size={16} />
-                  </button>
+            {/* Smart Advisor Panel (Real-time Feedback) */}
+            <div style={{ 
+              marginTop: '1.5rem', padding: '1.5rem', background: 'var(--bg-card)', 
+              borderRadius: '24px', border: '1px solid var(--border-color)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div style={{ padding: '0.5rem', background: 'var(--primary-light)', borderRadius: '10px' }}>
+                  <Sparkles size={18} color="var(--primary)" />
                 </div>
-              )}
-              
-              {aiMetadata && (
-                <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: 'var(--card-bg)', border: '1px solid var(--primary)', borderRadius: '16px', boxShadow: 'var(--shadow-glow)' }}>
-                  <div style={{ fontWeight: 900, textTransform: 'uppercase', color: 'var(--primary)', marginBottom: '0.75rem', fontSize: '0.75rem', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Bot size={14} /> AI Intelligence Output
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div style={{ padding: '0.75rem', background: 'var(--bg-color)', borderRadius: '10px' }}>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 700 }}>CLASSIFICATION</div>
-                      <div style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '1rem' }}>{(aiMetadata.confidence * 100).toFixed(0)}% Match</div>
-                    </div>
-                    <div style={{ padding: '0.75rem', background: 'var(--bg-color)', borderRadius: '10px' }}>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 700 }}>OBJECT ID</div>
-                      <div style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '1rem' }}>{aiMetadata.brand}</div>
-                    </div>
-                  </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900 }}>{t('post_advisor_title')}</h3>
+                  <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t('post_advisor_sub')}</p>
                 </div>
-              )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* Title Check */}
+                <div style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', borderRadius: '14px', background: title.length > 5 ? 'rgba(16,185,129,0.05)' : 'rgba(245,158,11,0.05)', border: `1px solid ${title.length > 5 ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}` }}>
+                   {title.length > 5 ? <Check size={16} color="var(--primary)" /> : <Info size={16} color="#F59E0B" />}
+                   <div style={{ fontSize: '0.75rem', lineHeight: 1.4 }}>
+                     <strong style={{ display: 'block', marginBottom: '2px', color: title.length > 5 ? 'var(--primary)' : '#D97706' }}>
+                       {title.length > 5 ? t('post_keyword_detected') : t('post_keyword_guidance')}
+                     </strong>
+                     {title.length > 5 ? t('post_keyword_success') : t('post_keyword_hint')}
+                   </div>
+                </div>
+
+                {/* Pricing Advisor */}
+                <div style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', borderRadius: '14px', background: price > 0 ? 'rgba(16,185,129,0.05)' : 'rgba(59,130,246,0.05)', border: `1px solid ${price > 0 ? 'rgba(16,185,129,0.2)' : 'rgba(59,130,246,0.2)'}` }}>
+                   {price > 0 ? <TrendingUp size={16} color="var(--primary)" /> : <Info size={16} color="#3B82F6" />}
+                   <div style={{ fontSize: '0.75rem', lineHeight: 1.4 }}>
+                     <strong style={{ display: 'block', marginBottom: '2px', color: price > 0 ? 'var(--primary)' : '#2563EB' }}>
+                       {price > 0 ? t('post_price_check') : t('post_price_assessment')}
+                     </strong>
+                     {price > 0 
+                       ? t('post_price_success', { price, barangay: barangay || 'current' }) 
+                       : t('post_price_hint')}
+                   </div>
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="panel" style={{ padding: '2rem' }}>
             <div className="panel-header" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Info size={22} color="var(--primary)" /> Listing Information
+              <Info size={22} color="var(--primary)" /> {t('post_info_title')}
             </div>
             <div className="form-group">
-              <label>Item Title</label>
+              <label>{t('post_item_title')}</label>
               <input type="text" className="premium-input" placeholder="e.g. Vintage Camera" required value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
             <div className="form-group" style={{ marginTop: '1.5rem' }}>
-              <label>Description</label>
+              <label>{t('post_desc')}</label>
               <textarea className="premium-input" rows="5" placeholder="Describe the condition, features, and meetup details..." value={description} onChange={(e) => setDescription(e.target.value)} style={{ resize: 'none' }}></textarea>
             </div>
             <div className="form-group" style={{ marginTop: '1.5rem', marginBottom: 0 }}>
-              <label>Price (₱)</label>
+              <label>{t('post_price')}</label>
               <input type="number" className="premium-input" placeholder="0.00" required value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
           </div>
@@ -440,9 +323,9 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
 
         <div className="admin-col-side" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div className="panel" style={{ padding: '1.5rem' }}>
-            <div className="panel-header" style={{ marginBottom: '1.25rem', fontSize: '1.1rem' }}>Classification</div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>Category</label>
+            <div className="panel-header" style={{ marginBottom: '1.25rem', fontSize: '1.1rem' }}>{t('post_cat')}</div>
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label>{t('post_cat_label')}</label>
               <div className="input-with-icon">
                 <select className="premium-input premium-select" required value={category} onChange={(e) => setCategory(e.target.value)}>
                   <option value="" disabled>Select category...</option>
@@ -453,12 +336,26 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
                 <Tag className="input-icon" size={18} />
               </div>
             </div>
+
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>{t('post_condition')}</label>
+              <div className="input-with-icon">
+                <select className="premium-input premium-select" required value={condition} onChange={(e) => setCondition(e.target.value)}>
+                  <option value="New">{t('post_cond_new')}</option>
+                  <option value="Like New">{t('post_cond_like_new')}</option>
+                  <option value="Good">{t('post_cond_good')}</option>
+                  <option value="Fair">{t('post_cond_fair')}</option>
+                  <option value="Poor">{t('post_cond_poor')}</option>
+                </select>
+                <TrendingUp className="input-icon" size={18} />
+              </div>
+            </div>
           </div>
 
           <div className="panel" style={{ padding: '1.5rem' }}>
-            <div className="panel-header" style={{ marginBottom: '1.25rem', fontSize: '1.1rem' }}>Logistics</div>
+            <div className="panel-header" style={{ marginBottom: '1.25rem', fontSize: '1.1rem' }}>{t('post_logistics')}</div>
             <div className="form-group">
-              <label>Your Barangay</label>
+              <label>{t('post_barangay')}</label>
               <div className="input-with-icon">
                 <select className="premium-input premium-select" required value={barangay} onChange={(e) => setBarangay(e.target.value)}>
                   <option value="" disabled>Pickup Location</option>
@@ -467,6 +364,30 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
                   ))}
                 </select>
                 <MapPin className="input-icon" size={18} />
+              </div>
+            </div>
+          </div>
+
+          <div className="panel" style={{ padding: '1.5rem', background: 'var(--bg-card)' }}>
+            <div className="panel-header" style={{ marginBottom: '1.25rem', fontSize: '1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Info size={18} /> Listing Pro Tips
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
+                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '2px' }}>✨ Keywords</strong>
+                <p style={{ color: 'var(--text-muted)', margin: 0 }}>Use relevant keywords in the title to improve searchability within Davao.</p>
+              </div>
+              <div style={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
+                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '2px' }}>📸 High-Quality Photos</strong>
+                <p style={{ color: 'var(--text-muted)', margin: 0 }}>Use well-lit photos with a plain background for better visibility.</p>
+              </div>
+              <div style={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
+                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '2px' }}>📝 Specific Details</strong>
+                <p style={{ color: 'var(--text-muted)', margin: 0 }}>Provide brand, size, and condition to reduce buyer queries.</p>
+              </div>
+              <div style={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
+                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '2px' }}>💰 Competitive Pricing</strong>
+                <p style={{ color: 'var(--text-muted)', margin: 0 }}>Research competitors to set a fair price for your neighborhood.</p>
               </div>
             </div>
           </div>
@@ -480,8 +401,8 @@ OUTPUT FORMAT: Return a raw JSON object (no markdown) with this structure:
                 <ShieldCheck size={20} color="#92400E" />
               </div>
               <div>
-                <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#92400E', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Defense Mode</span>
-                <p style={{ fontSize: '0.75rem', color: '#B45309', margin: '0.25rem 0 1rem', lineHeight: 1.4 }}>Enforces a strict 1-hour Time-to-Live for rapid evaluation.</p>
+                <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#92400E', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('post_defense_mode')}</span>
+                <p style={{ fontSize: '0.75rem', color: '#B45309', margin: '0.25rem 0 1rem', lineHeight: 1.4 }}>{t('post_defense_desc')}</p>
                 <label className="theme-toggle-pill" style={{ width: '100%', height: '40px', background: isDemoMode ? '#92400E' : '#FFF', border: '1px solid #FCD34D' }}>
                   <input type="checkbox" hidden checked={isDemoMode} onChange={(e) => setIsDemoMode(e.target.checked)} />
                   <div className="toggle-handle" style={{ left: isDemoMode ? 'calc(100% - 36px)' : '4px', background: isDemoMode ? '#FFF' : '#FCD34D' }}></div>

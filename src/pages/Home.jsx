@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, Sparkles, Loader2 } from 'lucide-react';
+import { Search, MapPin, Shield, Loader2 } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
 import LocationModal from '../components/LocationModal';
 import { CATEGORIES } from '../data/mockData';
@@ -94,8 +94,8 @@ export default function Home() {
       <div className="home-hero">
         <div className="home-hero-content">
           <div className="home-hero-badge">
-            <Sparkles size={14} />
-            <span>{t('dash_ai_badge')}</span>
+            <Shield size={14} />
+            <span>{t('dash_verify_badge')}</span>
           </div>
           <h1 className="home-hero-title">{t('dash_title')}</h1>
           <p className="home-hero-subtitle">{t('dash_subtitle')}</p>

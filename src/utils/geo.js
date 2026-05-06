@@ -121,7 +121,11 @@ function toRad(deg) {
  */
 export function isListingActive(expiresAt) {
   if (!expiresAt) return true;
-  return new Date(expiresAt) > new Date();
+  
+  // Handle Firebase Timestamp objects
+  const expiryDate = expiresAt.toDate ? expiresAt.toDate() : new Date(expiresAt);
+  
+  return expiryDate > new Date();
 }
 
 /**
@@ -133,7 +137,7 @@ export function isListingActive(expiresAt) {
 export function getExpiryLabel(expiresAt) {
   if (!expiresAt) return null;
   const now = new Date();
-  const exp = new Date(expiresAt);
+  const exp = expiresAt.toDate ? expiresAt.toDate() : new Date(expiresAt);
   const diffMs = exp - now;
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 

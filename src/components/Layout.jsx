@@ -85,10 +85,6 @@ export default function Layout() {
               <Home className="nav-icon" />
               <span className="nav-label">{t('side_dash')}</span>
             </NavLink>
-            <NavLink to="/app/post" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
-              <Package className="nav-icon" />
-              <span className="nav-label">{t('side_inventory')}</span>
-            </NavLink>
           </div>
 
           {/* Group 2: COMMUNICATION */}
@@ -117,44 +113,6 @@ export default function Layout() {
             </NavLink>
           </div>
 
-        </div>
-
-        {/* Language Toggle Area */}
-        <div className="sidebar-lang-wrap" style={{ padding: '0.5rem 1rem', display: 'flex', justifyContent: 'center' }}>
-           <button 
-             onClick={toggleLanguage}
-             className="nav-item"
-             style={{ width: '100%', background: 'none', border: '1px solid var(--border-color)', borderRadius: '12px', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '1rem', padding: '0.75rem 1rem' }}
-           >
-             <Languages size={20} className="nav-icon" />
-             {!isCollapsed && <span className="nav-label" style={{ fontSize: '0.8rem' }}>{lang === 'en' ? 'ENGLISH' : 'TAGALOG'}</span>}
-           </button>
-        </div>
-
-        {/* Theme Toggle Area */}
-        <div className="sidebar-theme-wrap" style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'center' }}>
-          {isCollapsed ? (
-            <button 
-              className="nav-item" 
-              onClick={toggleTheme} 
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.75rem' }}
-              title={theme === 'dark' ? 'Daymode' : 'Nightmode'}
-            >
-              {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
-          ) : (
-            <div 
-              className={`theme-toggle-pill ${theme === 'dark' ? 'dark' : ''}`} 
-              onClick={toggleTheme}
-            >
-              <div className="toggle-handle">
-                {theme === 'dark' ? <Moon size={18} fill="currentColor" /> : <Sun size={18} />}
-              </div>
-              <span className="toggle-label">
-                {theme === 'dark' ? 'NIGHTMODE' : 'DAYMODE'}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Footer Actions */}

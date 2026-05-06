@@ -116,7 +116,7 @@ export default function Landing() {
                 {t('stats_title').split(',')[0]},<br />{t('stats_title').split(',')[1]}
               </h2>
               <div className="banner-stats-grid">
-                {[['🏘️', '50+', t('stats_barangays')], ['⚡', '<10s', t('stats_ai')], ['🔒', 'E2EE', t('stats_chat')]].map(([icon, val, label]) => (
+                {[['🏘️', '50+', t('stats_barangays')], ['⏱️', 'Verified', t('stats_verify')], ['🔒', 'E2EE', t('stats_chat')]].map(([icon, val, label]) => (
                   <div key={label} style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>{icon}</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif" }}>{val}</div>
@@ -196,8 +196,8 @@ export default function Landing() {
                 />
               </div>
               <div style={{ position: 'absolute', bottom: '-1rem', left: '-1rem', background: 'var(--primary)', color: 'white', borderRadius: '20px', padding: '1rem 1.5rem', boxShadow: '0 20px 40px rgba(16,185,129,0.4)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.8 }}>AI LISTING TIME</div>
-                <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>~8s</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.8 }}>VERIFICATION SPEED</div>
+                <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>~2s</div>
               </div>
             </div>
           </div>

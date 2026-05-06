@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessageCircle, MapPin, Clock, Loader2, AlertCircle } from 'lucide-react';
 import { db, doc, getDoc } from '../firebase';
 import ChatModal from '../components/ChatModal';
+import GoogleMap from '../components/GoogleMap';
 
 export default function ItemDetails() {
   const { id } = useParams();
@@ -75,6 +76,14 @@ export default function ItemDetails() {
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           <Clock size={16} /> {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString() : item.createdAt}
         </span>
+      </div>
+
+      <div style={{ marginBottom: '1.5rem', borderRadius: '16px', overflow: 'hidden', height: '200px', border: '1px solid var(--border-color)' }}>
+        <GoogleMap 
+          center={{ lat: item.lat || 7.0707, lng: item.lng || 125.6092 }}
+          radius={0.3} // Privacy circle
+          zoom={15}
+        />
       </div>
 
       <div style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '2rem' }}>

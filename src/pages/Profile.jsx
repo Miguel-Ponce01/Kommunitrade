@@ -51,7 +51,19 @@ export default function Profile() {
   const [userLocation, setUserLocation] = useState(
     localStorage.getItem('komuni_user_location') || "Davao City"
   );
+  const [userBio, setUserBio] = useState(
+    localStorage.getItem('komuni_user_bio') || "Passionate community member interested in sustainable trading."
+  );
+  const [communityStatus, setCommunityStatus] = useState(
+    localStorage.getItem('komuni_comm_status') || "Active member of the Davao trading community. Focused on sustainable exchange and supporting local barangays."
+  );
+  const [tempStatus, setTempStatus] = useState(communityStatus);
+  const [isEditingStatus, setIsEditingStatus] = useState(false);
+  const [profileImage, setProfileImage] = useState(
+    localStorage.getItem('komuni_profile_image') || null
+  );
   const [isGeolocating, setIsGeolocating] = useState(false);
+  const fileInputRef = React.useRef(null);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -76,7 +88,32 @@ export default function Profile() {
   const handleSave = async () => {
     localStorage.setItem('komuni_display_name', displayName);
     localStorage.setItem('komuni_user_location', userLocation);
+    localStorage.setItem('komuni_user_bio', userBio);
+    localStorage.setItem('komuni_comm_status', communityStatus);
+    if (profileImage) localStorage.setItem('komuni_profile_image', profileImage);
     setIsEditing(false);
+  };
+
+  const handleStatusSave = () => {
+    setCommunityStatus(tempStatus);
+    localStorage.setItem('komuni_comm_status', tempStatus);
+    setIsEditingStatus(false);
+  };
+
+  const handleStatusCancel = () => {
+    setTempStatus(communityStatus);
+    setIsEditingStatus(false);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const detectLocation = () => {
@@ -125,40 +162,89 @@ export default function Profile() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ paddingBottom: '100px', background: 'var(--bg-color)', minHeight: '100vh' }}>
+    <div className="animate-fade-in profile-premium-bg" style={{ paddingBottom: '100px', minHeight: '100vh' }}>
       
       <div className="profile-container-redesign">
         
         {/* Left Column: Profile Card */}
         <div className="profile-sidebar-card">
-          <div className="profile-avatar-circle">
-             <Fingerprint size={80} strokeWidth={1} color="var(--primary)" />
+          <div className="profile-avatar-circle" style={{ position: 'relative', overflow: 'hidden' }}>
+             {profileImage ? (
+               <img src={profileImage} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+             ) : (
+               <Fingerprint size={80} strokeWidth={1} color="var(--primary)" />
+             )}
+             
+             {isEditing && (
+               <div 
+                 onClick={() => fileInputRef.current?.click()}
+                 style={{
+                   position: 'absolute',
+                   inset: 0,
+                   background: 'rgba(0,0,0,0.5)',
+                   display: 'flex',
+                   flexDirection: 'column',
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   color: '#FFF',
+                   fontSize: '0.7rem',
+                   fontWeight: 800,
+                   cursor: 'pointer',
+                   transition: 'all 0.3s'
+                 }}
+               >
+                 <Edit3 size={20} style={{ marginBottom: '4px' }} />
+                 {t('prof_change_photo')}
+               </div>
+             )}
+             <input 
+               type="file" 
+               ref={fileInputRef} 
+               onChange={handleImageChange} 
+               accept="image/*" 
+               hidden 
+             />
           </div>
           
           {isEditing ? (
-            <div style={{ marginBottom: '1rem' }}>
+            <div style={{ marginBottom: '1rem', width: '100%' }}>
+              <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textAlign: 'left' }}>
+                {t('prof_name_label')}
+              </label>
               <input 
                 type="text" 
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
+                className="premium-input"
+                style={{ textAlign: 'center' }}
+              />
+              
+              <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', margin: '1rem 0 4px', textAlign: 'left' }}>
+                {t('prof_bio')}
+              </label>
+              <textarea 
+                value={userBio}
+                onChange={(e) => setUserBio(e.target.value)}
+                placeholder={t('prof_bio_placeholder')}
+                className="premium-input"
                 style={{ 
-                  background: 'var(--bg-main)', 
-                  border: '2px solid var(--primary)', 
-                  color: 'var(--text-main)', 
-                  fontSize: '1.2rem', 
-                  fontWeight: 800, 
-                  padding: '0.5rem', 
-                  borderRadius: '8px',
-                  width: '100%',
-                  textAlign: 'center'
+                  height: '100px', 
+                  resize: 'none', 
+                  fontSize: '0.85rem',
+                  padding: '12px'
                 }}
               />
             </div>
           ) : (
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 0.5rem' }}>{displayName}</h2>
+            <>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 0.5rem' }}>{displayName}</h2>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem', padding: '0 1rem' }}>
+                {userBio}
+              </p>
+            </>
           )}
           
-          <p style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', marginBottom: '1rem' }}>
              <Shield size={14} color="var(--primary)" /> {t('trust_badge')}
           </p>
 
@@ -203,14 +289,8 @@ export default function Profile() {
         {/* Right Column: About & Content */}
         <div className="profile-main-content">
           
-          <div className="about-section">
-            <h1 style={{ marginBottom: '1.5rem' }}>About {displayName}</h1>
-            
+          <div className="about-section premium-glass">
             <div className="info-grid">
-              <div className="info-item">
-                <Briefcase className="info-icon" />
-                <span>My work: Trading Expert</span>
-              </div>
               <div className="info-item">
                 <Languages className="info-icon" />
                 <span>Speaks English and Tagalog</span>
@@ -223,19 +303,12 @@ export default function Profile() {
                       type="text" 
                       value={userLocation}
                       onChange={(e) => setUserLocation(e.target.value)}
-                      style={{ 
-                        background: 'var(--bg-main)', 
-                        border: '1px solid var(--border-color)', 
-                        color: 'var(--text-main)', 
-                        padding: '0.4rem', 
-                        borderRadius: '6px',
-                        flex: 1
-                      }}
+                      className="premium-input-small"
                     />
                     <button 
                       onClick={detectLocation}
                       disabled={isGeolocating}
-                      style={{ background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '6px', padding: '0.4rem' }}
+                      className="detect-loc-btn"
                     >
                       {isGeolocating ? <Loader2 className="animate-spin" size={14} /> : <MapPin size={14} />}
                     </button>
@@ -246,9 +319,27 @@ export default function Profile() {
               </div>
             </div>
 
-            <p className="bio-text">
-              Active member of the Davao trading community. Focused on sustainable exchange and supporting local barangays. Always looking for fresh produce and tech gadgets to trade.
-            </p>
+            <div className="community-status-box">
+               {isEditingStatus ? (
+                 <div className="status-editor">
+                   <textarea 
+                     value={tempStatus}
+                     onChange={(e) => setTempStatus(e.target.value)}
+                     className="premium-textarea"
+                     placeholder="Share your community involvement..."
+                   />
+                   <div className="status-actions">
+                     <button onClick={handleStatusSave} className="btn-save-small">CONFIRM</button>
+                     <button onClick={handleStatusCancel} className="btn-cancel-small">CANCEL</button>
+                   </div>
+                 </div>
+               ) : (
+                 <div className="status-display" onClick={() => setIsEditingStatus(true)}>
+                    <p className="bio-text">{communityStatus}</p>
+                    <Edit3 size={14} className="status-edit-icon" />
+                 </div>
+               )}
+            </div>
           </div>
 
           {/* Tabs for Inventory / Security */}
