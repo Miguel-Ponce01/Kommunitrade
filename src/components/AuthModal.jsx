@@ -31,9 +31,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }) {
         </button>
 
         <div className="auth-header">
-          <div className="auth-logo">
-            <ShoppingBag className="auth-icon" size={32} color="var(--primary)" />
-            <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '2rem', fontWeight: 900 }}>KomuniTrade</h2>
+          <div className="auth-logo" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 10H18L17 19C17 20.1046 16.1046 21 15 21H9C7.89543 21 7 20.1046 7 19L6 10Z" fill="var(--primary)" fillOpacity="0.1" stroke="var(--primary)" strokeWidth="2"/>
+              <path d="M9 10V6C9 4.34315 10.3431 3 12 3L12 3C13.6569 3 15 4.34315 15 6V10" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M12 2L9 5H15L12 2Z" fill="var(--primary)"/>
+              <path d="M6 10H18" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '2.2rem', fontWeight: 900, color: 'var(--text-main)' }}>KomuniTrade</h2>
           </div>
           <p className="auth-subtitle" style={{ fontSize: '1rem', marginTop: '0.5rem' }}>
             {mode === 'login' ? 'Sign in to your neighborhood marketplace' : 'Create an account to start trading'}

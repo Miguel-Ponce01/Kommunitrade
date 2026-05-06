@@ -61,10 +61,14 @@ export default function Layout() {
 
         {/* Logo Section */}
         <div className="sidebar-logo">
-          <div className="logo-icon-wrap">
-            <MapPin size={20} strokeWidth={3} />
+          <div className="logo-icon-wrap" style={{ background: 'transparent', width: 'auto', height: 'auto', display: 'flex', alignItems: 'center' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 10H18L17 19C17 20.1046 16.1046 21 15 21H9C7.89543 21 7 20.1046 7 19L6 10Z" fill="var(--primary)" fillOpacity="0.1" stroke="var(--primary)" strokeWidth="2.5"/>
+              <path d="M9 10V6C9 4.34315 10.3431 3 12 3L12 3C13.6569 3 15 4.34315 15 6V10" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round"/>
+              <path d="M12 2L9 5H15L12 2Z" fill="var(--primary)"/>
+            </svg>
           </div>
-          {!isCollapsed && <span className="logo-text" style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-main)' }}>KomuniTrade</span>}
+          {!isCollapsed && <span className="logo-text" style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-main)', marginLeft: '0.5rem' }}>KomuniTrade</span>}
         </div>
 
         {/* Search Bar (Expanded Only) */}
@@ -130,9 +134,13 @@ export default function Layout() {
 
       {/* Main Content Stage */}
       <main className="main-content">
-        <header className="mobile-header">
-          <MapPin size={24} color="var(--primary)" />
-          <span className="logo-text">KomuniTrade</span>
+        <header className="mobile-header" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 10H18L17 19C17 20.1046 16.1046 21 15 21H9C7.89543 21 7 20.1046 7 19L6 10Z" fill="var(--primary)" fillOpacity="0.1" stroke="var(--primary)" strokeWidth="2"/>
+            <path d="M9 10V6C9 4.34315 10.3431 3 12 3L12 3C13.6569 3 15 4.34315 15 6V10" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M12 2L9 5H15L12 2Z" fill="var(--primary)"/>
+          </svg>
+          <span className="logo-text" style={{ fontSize: '1.4rem', fontWeight: 900 }}>KomuniTrade</span>
         </header>
         <div className="content-scroll">
           <div className="apple-grid">

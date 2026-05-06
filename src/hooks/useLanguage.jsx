@@ -10,14 +10,14 @@ const translations = {
     
     // Landing Hero
     hero_davao: "📍 Exclusively Crafted for Davaoeños",
-    hero_barangay: "The <span class='text-gradient'>heartbeat</span> of neighborhood commerce.",
-    hero_buy_sell: "Experience the future of local trading. From beloved ukay-ukay to the latest tech—everything you need is right next door, verified and secure.",
+    hero_barangay: "The <span class='text-gradient'>vibrant heartbeat</span> of neighborhood commerce.",
+    hero_buy_sell: "Unlock the hidden potential of your community. From cherished pre-loved treasures to cutting-edge technology—everything you desire is just a doorstep away, verified by the neighbors you trust.",
     hero_mag_lista: "Start Selling",
     hero_mag_browse: "Explore Local Deals",
     stats_barangays: "Vibrant Communities",
     stats_verify: "Authenticity Mark",
     stats_chat: "Private & Secure",
-    stats_title: "Hyper-local trading, redefined by intelligence.",
+    stats_title: "Davao's trading revolution, powered by neighborhood intelligence.",
     stats_subtitle: "Empowering every barangay in the City of Davao",
 
     // Categories
@@ -170,8 +170,8 @@ const translations = {
 
     // Landing Hero
     hero_davao: "📍 Eksklusibong Likha para sa mga Davaoeño",
-    hero_barangay: "Ang <span class='text-gradient'>puso at sentro</span> ng inyong barangay marketplace.",
-    hero_buy_sell: "Damhin ang kinabukasan ng lokal na kalakalan. Mula sa mga paboritong ukay-ukay hanggang sa pinakabagong gadgets — lahat ay abot-kamay, ligtas, at para sa inyong mga kapitbahay.",
+    hero_barangay: "Ang <span class='text-gradient'>masiglang puso</span> ng kalakalan sa iyong barangay.",
+    hero_buy_sell: "Tuklasin ang yaman ng inyong komunidad. Mula sa mga paboritong pre-loved items hanggang sa makabagong teknolohiya—lahat ng iyong ninanais ay abot-tanaw lang, garantisado ng mga kapitbahay na iyong pinagkakatiwalaan.",
     hero_mag_lista: "Simulan ang Pagbenta",
     hero_mag_browse: "Mag-libot sa mga Deal",
     stats_barangays: "Masiglang Komunidad",

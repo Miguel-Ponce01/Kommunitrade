@@ -32,48 +32,27 @@ export default function Landing() {
     <div className="editorial-landing animate-fade-in">
       {/* Navbar */}
       <nav className="editorial-nav">
-        <div className="apple-grid" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '2rem' }}>
-          <div className="nav-brand">
+        <div className="apple-grid" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
+          <div className="nav-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flexShrink: 1 }}>
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 10H18L17 19C17 20.1046 16.1046 21 15 21H9C7.89543 21 7 20.1046 7 19L6 10Z" fill="var(--primary)" fillOpacity="0.1" stroke="var(--primary)" strokeWidth="2"/>
+              <path d="M9 10V6C9 4.34315 10.3431 3 12 3L12 3C13.6569 3 15 4.34315 15 6V10" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M12 2L9 5H15L12 2Z" fill="var(--primary)"/>
+              <path d="M6 10H18" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
             <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.05em', fontFamily: "'Outfit', sans-serif" }}>
               {t('nav_brand')}
             </span>
           </div>
           <div className="nav-controls">
-            {/* Language Toggle */}
-            <div 
-              className="language-toggle-pill" 
-              onClick={toggleLanguage}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                background: 'var(--bg-color)',
-                border: '1px solid var(--border-color)',
-                padding: '0.5rem 1rem',
-                borderRadius: '999px',
-                cursor: 'pointer',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                color: 'var(--text-main)',
-                transition: 'var(--transition)'
-              }}
-            >
-              <Languages size={16} />
-              <span>{lang === 'en' ? 'ENGLISH' : 'TAGALOG'}</span>
-            </div>
-
-            <div className="search-bar" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', marginLeft: '1rem' }}>
-              <input type="text" placeholder={t('nav_search_ph')} />
-              <button aria-label="Search"><Search size={16} /></button>
-            </div>
             <button className="auth-action-btn" onClick={() => openAuth('login')} style={{ fontWeight: 700 }}>{t('nav_login')}</button>
-            <button className="btn-primary" onClick={() => openAuth('register')} style={{ padding: '0.6rem 1.5rem', borderRadius: '12px' }}>{t('nav_signup')}</button>
+            <button className="btn-primary" onClick={() => openAuth('register')} style={{ padding: '0.5rem 1rem', borderRadius: '10px', fontSize: '0.85rem' }}>{t('nav_signup')}</button>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="editorial-hero">
+      <section className="editorial-hero" style={{ width: '100%', overflowX: 'hidden' }}>
         <div className="apple-grid">
           <div className="location-badge" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: 'none', fontWeight: 800 }}>
             {t('hero_davao')}
@@ -81,8 +60,8 @@ export default function Landing() {
           
           <h1 className="hero-heading" dangerouslySetInnerHTML={{ __html: t('hero_barangay') }} />
 
-          <div className="hero-sub" style={{ border: 'none', paddingTop: 0 }}>
-            <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)', maxWidth: '540px', marginBottom: '2.5rem', lineHeight: 1.7 }}>
+          <div className="hero-sub" style={{ border: 'none', paddingTop: 0, width: '100%' }}>
+            <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)', maxWidth: '100%', marginBottom: '2.5rem', lineHeight: 1.7 }}>
               {t('hero_buy_sell')}
             </p>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -243,22 +222,55 @@ export default function Landing() {
           <p>
             {t('cta_footer_desc')}
           </p>
-          <button 
-            onClick={() => openAuth('register')} 
-            style={{ 
-              display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
-              background: '#fff', color: '#0F172A', border: 'none', 
-              padding: '1.1rem 2.5rem', borderRadius: '16px', 
-              fontWeight: 800, fontSize: '1.1rem', cursor: 'pointer',
-              fontFamily: "'Outfit', sans-serif",
-              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-              transition: 'all 0.3s ease', position: 'relative'
-            }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 28px 50px rgba(0,0,0,0.4)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3)'; }}
-          >
-            {t('cta_footer_btn_text')} <ArrowRight size={20} />
-          </button>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2.5rem' }}>
+            <button 
+              onClick={() => openAuth('register')} 
+              style={{ 
+                display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
+                background: '#fff', color: '#0F172A', border: 'none', 
+                padding: '1.1rem 2.5rem', borderRadius: '16px', 
+                fontWeight: 800, fontSize: '1.1rem', cursor: 'pointer',
+                fontFamily: "'Outfit', sans-serif",
+                boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+                transition: 'all 0.3s ease', position: 'relative'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 28px 50px rgba(0,0,0,0.4)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3)'; }}
+            >
+              {t('cta_footer_btn_text')} <ArrowRight size={20} />
+            </button>
+
+            {/* Language Toggle moved to Footer */}
+            <div 
+              className="language-toggle-pill" 
+              onClick={toggleLanguage}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                padding: '0.6rem 1.25rem',
+                borderRadius: '999px',
+                cursor: 'pointer',
+                fontWeight: 800,
+                fontSize: '0.75rem',
+                color: 'rgba(255,255,255,0.5)',
+                transition: 'all 0.3s ease',
+                letterSpacing: '0.05em'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            >
+              <Languages size={14} />
+              <span>{lang === 'en' ? 'ENGLISH' : 'TAGALOG'}</span>
+            </div>
+          </div>
+          
+          <div style={{ marginTop: '5rem', paddingTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.2)', fontSize: '0.75rem', textAlign: 'center' }}>
+            © 2026 KomuniTrade. {t('footer_tagline')}
+          </div>
         </div>
       </section>
 
