@@ -1,10 +1,10 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, doc, setDoc, collection, getDocs, deleteDoc, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDoc, where } from "firebase/firestore";
+import { getFirestore, doc, setDoc, collection, getDocs, deleteDoc, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDoc, where, updateDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 export { signInAnonymously, signOut, onAuthStateChanged };
-export { doc, setDoc, collection, getDocs, deleteDoc, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDoc, where };
+export { doc, setDoc, collection, getDocs, deleteDoc, query, orderBy, onSnapshot, addDoc, serverTimestamp, getDoc, where, updateDoc };
 
 const firebaseConfig = {
   apiKey: "AIzaSyBElwEUo-IJ02SEooL4lNmnZvJ1cu1B4TE",

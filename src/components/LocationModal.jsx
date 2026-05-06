@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, MapPin, ChevronDown, Navigation, Loader2 } from 'lucide-react';
 import '../index.css';
-import { encodeGeohash, resolveLocationCoords } from '../utils/geo';
+import { encodeGeohash, resolveLocationCoords, resolveBarangayFromGeohash } from '../utils/geo';
 
 export default function LocationModal({ isOpen, onClose, initialLocation, initialRadius, onApply }) {
   const [location, setLocation] = useState(initialLocation || "Davao City");
@@ -45,9 +45,10 @@ export default function LocationModal({ isOpen, onClose, initialLocation, initia
       (pos) => {
         const { latitude, longitude } = pos.coords;
         const gh = encodeGeohash(latitude, longitude);
+        const brgy = resolveBarangayFromGeohash(gh);
         setDetectedGeohash(gh);
         setResolvedCoords({ lat: latitude, lng: longitude });
-        setLocation(`My Location`);
+        setLocation(brgy);
         setIsGeolocating(false);
       },
       (err) => {

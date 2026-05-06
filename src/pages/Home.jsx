@@ -15,10 +15,13 @@ const DAVAO_CENTER = { lat: 7.0731, lng: 125.6128 };
 export default function Home() {
   const navigate = useNavigate();
   const [lang, setLang, t] = useLanguage();
-  const [location, setLocation] = useState("Davao City");
+  const [location, setLocation] = useState(localStorage.getItem('komuni_user_location') || "Davao City");
   const [radius, setRadius] = useState(20);
-  const [userLat, setUserLat] = useState(DAVAO_CENTER.lat);
-  const [userLng, setUserLng] = useState(DAVAO_CENTER.lng);
+  
+  // Resolve coordinates based on initial location
+  const initialCoords = resolveLocationCoords(location);
+  const [userLat, setUserLat] = useState(initialCoords.lat);
+  const [userLng, setUserLng] = useState(initialCoords.lng);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");

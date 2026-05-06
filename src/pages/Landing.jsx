@@ -32,7 +32,7 @@ export default function Landing() {
     <div className="editorial-landing animate-fade-in">
       {/* Navbar */}
       <nav className="editorial-nav">
-        <div className="apple-grid" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="apple-grid" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '2rem' }}>
           <div className="nav-brand">
             <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.05em', fontFamily: "'Outfit', sans-serif" }}>
               {t('nav_brand')}

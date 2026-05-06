@@ -1,11 +1,33 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Moon, Sun, Smartphone, Bell, Shield, LogOut, Database, Check, Loader2 } from 'lucide-react';
+import { 
+  ChevronLeft, 
+  Moon, 
+  Sun, 
+  Smartphone, 
+  Bell, 
+  Shield, 
+  LogOut, 
+  Database, 
+  Check, 
+  Loader2,
+  User,
+  Zap,
+  Globe,
+  Trash2,
+  Lock
+} from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { db, auth, doc, setDoc, collection, getDocs, deleteDoc } from '../firebase';
 import { MOCK_LISTINGS } from '../data/mockData';
 import { isListingActive } from '../utils/geo';
 import { useLanguage } from '../hooks/useLanguage.jsx';
+
+const Switch = ({ active, onClick }) => (
+  <div className={`apple-switch ${active ? 'active' : ''}`} onClick={onClick}>
+    <div className="switch-handle" />
+  </div>
+);
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -29,7 +51,7 @@ export default function Settings() {
       for (const item of MOCK_LISTINGS) {
         await setDoc(doc(db, 'listings', item.id), {
           ...item,
-          sellerId: currentUser.uid, // Associate with current demo user
+          sellerId: currentUser.uid, 
           createdAt: new Date().toISOString(),
         });
       }
@@ -65,144 +87,158 @@ export default function Settings() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ padding: '1rem', paddingBottom: '80px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-        <button onClick={() => navigate(-1)} className="back-btn" style={{ position: 'static' }}>
+    <div className="settings-container-redesign animate-fade-in">
+      
+      {/* Header Area */}
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '3rem', gap: '1.5rem' }}>
+        <button onClick={() => navigate(-1)} className="glass" style={{ width: '48px', height: '48px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-color)' }}>
           <ChevronLeft size={24} />
         </button>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>{t('sett_title')}</h1>
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", lineHeight: 1.2 }}>{t('sett_title')}</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>Manage your preferences and security</p>
+        </div>
       </div>
 
-      <div className="settings-section" style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: '1rem', paddingLeft: '0.5rem' }}>{t('sett_appearance')}</h2>
-        
-        <div style={{ background: 'var(--card-bg)', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+      {/* Appearance Group */}
+      <div className="settings-section">
+        <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', paddingLeft: '0.5rem' }}>
+          {t('sett_appearance')}
+        </h2>
+        <div className="settings-card-group">
           
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Sun size={20} color="var(--primary)" />
-              <span style={{ fontWeight: 500 }}>{t('sett_light')}</span>
+          <div className="settings-item-row" onClick={() => setTheme('light')}>
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                <Sun size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">{t('sett_light')}</span>
+                <span className="settings-label-sub">Optimized for daytime trading</span>
+              </div>
             </div>
-            <input 
-              type="radio" 
-              name="theme" 
-              checked={theme === 'light'} 
-              onChange={() => setTheme('light')} 
-              style={{ accentColor: 'var(--primary)', width: '20px', height: '20px' }}
-            />
+            <Switch active={theme === 'light'} onClick={() => setTheme('light')} />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Moon size={20} color="var(--primary)" />
-              <span style={{ fontWeight: 500 }}>{t('sett_dark')}</span>
+          <div className="settings-item-row" onClick={() => setTheme('dark')}>
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#E0E7FF', color: '#4F46E5' }}>
+                <Moon size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">{t('sett_dark')}</span>
+                <span className="settings-label-sub">Better for low-light environments</span>
+              </div>
             </div>
-            <input 
-              type="radio" 
-              name="theme" 
-              checked={theme === 'dark'} 
-              onChange={() => setTheme('dark')}
-              style={{ accentColor: 'var(--primary)', width: '20px', height: '20px' }}
-            />
+            <Switch active={theme === 'dark'} onClick={() => setTheme('dark')} />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Smartphone size={20} color="var(--primary)" />
-              <span style={{ fontWeight: 500 }}>{t('sett_system')}</span>
+          <div className="settings-item-row" onClick={() => setTheme('system')}>
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#F1F5F9', color: '#64748B' }}>
+                <Smartphone size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">{t('sett_system')}</span>
+                <span className="settings-label-sub">Sync with device settings</span>
+              </div>
             </div>
-            <input 
-              type="radio" 
-              name="theme" 
-              checked={theme === 'system'} 
-              onChange={() => setTheme('system')}
-              style={{ accentColor: 'var(--primary)', width: '20px', height: '20px' }}
-            />
+            <Switch active={theme === 'system'} onClick={() => setTheme('system')} />
           </div>
 
         </div>
       </div>
 
-      <div className="settings-section" style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: '1rem', paddingLeft: '0.5rem' }}>{t('sett_prefs')}</h2>
-        <div style={{ background: 'var(--card-bg)', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Bell size={20} color="var(--text-muted)" />
-              <span style={{ fontWeight: 500 }}>{t('sett_notifs')}</span>
+      {/* Preferences Group */}
+      <div className="settings-section">
+        <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', paddingLeft: '0.5rem' }}>
+          {t('sett_prefs')}
+        </h2>
+        <div className="settings-card-group">
+          
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#DCFCE7', color: '#16A34A' }}>
+                <Bell size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">{t('sett_notifs')}</span>
+                <span className="settings-label-sub">Real-time alerts for trades</span>
+              </div>
             </div>
-            <div style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>Enabled</div>
+            <span style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.8rem' }}>ENABLED</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Shield size={20} color="var(--text-muted)" />
-              <span style={{ fontWeight: 500 }}>{t('sett_privacy')}</span>
+
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#DBEAFE', color: '#2563EB' }}>
+                <Lock size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">{t('sett_privacy')}</span>
+                <span className="settings-label-sub">Manage your security keys</span>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
-      <div className="settings-section" style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: '1rem', paddingLeft: '0.5rem' }}>{t('sett_dev_tools')}</h2>
-        <div style={{ background: 'var(--card-bg)', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Database size={20} color="var(--text-muted)" />
-              <div>
-                <span style={{ fontWeight: 500, display: 'block' }}>{t('sett_seed_db')}</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('sett_seed_desc')}</span>
+
+      {/* Developer Tools Group */}
+      <div className="settings-section">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', paddingLeft: '0.5rem' }}>
+           <Zap size={14} color="var(--primary)" fill="var(--primary)" />
+           <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            {t('sett_dev_tools')}
+          </h2>
+        </div>
+        <div className="settings-card-group">
+          
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#F5F3FF', color: '#7C3AED' }}>
+                <Database size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">{t('sett_seed_db')}</span>
+                <span className="settings-label-sub">{t('sett_seed_desc')}</span>
               </div>
             </div>
             <button 
               onClick={seedDatabase}
               disabled={isSeeding || seedSuccess}
-              style={{ 
-                background: seedSuccess ? 'var(--primary)' : 'transparent',
-                color: seedSuccess ? 'white' : 'var(--primary)',
-                border: '1px solid var(--primary)',
-                borderRadius: '8px',
-                padding: '0.4rem 0.8rem',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
+              className="btn-primary"
+              style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', width: 'auto' }}
             >
               {isSeeding ? <Loader2 className="animate-spin" size={14} /> : (seedSuccess ? <Check size={14} /> : t('sett_seed_now'))}
             </button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', borderTop: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Shield size={20} color="#ef4444" />
-              <div>
-                <span style={{ fontWeight: 500, display: 'block' }}>{t('sett_purge_exp')}</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('sett_purge_desc')}</span>
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#FEF2F2', color: '#EF4444' }}>
+                <Trash2 size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">{t('sett_purge_exp')}</span>
+                <span className="settings-label-sub">{t('sett_purge_desc')}</span>
               </div>
             </div>
             <button 
               onClick={purgeExpired}
               disabled={isPurging}
-              style={{ 
-                background: purgeCount > 0 ? '#ef4444' : 'transparent',
-                color: purgeCount > 0 ? 'white' : '#ef4444',
-                border: '1px solid #ef4444',
-                borderRadius: '8px',
-                padding: '0.4rem 0.8rem',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
+              className="btn-secondary"
+              style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', color: '#EF4444', borderColor: '#EF4444', width: 'auto' }}
             >
               {isPurging ? <Loader2 className="animate-spin" size={14} /> : (purgeCount > 0 ? `Deleted ${purgeCount}` : t('sett_purge_now'))}
             </button>
           </div>
+
         </div>
       </div>
 
-      <button className="btn" onClick={() => navigate('/')} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-        <LogOut size={20} />
+      <button className="logout-btn-premium" onClick={() => navigate('/')}>
+        <LogOut size={22} />
         {t('sett_sign_out')}
       </button>
 

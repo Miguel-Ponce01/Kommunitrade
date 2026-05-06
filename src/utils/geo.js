@@ -201,3 +201,14 @@ export function resolveLocationCoords(locationName) {
   );
   return key ? BARANGAY_COORDS[key] : BARANGAY_COORDS['Davao City'];
 }
+/**
+ * Resolves a geohash string to the nearest Barangay name.
+ * Useful for "Hyperlocal" claim verification.
+ * @param {string} geohash 
+ * @returns {string} Barangay name
+ */
+export function resolveBarangayFromGeohash(geohash) {
+  if (!geohash) return 'Davao City';
+  const { lat, lng } = decodeGeohash(geohash);
+  return findNearestBarangay(lat, lng);
+}

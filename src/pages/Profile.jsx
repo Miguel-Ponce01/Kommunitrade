@@ -20,8 +20,9 @@ import {
   Shield
 } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
-import { db, auth, collection, query, where, onSnapshot, doc, deleteDoc } from '../firebase';
+import { db, auth, collection, query, where, onSnapshot, doc, deleteDoc, updateDoc } from '../firebase';
 import { useLanguage } from '../hooks/useLanguage.jsx';
+import { encodeGeohash, resolveBarangayFromGeohash } from '../utils/geo';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -47,6 +48,10 @@ export default function Profile() {
     localStorage.getItem('komuni_display_name') || 
     (currentUser ? `Agent_${currentUser.uid.substring(0, 6).toUpperCase()}` : "Guest_User")
   );
+  const [userLocation, setUserLocation] = useState(
+    localStorage.getItem('komuni_user_location') || "Davao City"
+  );
+  const [isGeolocating, setIsGeolocating] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -68,9 +73,26 @@ export default function Profile() {
     return () => unsubscribe();
   }, [currentUser]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     localStorage.setItem('komuni_display_name', displayName);
+    localStorage.setItem('komuni_user_location', userLocation);
     setIsEditing(false);
+  };
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) return;
+    setIsGeolocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const gh = encodeGeohash(latitude, longitude);
+        const brgy = resolveBarangayFromGeohash(gh);
+        setUserLocation(brgy);
+        setIsGeolocating(false);
+      },
+      () => setIsGeolocating(false),
+      { timeout: 8000 }
+    );
   };
 
   const handleDelete = async (e, id) => {
@@ -195,7 +217,32 @@ export default function Profile() {
               </div>
               <div className="info-item">
                 <MapPin className="info-icon" />
-                <span>Lives in Davao City, PH</span>
+                {isEditing ? (
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', width: '100%' }}>
+                    <input 
+                      type="text" 
+                      value={userLocation}
+                      onChange={(e) => setUserLocation(e.target.value)}
+                      style={{ 
+                        background: 'var(--bg-main)', 
+                        border: '1px solid var(--border-color)', 
+                        color: 'var(--text-main)', 
+                        padding: '0.4rem', 
+                        borderRadius: '6px',
+                        flex: 1
+                      }}
+                    />
+                    <button 
+                      onClick={detectLocation}
+                      disabled={isGeolocating}
+                      style={{ background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '6px', padding: '0.4rem' }}
+                    >
+                      {isGeolocating ? <Loader2 className="animate-spin" size={14} /> : <MapPin size={14} />}
+                    </button>
+                  </div>
+                ) : (
+                  <span>Lives in {userLocation}, PH</span>
+                )}
               </div>
             </div>
 
