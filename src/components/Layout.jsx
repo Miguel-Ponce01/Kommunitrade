@@ -177,7 +177,9 @@ export default function Layout() {
           <span className="logo-text">KomuniTrade</span>
         </header>
         <div className="content-scroll">
-          <Outlet />
+          <div className="apple-grid">
+            <Outlet />
+          </div>
         </div>
       </main>
 

@@ -60,6 +60,8 @@ body {
   background-color: var(--bg-color);
   color: var(--text-main);
   line-height: 1.6;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 h1, h2, h3, h4, .logo-text, .nav-label, .btn-primary {
@@ -156,11 +158,20 @@ ul {
   margin: 0 auto;
   min-height: 100vh;
   position: relative;
-  background-color: var(--bg-color); /* Linen */
+  background-color: var(--bg-color);
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+}
+
+/* Apple-style Centered Grid Wrapper */
+.apple-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--container-padding);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (min-width: 768px) {
@@ -1289,6 +1300,8 @@ ul {
   background-color: var(--bg-color);
   color: var(--text-main);
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .editorial-nav {
