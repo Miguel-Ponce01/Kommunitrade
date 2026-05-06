@@ -1318,39 +1318,6 @@ ul {
   position: relative;
 }
 
-.editorial-landing::before,
-.editorial-landing::after {
-  content: "";
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  border-radius: 50%;
-  filter: blur(100px);
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.15;
-  animation: blob-float 20s infinite alternate;
-}
-
-.editorial-landing::before {
-  background: var(--primary);
-  top: -100px;
-  right: -100px;
-}
-
-.editorial-landing::after {
-  background: var(--secondary);
-  bottom: -100px;
-  left: -100px;
-  animation-delay: -10s;
-}
-
-@keyframes blob-float {
-  0% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-100px, 100px) scale(1.2); }
-  100% { transform: translate(100px, -100px) scale(0.8); }
-}
-
 .editorial-nav {
   display: flex;
   justify-content: space-between;
