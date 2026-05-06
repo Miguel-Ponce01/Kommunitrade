@@ -2,40 +2,45 @@
 
 > **Davao's Premier Hyper-local Marketplace Engine** 🏙️🚀
 
-KomuniTrade is a high-velocity, community-driven marketplace application designed to revolutionize commerce within Davao City's barangays. Built as a high-fidelity prototype for academic defense, it leverages **Computer Vision (AI)** and **Geospatial Authentication** to ensure that every listing is verified, local, and trustworthy.
+KomuniTrade is a high-velocity, community-driven marketplace application designed to revolutionize commerce within Davao City's barangays. Built as a high-fidelity prototype for academic defense, it leverages **Computer Vision (AI)**, **Geospatial Authentication**, and a **Universal Responsive Framework** to ensure a seamless experience on any device.
 
 ---
 
 ## ✨ Key Features (Academic Defense Edition)
 
+### 📱 **Universal Responsiveness Engine**
+Engineered for "Zero-Friction" accessibility across all hardware platforms.
+- **Bulletproof Layout**: Fluid typography and adaptive grid systems ensure the platform is perfect on 320px (Mobile) to 4K (Desktop).
+- **Mobile-First UX**: Implemented sleek "Bottom Sheets" for authentication and a sticky "Bottom Navigation Bar" for effortless one-handed use on smartphones.
+- **Dynamic Orientation**: Optimized for both vertical and horizontal viewports with automated spacing adjustments.
+
+### 🎨 **Bespoke "Nature-Tech" Branding**
+A sophisticated, emerald-themed design system optimized for trust and high-performance.
+- **Custom SVG Identity**: Integrated a handcrafted vector logo representing Davao's community spirit (the home-basket hybrid).
+- **Glassmorphic UI**: High-fidelity frosted glass panels, shimmering skeleton loaders, and hardware-accelerated animations (60FPS).
+- **Fluid Typography**: Utilizing `Outfit` for bold technical headings and `Inter` for precise metadata, scaling dynamically with the viewport.
+
 ### 🛰️ **Anti-Gravity AI Marketplace Engine**
 Native integration with **Google Gemini 1.5 Flash** for "Zero-Friction" listing creation.
 - **Visual Intelligence**: Automated item identification, categorization, and fair-market price estimation (₱).
-- **Dual-Model Failover**: Integrated redundancy that automatically pivots to `gemini-pro-vision` if the primary signal is interrupted.
 - **Hardware-Level Processing**: On-device image compression ensures lightning-fast uploads even on low-bandwidth neighborhood networks.
 
-### ⏱️ **Context & Time Mark Engine**
-A proprietary verification system that anchors digital listings to physical reality.
-- **GPS Authentication**: Captures real-time coordinates and maps them to the nearest Davao City barangay.
-- **Time-Stamping**: Hard-coded digital "Time Marks" prevent listing spoofing and ensure all items are current.
-- **Visual Evidence**: Real-time overlays on item photos provide immediate proof of location and time for potential buyers.
-
-### 🛡️ **Academic Defense Mode (TTL)**
-A specialized evaluation mode designed to showcase the system's "Anti-Scam" logic.
-- **Rapid Lifecycle**: Toggles a strict **1-hour Time-to-Live (TTL)** for listings, demonstrating the automated expiration and cleanup mechanism.
-- **Technical Module Output**: A real-time developer console (Tech-Log) that exposes the system's raw JSON payloads, API status codes, and confidence scores for faculty review.
-
-### 🎨 **Premium "Nature-Tech" Identity**
-A sophisticated, emerald-themed design system optimized for trust and high-performance.
-- **Premium Item Cards**: Enhanced layout with bold typography, color-coded condition badges, and high-visibility price/time metadata.
-- **Glassmorphic UI**: High-fidelity frosted glass panels, shimmering skeleton loaders, and hardware-accelerated animations (60FPS).
-- **Typography**: Utilizing `Outfit` for bold technical headings and `Inter` for precise metadata.
-
-### 🌍 **Hyper-Local Personalization**
+### 🌍 **Hyper-Local Bilingual Support**
 Ensuring the app feels like it was built for your specific Davao neighborhood.
-- **Multi-Language Engine**: Seamless toggling between **English** and **Natural Tagalog**, with community-aware phrasing.
-- **Condition Scale**: A standardized 5-point quality assessment (New to Poor) with color-coded visual indicators.
-- **Enhanced Profile**: Robust personalization including Bio, Profile Photo, and an editable "Community Status" box.
+- **One-Touch Toggle**: Seamlessly switch between **English** and **Tagalog** via a minimalist footer control.
+- **Geospatial Mapping**: Real-time GPS authentication anchors digital listings to physical Davao City barangays.
+
+### 💾 **Data Persistence & Real-time Sync**
+Built on a high-availability serverless architecture for reliable neighborhood trading.
+- **Firebase Firestore**: Utilizes a NoSQL document-based structure for sub-second real-time synchronization of item listings across all active clients.
+- **Offline Persistence**: Implemented local caching so users can browse previously loaded listings even with intermittent Davao neighborhood connectivity.
+- **Scalable Geo-Queries**: Optimized data structure to support rapid proximity-based filtering without performance degradation.
+
+### 🛠️ **Developer Tech-Log (Defense Module)**
+A specialized evaluation console designed for technical audit during faculty review.
+- **JSON Payloads**: Exposes the raw data transmitted between the frontend and Firebase for transparency.
+- **API Monitoring**: Real-time tracking of Gemini AI response times and confidence scores.
+- **System Health**: Visual indicators for database connection status and geospatial mapping accuracy.
 
 ---
 
@@ -44,12 +49,12 @@ Ensuring the app feels like it was built for your specific Davao neighborhood.
 | Category | Technology |
 | :--- | :--- |
 | **Frontend Core** | ⚛️ React 18 + Vite |
+| **Styling** | 🎨 Vanilla CSS (Modern Fluid Design) |
 | **Backend / Database** | 🔥 Firebase Cloud Firestore |
 | **Authentication** | 🔐 Firebase Anonymous Auth |
 | **Computer Vision** | 🧠 Google Gemini 1.5 (Multi-modal) |
-| **Geospatial Logic** | 🗺️ Geohash Encoding & Haversine Algorithms |
+| **Geospatial Logic** | 🗺️ Google Maps API & Haversine Algorithms |
 | **Animations** | ✨ CSS Keyframes (GPU Accelerated) |
-| **Icons** | 🌠 Lucide React |
 
 ---
 
@@ -58,6 +63,7 @@ Ensuring the app feels like it was built for your specific Davao neighborhood.
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v16+)
 - A valid **Gemini API Key** from [Google AI Studio](https://aistudio.google.com/)
+- A **Google Maps API Key** (for geo-location features)
 
 ### 📥 Installation
 1.  Clone the repository:
@@ -71,14 +77,15 @@ Ensuring the app feels like it was built for your specific Davao neighborhood.
     ```
 3.  Configure Environment Variables (`.env.local`):
     ```env
-    VITE_GEMINI_API_KEY="YOUR_API_KEY_HERE"
+    VITE_GEMINI_API_KEY="YOUR_GEMINI_KEY"
+    VITE_GOOGLE_MAPS_API_KEY="YOUR_GOOGLE_MAPS_KEY"
     ```
 
 ### 💻 Running the App
 ```bash
 npm run dev
 ```
-Navigate to `http://localhost:5174` (or your local Vite port).
+Navigate to `http://localhost:5173`.
 
 ---
 
@@ -87,10 +94,10 @@ Navigate to `http://localhost:5174` (or your local Vite port).
 - [x] **Phase 1**: High-Fidelity UI Prototype & Brand Identity.
 - [x] **Phase 2**: Integration of "Anti-Gravity" AI Engine for Computer Vision.
 - [x] **Phase 3**: Real-time Firebase Backend (Firestore Sync).
-- [x] **Phase 4**: Geospatial Authentication & Barangay Mapping.
-- [x] **Phase 5**: "Context & Time Mark" Engine for physical verification.
-- [x] **Phase 6**: "Defense Mode" Toggle & Technical Module Console.
-- [x] **Phase 7**: Performance Optimization (Skeleton Loading & Memoization).
+- [x] **Phase 4**: Geospatial Authentication & Google Maps Integration.
+- [x] **Phase 5**: "Universal Responsiveness" Overhaul (Mobile, Tablet, PC).
+- [x] **Phase 6**: Bilingual (English/Tagalog) Localization Engine.
+- [x] **Phase 7**: Final Performance Optimization & Asset Hardening (SVG Migration).
 
 ---
 *🎓 Built as an Advanced Information Management Capstone Project.*
