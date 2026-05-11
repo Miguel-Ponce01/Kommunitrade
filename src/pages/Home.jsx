@@ -46,12 +46,8 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
-  // Update search index when listings change
-  useEffect(() => {
-    if (listings.length > 0) {
-      initializeSearchIndex(listings);
-    }
-  }, [listings]);
+
+
 
   const searchResults = performSearch(searchQuery);
 

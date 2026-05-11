@@ -10,9 +10,9 @@ Trade Smart Within Your Community
 
 # 1. EXECUTIVE SUMMARY
 
-KomuniTrade is a web-based hyperlocal marketplace system that leverages Artificial Intelligence to automate listing creation and enhance local buying and selling experiences within barangays and communities in the Philippines.
+**KomuniTrade** is a web-based hyperlocal marketplace system that leverages Artificial Intelligence to automate listing creation and enhance local buying and selling experiences within barangays and communities in the Philippines.
 
-Core Purpose: To enable safe, efficient, and intelligent peer-to-peer commerce within immediate geographic communities while addressing the limitations of existing platforms like Facebook Marketplace—specifically geographically irrelevant listings, manual listing creation, and fraudulent transactions.
+**Core Purpose:** To enable safe, efficient, and intelligent peer-to-peer commerce within immediate geographic communities while addressing the limitations of existing platforms like Facebook Marketplace—specifically geographically irrelevant listings, manual listing creation, and fraudulent transactions.
 
 ---
 
@@ -20,11 +20,11 @@ Core Purpose: To enable safe, efficient, and intelligent peer-to-peer commerce w
 
 | # | Problem |
 |---|---------|
-| 1 | Existing platforms lack hyperlocal precision - users see listings from far locations |
-| 2 | Manual listing creation is time-consuming and discourages casual users |
-| 3 | Fraudulent transactions and scams are prevalent due to weak accountability |
-| 4 | Search inefficiency as platforms scale with poor retrieval performance |
-| 5 | Outdated listings clutter marketplace with no automated lifecycle management |
+| 1 | Existing platforms lack **hyperlocal precision** - users see listings from far locations |
+| 2 | **Manual listing creation** is time-consuming and discourages casual users |
+| 3 | **Fraudulent transactions** and scams are prevalent due to weak accountability |
+| 4 | **Search inefficiency** as platforms scale with poor retrieval performance |
+| 5 | **Outdated listings** clutter marketplace with no automated lifecycle management |
 
 ---
 
@@ -32,13 +32,13 @@ Core Purpose: To enable safe, efficient, and intelligent peer-to-peer commerce w
 
 ## 3.1 Core Value Proposition
 
-KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
+KomuniTrade provides a **secure, intelligent, hyperlocal marketplace** where:
 
-- AI automates listing creation from a single photo (CNN classification + OCR text extraction)
-- Geohash filtering ensures users only see items within their barangay/community
-- Seller verification system uses ML confidence scoring + facial recognition to build trust
-- Automated listing lifecycle (TTL) removes stale listings after 30 days
-- Anonymous communication protects privacy while maintaining accountability
+- **AI automates listing creation** from a single photo (CNN classification + OCR text extraction)
+- **Geohash filtering** ensures users only see items within their barangay/community
+- **Seller verification system** uses ML confidence scoring + facial recognition to build trust
+- **Automated listing lifecycle** (TTL) removes stale listings after 30 days
+- **Anonymous communication** protects privacy while maintaining accountability
 
 ---
 
@@ -70,16 +70,16 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| Frontend | React + Vite | User interface, fast development |
-| Backend | Firebase (serverless) | Authentication, database, hosting |
-| Database | Cloud Firestore | NoSQL, real-time updates |
-| AI/ML - CNN | TensorFlow / PyTorch + MobileNetV3 | Image classification (lightweight for web) |
-| AI/ML - OCR | Tesseract.js / Google Vision API | Text extraction from images |
-| AI/ML - Facial | ArcFace / FaceNet | Facial similarity matching |
-| Geospatial | Geohash library | Location encoding and proximity filtering |
-| Search | Inverted Index | Keyword-based listing retrieval |
-| Expiration | TTL mechanism | Auto-archive listings after 30 days |
-| Hosting | Firebase Hosting / Vercel | Web deployment |
+| **Frontend** | React + Vite | User interface, fast development |
+| **Backend** | Firebase (serverless) | Authentication, database, hosting |
+| **Database** | Cloud Firestore | NoSQL, real-time updates |
+| **AI/ML - CNN** | TensorFlow / PyTorch + MobileNetV3 | Image classification (lightweight for web) |
+| **AI/ML - OCR** | Tesseract.js / Google Vision API | Text extraction from images |
+| **AI/ML - Facial** | ArcFace / FaceNet | Facial similarity matching |
+| **Geospatial** | Geohash library | Location encoding and proximity filtering |
+| **Search** | Inverted Index | Keyword-based listing retrieval |
+| **Expiration** | TTL mechanism | Auto-archive listings after 30 days |
+| **Hosting** | Firebase Hosting / Vercel | Web deployment |
 
 ## 5.2 System Architecture Diagram
 
@@ -117,14 +117,14 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 
 | Layer | Components |
 |-------|------------|
-| Frontend Web Interface | React components, routing, state management, UI/UX |
-| Backend API Server | Firebase Functions, API endpoints, business logic |
-| Authentication Module | Email/password login, session management, security rules |
-| AI Layer | CNN classifier, OCR extractor, facial verification |
-| Geohash Filtering Engine | Location encoding, proximity queries, spatial filtering |
-| Search Engine | Inverted index, keyword matching, result ranking |
-| Database System | Firestore collections, queries, real-time listeners |
-| External APIs | Google Vision OCR, public datasets |
+| **Frontend Web Interface** | React components, routing, state management, UI/UX |
+| **Backend API Server** | Firebase Functions, API endpoints, business logic |
+| **Authentication Module** | Email/password login, session management, security rules |
+| **AI Layer** | CNN classifier, OCR extractor, facial verification |
+| **Geohash Filtering Engine** | Location encoding, proximity queries, spatial filtering |
+| **Search Engine** | Inverted index, keyword matching, result ranking |
+| **Database System** | Firestore collections, queries, real-time listeners |
+| **External APIs** | Google Vision OCR, public datasets |
 
 ---
 
@@ -134,26 +134,26 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 
 | Priority | Feature | Description |
 |----------|---------|-------------|
-| High | Image Upload System | Users can upload item photos |
-| High | User Registration & Login | Secure account creation and authentication |
-| High | CNN Item Classification | Auto-categorize items from images |
-| High | OCR Auto-Tagging | Extract text for titles/descriptions |
-| High | Geohash Location Filtering | Show only nearby listings |
-| Medium | Inverted Index Search | Fast keyword search |
-| Medium | Transaction History | Track past purchases/sales |
-| Medium | Anonymous Chat System | Private buyer-seller communication |
-| Medium | TTL Auto-Archiving | Auto-expire listings after 30 days |
+| **High** | Image Upload System | Users can upload item photos |
+| **High** | User Registration & Login | Secure account creation and authentication |
+| **High** | CNN Item Classification | Auto-categorize items from images |
+| **High** | OCR Auto-Tagging | Extract text for titles/descriptions |
+| **High** | Geohash Location Filtering | Show only nearby listings |
+| **Medium** | Inverted Index Search | Fast keyword search |
+| **Medium** | Transaction History | Track past purchases/sales |
+| **Medium** | Anonymous Chat System | Private buyer-seller communication |
+| **Medium** | TTL Auto-Archiving | Auto-expire listings after 30 days |
 
 ## 6.2 Extended Feature Set (Enhanced Objectives)
 
 | Feature | Technology | Description |
 |---------|------------|-------------|
-| AI Price Suggestion | ML regression | Suggest price based on similar listings |
-| Seller Credibility Score | ML confidence algorithm | Score based on history, ratings, verification |
-| Verification Badges | Rule-based + ML | Display trust indicators on seller profiles |
-| Facial Verification | ArcFace/FaceNet | Compare profile photo with ID document |
-| Rating & Feedback System | User input + ML | Buyers rate sellers post-transaction |
-| Dashboard Analytics | Data viz (Chart.js) | Admin monitoring of listings, sales, fraud |
+| **AI Price Suggestion** | ML regression | Suggest price based on similar listings |
+| **Seller Credibility Score** | ML confidence algorithm | Score based on history, ratings, verification |
+| **Verification Badges** | Rule-based + ML | Display trust indicators on seller profiles |
+| **Facial Verification** | ArcFace/FaceNet | Compare profile photo with ID document |
+| **Rating & Feedback System** | User input + ML | Buyers rate sellers post-transaction |
+| **Dashboard Analytics** | Data viz (Chart.js) | Admin monitoring of listings, sales, fraud |
 
 ---
 
@@ -186,14 +186,14 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 
 | Category | Requirement |
 |----------|-------------|
-| Performance | Image classification within 5 seconds; pages load within 3 seconds; confidence score within 3 seconds |
-| Security | User authentication, encrypted credentials, secure data storage |
-| Usability | First-time users can navigate without training |
-| Scalability | Support at least 10,000 listings |
-| Reliability | 99% system availability |
-| Maintainability | Modular updates for AI components |
-| Accuracy | ≥80% classification accuracy |
-| Privacy | Anonymous chat, no personal data exposure |
+| **Performance** | Image classification within 5 seconds; pages load within 3 seconds; confidence score within 3 seconds |
+| **Security** | User authentication, encrypted credentials, secure data storage |
+| **Usability** | First-time users can navigate without training |
+| **Scalability** | Support at least 10,000 listings |
+| **Reliability** | 99% system availability |
+| **Maintainability** | Modular updates for AI components |
+| **Accuracy** | ≥80% classification accuracy |
+| **Privacy** | Anonymous chat, no personal data exposure |
 
 ---
 
@@ -292,51 +292,51 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 
 | Element | Description |
 |---------|-------------|
-| Actor | User (Buyer/Seller) |
-| Preconditions | None |
-| Flow | 1. User enters registration info → 2. System validates input → 3. System creates account |
-| Postconditions | User account stored successfully |
-| Exceptions | Email already exists, invalid password format, missing fields |
+| **Actor** | User (Buyer/Seller) |
+| **Preconditions** | None |
+| **Flow** | 1. User enters registration info → 2. System validates input → 3. System creates account |
+| **Postconditions** | User account stored successfully |
+| **Exceptions** | Email already exists, invalid password format, missing fields |
 
 ## Use Case 2: Upload & Auto-Generate Listing
 
 | Element | Description |
 |---------|-------------|
-| Actor | Seller |
-| Preconditions | User logged in |
-| Flow | 1. Upload image → 2. Validate format → 3. CNN classifies → 4. OCR extracts text → 5. Generate listing details |
-| Postconditions | Listing ready for posting |
-| Exceptions | Unsupported format, upload failure, AI timeout |
+| **Actor** | Seller |
+| **Preconditions** | User logged in |
+| **Flow** | 1. Upload image → 2. Validate format → 3. CNN classifies → 4. OCR extracts text → 5. Generate listing details |
+| **Postconditions** | Listing ready for posting |
+| **Exceptions** | Unsupported format, upload failure, AI timeout |
 
 ## Use Case 3: Browse Nearby Listings
 
 | Element | Description |
 |---------|-------------|
-| Actor | Buyer |
-| Preconditions | User logged in, location enabled |
-| Flow | 1. Retrieve user location → 2. Geohash filtering → 3. Display nearby listings |
-| Postconditions | User views relevant listings |
-| Exceptions | No nearby listings, location permission denied |
+| **Actor** | Buyer |
+| **Preconditions** | User logged in, location enabled |
+| **Flow** | 1. Retrieve user location → 2. Geohash filtering → 3. Display nearby listings |
+| **Postconditions** | User views relevant listings |
+| **Exceptions** | No nearby listings, location permission denied |
 
 ## Use Case 4: Anonymous Communication
 
 | Element | Description |
 |---------|-------------|
-| Actor | Buyer/Seller |
-| Preconditions | Listing selected |
-| Flow | 1. Open chat → 2. Send message → 3. Receive response → 4. Maintain anonymity |
-| Postconditions | Communication established |
-| Exceptions | Message delivery failure |
+| **Actor** | Buyer/Seller |
+| **Preconditions** | Listing selected |
+| **Flow** | 1. Open chat → 2. Send message → 3. Receive response → 4. Maintain anonymity |
+| **Postconditions** | Communication established |
+| **Exceptions** | Message delivery failure |
 
 ## Use Case 5: Seller Verification (Facial)
 
 | Element | Description |
 |---------|-------------|
-| Actor | Seller |
-| Preconditions | Seller registered |
-| Flow | 1. Upload selfie → 2. Upload ID → 3. System compares faces → 4. Confidence score ≥85% grants badge |
-| Postconditions | Seller verified or rejected |
-| Exceptions | Low match confidence, poor image quality |
+| **Actor** | Seller |
+| **Preconditions** | Seller registered |
+| **Flow** | 1. Upload selfie → 2. Upload ID → 3. System compares faces → 4. Confidence score ≥85% grants badge |
+| **Postconditions** | Seller verified or rejected |
+| **Exceptions** | Low match confidence, poor image quality |
 
 ---
 
@@ -361,9 +361,9 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 
 ## 12.3 Annotation Tools
 
-- Roboflow - Image labeling and preprocessing
-- LabelImg - Manual bounding box annotation
-- Custom scripts - Data augmentation
+- **Roboflow** - Image labeling and preprocessing
+- **LabelImg** - Manual bounding box annotation
+- **Custom scripts** - Data augmentation
 
 ## 12.4 Training Tools
 
@@ -379,7 +379,7 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 
 ## 13.1 Agile-Scrum Framework
 
-Why Agile-Scrum:
+**Why Agile-Scrum:**
 - Integration of multiple technologies (CV, OCR, geospatial, search)
 - Iterative testing and continuous refinement
 - Small team (3 developers)
@@ -491,11 +491,11 @@ Level 1: KomuniTrade System Development
 
 | Method | Purpose |
 |--------|---------|
-| User Acceptance Testing (UAT) | Validate functional requirements with end-users |
-| System Usability Scale (SUS) | Measure perceived usability (0-100 scale) |
-| ISO/IEC 25010 | Evaluate quality characteristics |
-| Task Completion Rate | Measure efficiency of core workflows |
-| Error Rate Analysis | Identify usability issues |
+| **User Acceptance Testing (UAT)** | Validate functional requirements with end-users |
+| **System Usability Scale (SUS)** | Measure perceived usability (0-100 scale) |
+| **ISO/IEC 25010** | Evaluate quality characteristics |
+| **Task Completion Rate** | Measure efficiency of core workflows |
+| **Error Rate Analysis** | Identify usability issues |
 
 ---
 
@@ -529,9 +529,9 @@ Level 1: KomuniTrade System Development
 
 | User Type | Description |
 |-----------|-------------|
-| Students | Buy/sell textbooks, gadgets, school supplies within campus/dormitory communities |
-| Households | Sell used furniture, appliances, household items within barangay |
-| Small-scale sellers | Local entrepreneurs offering products within subdivision/community |
+| **Students** | Buy/sell textbooks, gadgets, school supplies within campus/dormitory communities |
+| **Households** | Sell used furniture, appliances, household items within barangay |
+| **Small-scale sellers** | Local entrepreneurs offering products within subdivision/community |
 
 ---
 
@@ -619,13 +619,13 @@ Level 1: KomuniTrade System Development
 
 | Aspect | Detail |
 |--------|--------|
-| Project Name | KomuniTrade |
-| Tagline | Trade Smart Within Your Community |
-| Type | Web-based Hyperlocal Marketplace |
-| Target Users | Students, households, small-scale sellers in barangays/subdivisions |
-| Core Problem Solved | Geographically irrelevant listings, manual listing creation, fraudulent transactions |
-| Key Technologies | React, Firebase, TensorFlow, OCR, Geohash, Inverted Index, TTL |
-| Primary AI Features | CNN classification, OCR extraction, facial verification, confidence scoring |
-| Development Methodology | Agile-Scrum (8 sprints) |
-| Evaluation Metrics | Accuracy (≥80%), SUS, UAT, ISO 25010 |
-| Timeline | 12 weeks (Sprint 1-8) |
+| **Project Name** | KomuniTrade |
+| **Tagline** | Trade Smart Within Your Community |
+| **Type** | Web-based Hyperlocal Marketplace |
+| **Target Users** | Students, households, small-scale sellers in barangays/subdivisions |
+| **Core Problem Solved** | Geographically irrelevant listings, manual listing creation, fraudulent transactions |
+| **Key Technologies** | React, Firebase, TensorFlow, OCR, Geohash, Inverted Index, TTL |
+| **Primary AI Features** | CNN classification, OCR extraction, facial verification, confidence scoring |
+| **Development Methodology** | Agile-Scrum (8 sprints) |
+| **Evaluation Metrics** | Accuracy (≥80%), SUS, UAT, ISO 25010 |
+| **Timeline** | 12 weeks (Sprint 1-8) |

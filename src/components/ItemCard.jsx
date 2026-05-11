@@ -40,7 +40,7 @@ const ItemCard = memo(({ item, onClick }) => {
       <div className="item-info">
         <div className="item-header-row">
           <h3 className="item-title-premium">{item.title}</h3>
-          <div className="item-price-premium">₱{item.price.toLocaleString()}</div>
+          <div className="item-price-premium">₱{(item.price ?? 0).toLocaleString()}</div>
         </div>
 
         <div className="item-meta-row">

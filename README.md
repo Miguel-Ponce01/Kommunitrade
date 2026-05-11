@@ -550,6 +550,53 @@ Level 1: KomuniTrade System Development
 
 ---
 
+# 23. DATABASE STRUCTURE (Cloud Firestore)
+
+KomuniTrade uses Cloud Firestore for its real-time, NoSQL database. Below are the core data nodes (collections) and their document structures based on `DATABASE_NOTES.md`.
+
+## 23.1 Users Collection
+Stores profile and reputation data for registered users.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | String (PK) | Unique User ID (from Firebase Auth) |
+| `email` | String | User's email address |
+| `verifiedNeighborhood` | String | The Barangay where the user is verified |
+| `bio` | String | User biography |
+| `profileImage` | String | URL to the profile image |
+| `communityStatus` | String | Member badge or status level |
+| `trustScore` | Float | Reputation score based on interactions |
+
+## 23.2 Listings Collection
+Stores item listings with location and AI-generated data.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | String (PK) | Unique Item ID |
+| `sellerId` | String (FK) | ID of the user who owns the listing |
+| `title` | String | Item name or title |
+| `price` | Float | Price in PHP |
+| `category` | String | Product category (Electronics, Clothing, etc.) |
+| `condition` | String | Quality scale (New, Used, etc.) |
+| `barangay` | String | Hyperlocal location |
+| `timeMark` | Object | GPS Proof (lat, lng, timestamp) |
+| `geohash` | String | Search index for location filtering |
+| `expiresAt` | Timestamp | TTL (Time To Live) for auto-archiving |
+| `isSold` | Boolean | Status of the item |
+
+## 23.3 Messages Collection
+Stores chat messages between buyers and sellers.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | String (PK) | Unique Message ID |
+| `listingId` | String (FK) | ID of the listing the chat is about |
+| `senderId` | String (FK) | ID of the message sender |
+| `text` | String | Message content |
+| `createdAt` | Timestamp | Time message was sent |
+
+---
+
 # 22. CONCEPTUAL FRAMEWORK (IPO Model)
 
 ```

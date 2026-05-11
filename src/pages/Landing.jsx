@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
-import { Search, ArrowRight, Shield, MapPin as MapPinIcon, Languages } from 'lucide-react';
-import AuthModal from '../components/AuthModal';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, Shield, Languages, X } from 'lucide-react';
+import Auth from './Login';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import '../index.css';
 
 export default function Landing() {
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState('login');
+  const navigate = useNavigate();
   const [lang, setLang, t] = useLanguage();
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
-  const openAuth = (mode) => {
-    setAuthMode(mode);
-    setIsAuthOpen(true);
-  };
+  const openAuth = () => setShowAuthModal(true);
 
   const toggleLanguage = () => {
     setLang(lang === 'en' ? 'tl' : 'en');
@@ -45,8 +43,8 @@ export default function Landing() {
             </span>
           </div>
           <div className="nav-controls">
-            <button className="auth-action-btn" onClick={() => openAuth('login')} style={{ fontWeight: 700 }}>{t('nav_login')}</button>
-            <button className="btn-primary" onClick={() => openAuth('register')} style={{ padding: '0.5rem 1rem', borderRadius: '10px', fontSize: '0.85rem' }}>{t('nav_signup')}</button>
+            <button className="auth-action-btn" onClick={openAuth} style={{ fontWeight: 700 }}>{t('nav_login')}</button>
+            <button className="btn-primary" onClick={openAuth} style={{ padding: '0.5rem 1rem', borderRadius: '10px', fontSize: '0.85rem' }}>{t('nav_signup')}</button>
           </div>
         </div>
       </nav>
@@ -65,10 +63,10 @@ export default function Landing() {
               {t('hero_buy_sell')}
             </p>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <button className="hero-cta-btn" onClick={() => openAuth('register')}>
+              <button className="hero-cta-btn" onClick={openAuth}>
                 {t('hero_mag_lista')} <ArrowRight size={22} />
               </button>
-              <button onClick={() => openAuth('login')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: '2px solid var(--border-color)', padding: '1rem 1.75rem', borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', color: 'var(--text-main)', transition: 'all 0.3s ease' }}
+              <button onClick={openAuth} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: '2px solid var(--border-color)', padding: '1rem 1.75rem', borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', color: 'var(--text-main)', transition: 'all 0.3s ease' }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'}
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-color)'}
               >
@@ -274,12 +272,22 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Auth Modal */}
-      <AuthModal 
-        isOpen={isAuthOpen} 
-        onClose={() => setIsAuthOpen(false)} 
-        initialMode={authMode} 
-      />
+      {/* Auth Modal Popup */}
+      {showAuthModal && (
+        <div className="auth-modal-overlay" onClick={() => setShowAuthModal(false)}>
+          <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="auth-modal-close" 
+              onClick={() => setShowAuthModal(false)}
+              style={{ top: '1.5rem', right: '1.5rem', zIndex: 10 }}
+            >
+              <X size={20} />
+            </button>
+            <Auth />
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

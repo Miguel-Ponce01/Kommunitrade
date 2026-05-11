@@ -1,16 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Loader2, Save, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, Check, TrendingUp } from 'lucide-react';
 import { MOCK_BARANGAYS, CATEGORIES } from '../data/mockData';
-import { db, auth, collection, addDoc, serverTimestamp } from '../firebase';
+import { db, auth, storage, collection, addDoc, serverTimestamp } from '../firebase';
+import { ref, uploadBytes, getDownloadURL } from '../firebase';
 import { encodeGeohash, resolveLocationCoords, findNearestBarangay } from '../utils/geo';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import GoogleMap from '../components/GoogleMap';
+import { analyzeImage } from '../services/imageAnalysisService';
 
 export default function PostItem() {
   const [lang, setLang, t] = useLanguage();
   const navigate = useNavigate();
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [imageFile, setImageFile] = useState(null); // actual File for Storage upload
   const [isPublishing, setIsPublishing] = useState(false);
   const [debugLog, setDebugLog] = useState([]);
   
@@ -25,24 +28,98 @@ export default function PostItem() {
   const [timeMark, setTimeMark] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
 
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState('');
+  const [generatedData, setGeneratedData] = useState({
+    title: '',
+    category: '',
+    tags: []
+  });
+
   const fileInputRef = useRef(null);
 
   const addLog = (message, type = 'info') => {
     setDebugLog(prev => [...prev, { time: new Date().toLocaleTimeString(), message, type }]);
   };
 
+  // Revoke previous blob URL to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const handleImageAnalysis = async (file) => {
+    if (!file) return;
+    
+    setIsAnalyzing(true);
+    setAnalysisProgress('Analyzing image with AI...');
+    
+    try {
+      const imageUrl = URL.createObjectURL(file);
+      const img = new Image();
+      
+      img.onload = async () => {
+        const result = await analyzeImage(file, img);
+        
+        if (result.cnn.success) {
+          console.log('🔍 CNN Detected:', result.cnn.topPrediction);
+          setAnalysisProgress(`Detected: ${result.cnn.topPrediction.className}`);
+        }
+        
+        if (result.ocr.success) {
+          console.log('📝 OCR Extracted:', result.ocr.text.substring(0, 100));
+          setAnalysisProgress('Extracting text from image...');
+        }
+        
+        // Auto-fill form fields
+        setGeneratedData({
+          title: result.generatedTitle,
+          category: result.generatedCategory,
+          tags: result.generatedTags
+        });
+        
+        // Auto-fill form inputs
+        setTitle(result.generatedTitle);
+        setCategory(result.generatedCategory);
+        
+        setAnalysisProgress('Analysis complete! Review and edit below.');
+        setIsAnalyzing(false);
+        URL.revokeObjectURL(imageUrl);
+      };
+      
+      img.src = imageUrl;
+      
+    } catch (error) {
+      console.error('Image analysis failed:', error);
+      setAnalysisProgress('Analysis failed. Please enter details manually.');
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Revoke old blob URL before creating a new one
+    if (previewUrl && previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
     const localImageUrl = URL.createObjectURL(file);
-    setPreviewUrl(localImageUrl);
-    
+    setPreviewUrl(localImageUrl);  // local preview only
+    setImageFile(file);            // save File for Storage upload
+
     // Clear logs for new capture
     setDebugLog([]);
     addLog("Visual signal received. Activating GPS verification...", "primary");
-    
+
     captureTimeMark();
+    
+    // Run AI analysis
+    handleImageAnalysis(file);
   };
 
   const captureTimeMark = () => {
@@ -88,7 +165,7 @@ export default function PostItem() {
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
-    if(!title || !price || !category || !barangay) {
+    if (!title || !price || !category || !barangay) {
       alert("Please fill out the required fields!");
       return;
     }
@@ -96,10 +173,23 @@ export default function PostItem() {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
 
-    const coords = timeMark ? { lat: parseFloat(timeMark.lat), lng: parseFloat(timeMark.lng) } : resolveLocationCoords(barangay);
+    const coords = timeMark
+      ? { lat: parseFloat(timeMark.lat), lng: parseFloat(timeMark.lng) }
+      : resolveLocationCoords(barangay);
+
     setIsPublishing(true);
-    
+    addLog("Uploading image to secure storage...", "primary");
+
     try {
+      // ── Upload image to Firebase Storage (if a file was selected) ──
+      let finalImageUrl = "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=300";
+      if (imageFile) {
+        const storageRef = ref(storage, `listings/${currentUser.uid}/${Date.now()}_${imageFile.name}`);
+        const snapshot = await uploadBytes(storageRef, imageFile);
+        finalImageUrl = await getDownloadURL(snapshot.ref);
+        addLog("Image uploaded successfully.", "success");
+      }
+
       await addDoc(collection(db, 'listings'), {
         title,
         price: parseFloat(price),
@@ -112,7 +202,7 @@ export default function PostItem() {
         geohash: encodeGeohash(coords.lat, coords.lng),
         timeMark: timeMark || null,
         sellerId: currentUser.uid,
-        imageUrl: previewUrl || "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=300",
+        imageUrl: finalImageUrl,
         expiresAt: new Date(Date.now() + (isDemoMode ? 1 : 7 * 24) * 60 * 60 * 1000).toISOString(),
         createdAt: serverTimestamp(),
         isSold: false
@@ -121,7 +211,9 @@ export default function PostItem() {
       alert(t('post_success_msg'));
       navigate('/app');
     } catch (error) {
-      alert("Publishing Error. Check connection.");
+      console.error("Publishing Error:", error);
+      addLog(`Error: ${error.message}`, "error");
+      alert("Publishing Error. Check connection or Storage rules.");
     } finally {
       setIsPublishing(false);
     }
@@ -274,6 +366,26 @@ export default function PostItem() {
                 </div>
               </div>
 
+              {/* AI Analysis Status */}
+              {isAnalyzing && (
+                <div style={{ padding: '0.75rem', borderRadius: '14px', background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.2)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Loader2 className="animate-spin" size={16} color="#3B82F6" />
+                  <span style={{ fontSize: '0.75rem', color: '#1D4ED8' }}>{analysisProgress}</span>
+                </div>
+              )}
+
+              {!isAnalyzing && generatedData.title && (
+                <div style={{ padding: '0.75rem', borderRadius: '14px', background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700, marginBottom: '4px' }}>✨ Smart Advisor Suggestion</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-main)' }}>
+                    <strong>Title:</strong> "{generatedData.title}"<br />
+                    <strong>Category:</strong> {generatedData.category}<br />
+                    <strong>Tags:</strong> {generatedData.tags.join(', ')}
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>Review and edit before posting.</div>
+                </div>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {/* Title Check */}
                 <div style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', borderRadius: '14px', background: title.length > 5 ? 'rgba(16,185,129,0.05)' : 'rgba(245,158,11,0.05)', border: `1px solid ${title.length > 5 ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}` }}>
@@ -287,17 +399,18 @@ export default function PostItem() {
                 </div>
 
                 {/* Pricing Advisor */}
-                <div style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', borderRadius: '14px', background: price > 0 ? 'rgba(16,185,129,0.05)' : 'rgba(59,130,246,0.05)', border: `1px solid ${price > 0 ? 'rgba(16,185,129,0.2)' : 'rgba(59,130,246,0.2)'}` }}>
-                   {price > 0 ? <TrendingUp size={16} color="var(--primary)" /> : <Info size={16} color="#3B82F6" />}
+                <div style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', borderRadius: '14px', background: parseFloat(price) > 0 ? 'rgba(16,185,129,0.05)' : 'rgba(59,130,246,0.05)', border: `1px solid ${parseFloat(price) > 0 ? 'rgba(16,185,129,0.2)' : 'rgba(59,130,246,0.2)'}` }}>
+                   {parseFloat(price) > 0 ? <TrendingUp size={16} color="var(--primary)" /> : <Info size={16} color="#3B82F6" />}
                    <div style={{ fontSize: '0.75rem', lineHeight: 1.4 }}>
-                     <strong style={{ display: 'block', marginBottom: '2px', color: price > 0 ? 'var(--primary)' : '#2563EB' }}>
-                       {price > 0 ? t('post_price_check') : t('post_price_assessment')}
+                     <strong style={{ display: 'block', marginBottom: '2px', color: parseFloat(price) > 0 ? 'var(--primary)' : '#2563EB' }}>
+                       {parseFloat(price) > 0 ? t('post_price_check') : t('post_price_assessment')}
                      </strong>
-                     {price > 0 
+                     {parseFloat(price) > 0 
                        ? t('post_price_success', { price, barangay: barangay || 'current' }) 
                        : t('post_price_hint')}
                    </div>
                 </div>
+
               </div>
             </div>
           </div>

@@ -1,80 +1,407 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { ShoppingBag, ArrowRight } from 'lucide-react';
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { ShoppingBag, Mail, Phone, Eye, EyeOff, ArrowRight, ArrowLeft, RotateCcw, CheckCircle } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
-export default function Login() {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+// ─── Google Icon SVG ───────────────────────────────────────────────────────
+const GoogleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 48 48" style={{ flexShrink: 0 }}>
+    <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 2.9l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/>
+    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3.1 0 5.8 1.1 8 2.9l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+    <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.3 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8H6.4C9.8 35.8 16.4 44 24 44z"/>
+    <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.6l6.2 5.2C37.4 38.9 44 33.8 44 24c0-1.3-.1-2.6-.4-3.9z"/>
+  </svg>
+);
 
-  const fillDemoAccount = () => {
-    setEmail('demo@komunitrade.com');
-    setPassword('demo1234');
+// ─── OTP Input Component ───────────────────────────────────────────────────
+function OTPInput({ value, onChange }) {
+  const inputs = useRef([]);
+  const digits = value.split("");
+
+  const handleKey = (e, idx) => {
+    if (e.key === "Backspace") {
+      if (digits[idx]) {
+        const next = digits.map((d, i) => (i === idx ? "" : d)).join("");
+        onChange(next);
+      } else if (idx > 0) {
+        inputs.current[idx - 1].focus();
+      }
+    }
   };
 
-  const handleLogin = (e) => {
+  const handleChange = (e, idx) => {
+    const val = e.target.value.replace(/\D/, "").slice(-1);
+    const next = digits.map((d, i) => (i === idx ? val : d)).join("").padEnd(6, "").slice(0, 6);
+    onChange(next);
+    if (val && idx < 5) inputs.current[idx + 1].focus();
+  };
+
+  const handlePaste = (e) => {
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    onChange(pasted.padEnd(6, ""));
+    const focusIdx = Math.min(pasted.length, 5);
+    inputs.current[focusIdx]?.focus();
     e.preventDefault();
-    console.log(`Logging in with ${email}`);
-    // Auth success routing
-    localStorage.setItem('userRole', 'user');
-    navigate('/app'); 
   };
 
   return (
+    <div className="otp-grid">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <input
+          key={i}
+          ref={(el) => (inputs.current[i] = el)}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          className="otp-box"
+          value={digits[i] || ""}
+          onChange={(e) => handleChange(e, i)}
+          onKeyDown={(e) => handleKey(e, i)}
+          onPaste={handlePaste}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Main Auth Page ────────────────────────────────────────────────────────
+export default function Auth() {
+  const navigate = useNavigate();
+  const { currentUser, signInWithGoogle, registerWithEmail, loginWithEmail, resendVerification, sendPhoneOTP, verifyPhoneOTP } = useAuth();
+
+  const [tab, setTab] = useState("google"); // google | email | phone
+  const [mode, setMode] = useState("login"); // login | register (email tab)
+  const [step, setStep] = useState(1); // 1 = form, 2 = verify
+
+  // Email fields
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPass, setShowPass] = useState(false);
+
+  // Phone fields
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("      ");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // If already logged in, go to app
+  useEffect(() => {
+    if (currentUser && currentUser.emailVerified) navigate("/app");
+    if (currentUser && currentUser.phoneNumber) navigate("/app");
+    if (currentUser && currentUser.providerData?.[0]?.providerId === "google.com") navigate("/app");
+  }, [currentUser, navigate]);
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  const resetState = () => {
+    setStep(1); setError(""); setInfo(""); setOtp("      ");
+  };
+
+  const handleTabChange = (t) => {
+    setTab(t); resetState();
+  };
+
+  // ── Firebase error messages → human readable ────────────────────
+  const friendlyError = (code) => {
+    const map = {
+      "auth/email-already-in-use": "This email is already registered. Try logging in.",
+      "auth/invalid-email": "Please enter a valid email address.",
+      "auth/wrong-password": "Incorrect password. Please try again.",
+      "auth/user-not-found": "No account found with this email.",
+      "auth/weak-password": "Password must be at least 6 characters.",
+      "auth/invalid-verification-code": "The OTP you entered is wrong. Please check and retry.",
+      "auth/code-expired": "OTP has expired. Please request a new one.",
+      "auth/too-many-requests": "Too many attempts. Please wait a moment and try again.",
+      "auth/invalid-phone-number": "Please enter a valid phone number with country code (e.g. +63 9xx xxx xxxx).",
+      "auth/popup-closed-by-user": "Google sign-in was cancelled.",
+    };
+    return map[code] || "Something went wrong. Please try again.";
+  };
+
+  // ── Google ──────────────────────────────────────────────────────
+  const handleGoogle = async () => {
+    setError(""); setLoading(true);
+    try {
+      await signInWithGoogle();
+      navigate("/app");
+    } catch (e) {
+      setError(friendlyError(e.code));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Email Submit ────────────────────────────────────────────────
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault();
+    setError(""); setInfo("");
+
+    if (mode === "register") {
+      if (password !== confirm) { setError("Passwords do not match."); return; }
+      if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    }
+
+    setLoading(true);
+    try {
+      if (mode === "register") {
+        await registerWithEmail(email, password, name || "KomuniTrade User");
+        setStep(2);
+        setInfo(`A verification email has been sent to ${email}. Please check your inbox (and spam folder).`);
+      } else {
+        const user = await loginWithEmail(email, password);
+        if (!user.emailVerified) {
+          setStep(2);
+          setInfo("Your email is not verified yet. Check your inbox for the verification link.");
+        } else {
+          navigate("/app");
+        }
+      }
+    } catch (e) {
+      setError(friendlyError(e.code));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendEmail = async () => {
+    setError(""); setLoading(true);
+    try {
+      await resendVerification();
+      setInfo("Verification email resent! Check your inbox.");
+      setResendCooldown(60);
+    } catch (e) {
+      setError(friendlyError(e.code));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Phone Step 1: Send OTP ──────────────────────────────────────
+  const handleSendOTP = async (e) => {
+    e.preventDefault();
+    setError(""); setLoading(true);
+    try {
+      const fullPhone = phone.startsWith("+") ? phone : `+63${phone.replace(/^0/, "")}`;
+      await sendPhoneOTP(fullPhone, "recaptcha-container");
+      setStep(2);
+      setInfo(`OTP sent to ${fullPhone}. Check your messages.`);
+      setResendCooldown(60);
+    } catch (e) {
+      setError(friendlyError(e.code));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Phone Step 2: Verify OTP ────────────────────────────────────
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    setError(""); setLoading(true);
+    try {
+      await verifyPhoneOTP(otp.trim());
+      navigate("/app");
+    } catch (e) {
+      setError(friendlyError(e.code));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setError(""); setLoading(true);
+    try {
+      const fullPhone = phone.startsWith("+") ? phone : `+63${phone.replace(/^0/, "")}`;
+      await sendPhoneOTP(fullPhone, "recaptcha-container");
+      setInfo("New OTP sent!");
+      setResendCooldown(60);
+    } catch (e) {
+      setError(friendlyError(e.code));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Render ──────────────────────────────────────────────────────
+  return (
     <div className="auth-container">
+      {/* Invisible reCAPTCHA anchor for Phone Auth */}
+      <div id="recaptcha-container" style={{ position: "fixed", bottom: 0, left: 0 }} />
+
       <div className="auth-card">
+        {/* Logo */}
         <div className="auth-header">
           <Link to="/" className="auth-logo">
-            <ShoppingBag className="auth-icon" />
+            <ShoppingBag size={28} className="auth-icon" />
             <h2>KomuniTrade</h2>
           </Link>
-          <p className="auth-subtitle">Sign in to your neighborhood marketplace</p>
+          <p className="auth-subtitle">Your neighborhood marketplace</p>
         </div>
 
-        <form onSubmit={handleLogin} className="auth-form">
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
-            <input 
-              type="email" 
-              id="email" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="neighbor@davao.com" 
-              required 
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input 
-              type="password" 
-              id="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••" 
-              required 
-            />
-          </div>
-
-          <button type="submit" className="btn-primary flex-center" style={{ width: '100%' }}>
-            Sign In <ArrowRight size={18} style={{ marginLeft: '8px' }} />
+        {/* Tabs */}
+        <div className="auth-tabs">
+          <button className={`auth-tab ${tab === "google" ? "active" : ""}`} onClick={() => handleTabChange("google")}>
+            <GoogleIcon /> Google
           </button>
-        </form>
-
-        {/* Demo Accounts */}
-        <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)', textAlign: 'center' }}>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem', fontWeight: 600 }}>Prototype Demonstration</p>
-          <button 
-            type="button" 
-            onClick={fillDemoAccount} 
-            style={{ width: '100%', padding: '0.6rem', fontSize: '0.875rem', borderRadius: '8px', border: '1px solid var(--primary)', backgroundColor: 'transparent', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600 }}
-          >
-            Fill Demo Account
+          <button className={`auth-tab ${tab === "email" ? "active" : ""}`} onClick={() => handleTabChange("email")}>
+            <Mail size={16} /> Email
+          </button>
+          <button className={`auth-tab ${tab === "phone" ? "active" : ""}`} onClick={() => handleTabChange("phone")}>
+            <Phone size={16} /> Phone
           </button>
         </div>
 
+        {/* Error / Info */}
+        {error && <div className="auth-alert auth-alert-error">{error}</div>}
+        {info && !(tab === "phone" && step === 2) && <div className="auth-alert auth-alert-info">{info}</div>}
+
+        {/* ── GOOGLE TAB ── */}
+        {tab === "google" && (
+          <div className="auth-section">
+            <p className="auth-hint">Sign in instantly using your Google account. No password needed.</p>
+            <button className="btn-google" onClick={handleGoogle} disabled={loading}>
+              <GoogleIcon />
+              {loading ? "Connecting…" : "Continue with Google"}
+            </button>
+          </div>
+        )}
+
+        {/* ── EMAIL TAB ── */}
+        {tab === "email" && step === 1 && (
+          <form onSubmit={handleEmailSubmit} className="auth-form">
+            {/* Login / Register toggle */}
+            <div className="auth-mode-toggle">
+              <button type="button" className={mode === "login" ? "active" : ""} onClick={() => { setMode("login"); setError(""); }}>Sign In</button>
+              <button type="button" className={mode === "register" ? "active" : ""} onClick={() => { setMode("register"); setError(""); }}>Create Account</button>
+            </div>
+
+            {mode === "register" && (
+              <div className="form-group">
+                <label htmlFor="name">Full Name</label>
+                <input id="name" type="text" className="form-control" placeholder="Juan dela Cruz" value={name} onChange={(e) => setName(e.target.value)} required />
+              </div>
+            )}
+
+            <div className="form-group">
+              <label htmlFor="email">Email Address</label>
+              <input id="email" type="email" className="form-control" placeholder="juan@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <div className="input-icon-wrap">
+                <input id="password" type={showPass ? "text" : "password"} className="form-control" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <button type="button" className="input-icon-btn" onClick={() => setShowPass((v) => !v)}>
+                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {mode === "register" && (
+              <div className="form-group">
+                <label htmlFor="confirm">Confirm Password</label>
+                <div className="input-icon-wrap">
+                  <input id="confirm" type={showPass ? "text" : "password"} className="form-control" placeholder="••••••••" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+                </div>
+              </div>
+            )}
+
+            <button type="submit" className="btn-primary btn-full" disabled={loading}>
+              {loading ? "Please wait…" : mode === "register" ? "Create Account" : "Sign In"}
+              {!loading && <ArrowRight size={16} style={{ marginLeft: 8 }} />}
+            </button>
+          </form>
+        )}
+
+        {/* EMAIL STEP 2: Verify */}
+        {tab === "email" && step === 2 && (
+          <div className="auth-section auth-verify">
+            <div className="verify-icon"><CheckCircle size={48} strokeWidth={1.5} /></div>
+            <h3>Check Your Email</h3>
+            <p>Click the verification link in your inbox, then come back and sign in.</p>
+            <button className="btn-primary btn-full" onClick={() => navigate("/login")} style={{ marginTop: "1rem" }}>
+              Go to Sign In <ArrowRight size={16} style={{ marginLeft: 8 }} />
+            </button>
+            <button className="btn-ghost btn-full" onClick={handleResendEmail} disabled={loading || resendCooldown > 0} style={{ marginTop: "0.5rem" }}>
+              <RotateCcw size={14} style={{ marginRight: 6 }} />
+              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Email"}
+            </button>
+            <button className="auth-back-link" onClick={() => { setStep(1); setError(""); setInfo(""); }}>
+              <ArrowLeft size={14} /> Back
+            </button>
+          </div>
+        )}
+
+        {/* ── PHONE TAB ── */}
+        {tab === "phone" && step === 1 && (
+          <form onSubmit={handleSendOTP} className="auth-form">
+            <p className="auth-hint">We'll send a one-time code to your phone via SMS.</p>
+            <div className="form-group">
+              <label htmlFor="phone">Mobile Number</label>
+              <div className="phone-input-wrap">
+                <span className="phone-prefix">🇵🇭 +63</span>
+                <input
+                  id="phone"
+                  type="tel"
+                  className="form-control phone-input"
+                  placeholder="9XX XXX XXXX"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, ""))}
+                  maxLength={10}
+                  required
+                />
+              </div>
+              <span className="form-hint">Enter your 10-digit number without the leading 0</span>
+            </div>
+            <button type="submit" className="btn-primary btn-full" disabled={loading}>
+              {loading ? "Sending OTP…" : "Send OTP"}
+              {!loading && <ArrowRight size={16} style={{ marginLeft: 8 }} />}
+            </button>
+          </form>
+        )}
+
+        {/* PHONE STEP 2: OTP */}
+        {tab === "phone" && step === 2 && (
+          <form onSubmit={handleVerifyOTP} className="auth-form">
+            <div className="auth-verify-header">
+              <button type="button" className="auth-back-link" onClick={() => { setStep(1); setOtp("      "); setError(""); setInfo(""); }}>
+                <ArrowLeft size={14} /> Change number
+              </button>
+              <p className="auth-hint" style={{ marginTop: "0.5rem" }}>
+                Enter the 6-digit code sent to <strong>+63 {phone}</strong>
+              </p>
+            </div>
+
+            <OTPInput value={otp} onChange={setOtp} />
+
+            <button type="submit" className="btn-primary btn-full" disabled={loading || otp.trim().length < 6} style={{ marginTop: "1.25rem" }}>
+              {loading ? "Verifying…" : "Verify & Sign In"}
+            </button>
+
+            <button type="button" className="btn-ghost btn-full" onClick={handleResendOTP} disabled={loading || resendCooldown > 0} style={{ marginTop: "0.5rem" }}>
+              <RotateCcw size={14} style={{ marginRight: 6 }} />
+              {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : "Resend OTP"}
+            </button>
+          </form>
+        )}
+
+        {/* Footer */}
         <div className="auth-footer">
-          <p>Don't have an account? <span className="auth-link">Create one now</span></p>
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", textAlign: "center" }}>
+            By continuing, you agree to KomuniTrade's{" "}
+            <span style={{ color: "var(--primary)", cursor: "pointer" }}>Terms of Service</span>{" "}
+            and{" "}
+            <span style={{ color: "var(--primary)", cursor: "pointer" }}>Privacy Policy</span>.
+          </p>
         </div>
       </div>
     </div>

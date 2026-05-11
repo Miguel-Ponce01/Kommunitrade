@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Package, 
   Settings, 
@@ -26,17 +26,18 @@ import { encodeGeohash, resolveBarangayFromGeohash } from '../utils/geo';
 
 export default function Profile() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [lang, setLang, t] = useLanguage();
   const [activeTab, setActiveTab] = useState('inventory');
   
-  // Handle tab from URL query params
+  // Handle tab from URL query params (reactive via useLocation)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
     if (tabParam === 'security') {
       setActiveTab('security');
     }
-  }, [window.location.search]);
+  }, [location.search]);
 
   const [myListings, setMyListings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

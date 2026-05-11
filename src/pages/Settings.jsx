@@ -18,6 +18,7 @@ import {
   Lock
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
+import { useAuth } from '../contexts/AuthContext';
 import { db, auth, doc, setDoc, collection, getDocs, deleteDoc } from '../firebase';
 import { MOCK_LISTINGS } from '../data/mockData';
 import { isListingActive } from '../utils/geo';
@@ -33,6 +34,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const [theme, setTheme] = useTheme();
   const [lang, setLang, t] = useLanguage();
+  const { logout } = useAuth();
   const [isSeeding, setIsSeeding] = useState(false);
   const [isPurging, setIsPurging] = useState(false);
   const [seedSuccess, setSeedSuccess] = useState(false);
@@ -238,7 +240,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <button className="logout-btn-premium" onClick={() => navigate('/')}>
+      <button className="logout-btn-premium" onClick={async () => { await logout(); navigate('/'); }}>
         <LogOut size={22} />
         {t('sett_sign_out')}
       </button>

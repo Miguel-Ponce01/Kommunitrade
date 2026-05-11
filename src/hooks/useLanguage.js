@@ -1,3 +1,2 @@
-// This file is deprecated. Use useLanguage.jsx instead.
-export const useLanguage = () => { return []; };
-export const LanguageProvider = ({ children }) => children;
+// Re-exports from the canonical implementation. Do not add logic here.
+export { useLanguage, LanguageProvider } from './useLanguage.jsx';

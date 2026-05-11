@@ -4,20 +4,16 @@ import {
   Home, 
   MessageCircle, 
   User, 
-  MapPin, 
   Search, 
   ChevronLeft, 
   ChevronRight, 
   Settings, 
   LogOut,
-  Package,
   ShieldCheck,
   HelpCircle,
-  Sun,
-  Moon,
   Languages
 } from 'lucide-react';
-import { auth } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 
@@ -26,8 +22,8 @@ export default function Layout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [theme, setTheme] = useTheme();
   const [lang, setLang, t] = useLanguage();
-  const currentUser = auth.currentUser;
-  const anonymousID = currentUser ? currentUser.uid.substring(0, 6).toUpperCase() : 'GUEST';
+  const { currentUser, logout } = useAuth();
+  const displayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || currentUser?.phoneNumber || 'User';
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -39,7 +35,7 @@ export default function Layout() {
 
   const handleLogout = async () => {
     if (window.confirm(t('set_signout_confirm') || 'Are you sure you want to log out?')) {
-      await auth.signOut();
+      await logout();
       navigate('/');
     }
   };
@@ -127,7 +123,7 @@ export default function Layout() {
           </button>
           <button className="nav-item" onClick={handleLogout} style={{ width: '100%', background: 'none', border: 'none', textAlign: 'left', color: '#ef4444' }}>
             <LogOut className="nav-icon" />
-            <span className="nav-label">{t('side_logout')} ({anonymousID})</span>
+            <span className="nav-label">{t('side_logout')} ({displayName})</span>
           </button>
         </div>
       </nav>

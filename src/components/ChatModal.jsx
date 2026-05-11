@@ -153,7 +153,7 @@ export default function ChatModal({ isOpen, onClose, item }) {
                 {msg.text}
               </div>
               <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.25rem', textAlign: msg.senderId === currentUser?.uid ? 'right' : 'left' }}>
-                {msg.senderAlias} • {msg.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {msg.senderAlias} • {msg.timestamp ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '…'}
               </p>
             </div>
           ))}
