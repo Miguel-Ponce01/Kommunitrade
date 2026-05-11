@@ -1,0 +1,38 @@
+[debug] [2026-05-11T11:02:05.478Z] ----------------------------------------------------------------------
+[debug] [2026-05-11T11:02:05.480Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\MYPC\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-05-11T11:02:05.480Z] CLI Version:   15.17.0
+[debug] [2026-05-11T11:02:05.480Z] Platform:      win32
+[debug] [2026-05-11T11:02:05.480Z] Node Version:  v24.12.0
+[debug] [2026-05-11T11:02:05.480Z] Time:          Mon May 11 2026 19:02:05 GMT+0800 (Philippine Standard Time)
+[debug] [2026-05-11T11:02:05.480Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-05-11T11:02:06.262Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-11T11:02:06.262Z] > authorizing via signed-in user (anthonpnc@gmail.com)
+[debug] [2026-05-11T11:02:06.262Z] [iam] checking project komunitrade for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]
+[debug] [2026-05-11T11:02:06.263Z] Checked if tokens are valid: true, expires at: 1778500695596
+[debug] [2026-05-11T11:02:06.263Z] Checked if tokens are valid: true, expires at: 1778500695596
+[debug] [2026-05-11T11:02:06.263Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/komunitrade:testIamPermissions [none]
+[debug] [2026-05-11T11:02:06.263Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/komunitrade:testIamPermissions  x-goog-user-project=komunitrade
+[debug] [2026-05-11T11:02:06.264Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/komunitrade:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2026-05-11T11:02:07.428Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/komunitrade:testIamPermissions 200
+[debug] [2026-05-11T11:02:07.428Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/komunitrade:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2026-05-11T11:02:07.429Z] Checked if tokens are valid: true, expires at: 1778500695596
+[debug] [2026-05-11T11:02:07.429Z] Checked if tokens are valid: true, expires at: 1778500695596
+[debug] [2026-05-11T11:02:07.429Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/komunitrade [none]
+[debug] [2026-05-11T11:02:07.877Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/komunitrade 200
+[debug] [2026-05-11T11:02:07.877Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/komunitrade {"projectId":"komunitrade","projectNumber":"635774409762","displayName":"KomuniTrade","name":"projects/komunitrade","resources":{"hostingSite":"komunitrade"},"state":"ACTIVE","etag":"1_5977ce20-8fa8-4074-a51f-9738cb4f9d95"}
+[info] 
+[info] === Deploying to 'komunitrade'...
+[info] 
+[info] i  deploying storage, firestore, hosting 
+[info] i  storage: ensuring required API firebasestorage.googleapis.com is enabled... 
+[debug] [2026-05-11T11:02:07.879Z] Checked if tokens are valid: true, expires at: 1778500695596
+[debug] [2026-05-11T11:02:07.879Z] Checked if tokens are valid: true, expires at: 1778500695596
+[debug] [2026-05-11T11:02:07.879Z] >>> [apiv2][query] GET https://firebasestorage.googleapis.com/v1alpha/projects/komunitrade/defaultBucket [none]
+[debug] [2026-05-11T11:02:08.823Z] <<< [apiv2][status] GET https://firebasestorage.googleapis.com/v1alpha/projects/komunitrade/defaultBucket 200
+[debug] [2026-05-11T11:02:08.824Z] <<< [apiv2][body] GET https://firebasestorage.googleapis.com/v1alpha/projects/komunitrade/defaultBucket {"name":"projects/komunitrade/defaultBucket","location":"ASIA-SOUTHEAST1","bucket":{"name":"projects/komunitrade/buckets/komunitrade.firebasestorage.app"},"storageClass":"REGIONAL"}
+[info] i  firebase.storage: checking storage.rules for compilation errors... 
+[debug] [2026-05-11T11:02:08.825Z] Checked if tokens are valid: true, expires at: 1778500695596
+[debug] [2026-05-11T11:02:08.825Z] Checked if tokens are valid: true, expires at: 1778500695596
+[debug] [2026-05-11T11:02:08.825Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/komunitrade:test [none]
+[debug] [2026-05-11T11:02:08.825Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/komunitrade:test [omitted]
