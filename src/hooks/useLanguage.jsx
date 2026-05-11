@@ -17,7 +17,7 @@ const translations = {
     stats_barangays: "Vibrant Communities",
     stats_verify: "Authenticity Mark",
     stats_chat: "Private & Secure",
-    stats_title: "Davao's trading revolution, powered by neighborhood intelligence.",
+    stats_title: "Trade Smart Within Your Community",
     stats_subtitle: "Empowering every barangay in the City of Davao",
 
     // Categories
@@ -177,7 +177,7 @@ const translations = {
     stats_barangays: "Masiglang Komunidad",
     stats_verify: "Tatak ng Katapatan",
     stats_chat: "Ligtas na Usapan",
-    stats_title: "Trading sa loob ng barangay, ginawang mas makatao at matalino.",
+    stats_title: "Matalinong Pakikipag-trade sa Iyong Komunidad",
     stats_subtitle: "Pagpapalakas sa bawat barangay sa Lungsod ng Davao",
 
     // Categories

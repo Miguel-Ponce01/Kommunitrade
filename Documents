@@ -558,5 +558,74 @@ Level 1: KomuniTrade System Development
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐   │
 │  │ User        │ │ Item Images │ │ Location    │ │ Search      │   │
 │  │ Registration│ │             │ │ Data        │ │ Keywords    │   │
-...
-The above content was truncated as it is too long. To view the rest of the file, use the view_file tool.
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                            PROCESSES                                 │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                    KOMUNITRADE SYSTEM                        │   │
+│  │  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐   │   │
+│  │  │   CNN     │ │   OCR     │ │  Geohash  │ │ Inverted  │   │   │
+│  │  │Classify   │ │ Extract   │ │  Filter   │ │  Index    │   │   │
+│  │  └───────────┘ └───────────┘ └───────────┘ └───────────┘   │   │
+│  │  ┌───────────┐ ┌───────────┐ ┌───────────┐                 │   │
+│  │  │  Facial   │ │  ML Conf  │ │   TTL     │                 │   │
+│  │  │  Verify   │ │  Score    │ │  Expire   │                 │   │
+│  │  └───────────┘ └───────────┘ └───────────┘                 │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                             OUTPUTS                                  │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐   │
+│  │ Auto-       │ │ Nearby      │ │ Verified    │ │ Trust       │   │
+│  │ Generated   │ │ Listings    │ │ Sellers     │ │ Score       │   │
+│  │ Listings    │ │             │ │             │ │             │   │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     GOAL: Secure, Intelligent, Hyperlocal           │
+│                     Marketplace System for Community Trading        │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+# 23. REFERENCES
+
+| # | Citation |
+|---|----------|
+| [1] | Philippine Statistics Authority. (2025). Digital economy contributes 8.5 percent to the Philippine economy in 2024 |
+| [2] | Tan, M., & Le, Q. (2019). EfficientNet: Rethinking model scaling for CNNs (ICML) |
+| [3] | Howard, A., et al. (2019). Searching for MobileNetV3 (ICCV) |
+| [4] | Baek, J., et al. (2019). Scene text recognition model analysis (ICCV) |
+| [5] | Google Cloud. (2023). Cloud Vision API documentation |
+| [6] | Park, W., et al. (2025). Geohash-based spatial indexing (Sensors) |
+| [7] | Zhang, Y., et al. (2022). Inverted index data retrieval (JIS) |
+| [8] | Chen, L., et al. (2021). TTL-based data expiration (IEEE Access) |
+| [9] | FPT-eID. (2024). Seller identity verification on e-commerce platforms |
+| [10] | ADVANCE.AI. (2024). E-commerce compliance and fraud defense |
+| [11] | Mindee. (2024). Confidence scores in machine learning |
+| [12] | Deng, J., et al. (2020). ArcFace for face recognition (TPAMI) |
+
+---
+
+# SUMMARY TABLE
+
+| Aspect | Detail |
+|--------|--------|
+| Project Name | KomuniTrade |
+| Tagline | Trade Smart Within Your Community |
+| Type | Web-based Hyperlocal Marketplace |
+| Target Users | Students, households, small-scale sellers in barangays/subdivisions |
+| Core Problem Solved | Geographically irrelevant listings, manual listing creation, fraudulent transactions |
+| Key Technologies | React, Firebase, TensorFlow, OCR, Geohash, Inverted Index, TTL |
+| Primary AI Features | CNN classification, OCR extraction, facial verification, confidence scoring |
+| Development Methodology | Agile-Scrum (8 sprints) |
+| Evaluation Metrics | Accuracy (≥80%), SUS, UAT, ISO 25010 |
+| Timeline | 12 weeks (Sprint 1-8) |
