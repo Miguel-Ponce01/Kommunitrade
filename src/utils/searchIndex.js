@@ -15,6 +15,7 @@ class InvertedIndex {
    * Tokenizes and cleans a string for indexing
    */
   _tokenize(text) {
+    if (typeof text !== 'string') return [];
     return text
       .toLowerCase()
       .replace(/[^\w\s]/g, '') // Remove punctuation

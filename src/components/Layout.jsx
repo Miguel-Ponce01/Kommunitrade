@@ -11,7 +11,8 @@ import {
   LogOut,
   ShieldCheck,
   HelpCircle,
-  Languages
+  Languages,
+  History
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
@@ -21,7 +22,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [theme, setTheme] = useTheme();
-  const [lang, setLang, t] = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const { currentUser, logout } = useAuth();
   const displayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || currentUser?.phoneNumber || 'User';
 
@@ -97,6 +98,10 @@ export default function Layout() {
             <NavLink to="/app/profile" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
               <User className="nav-icon" />
               <span className="nav-label">{t('side_profile')}</span>
+            </NavLink>
+            <NavLink to="/app/transactions" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+              <History className="nav-icon" />
+              <span className="nav-label">Transaction History</span>
             </NavLink>
           </div>
 

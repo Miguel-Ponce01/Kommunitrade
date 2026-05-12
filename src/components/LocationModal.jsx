@@ -14,7 +14,12 @@ export default function LocationModal({ isOpen, onClose, initialLocation, initia
 
   if (!isOpen) return null;
 
-  const radiusOptions = [1, 2, 5, 10, 20, 40, 60, 80, 100, 250, 500];
+  const radiusOptions = [0.05, 0.1, 0.5, 1, 2, 5, 10, 20, 50];
+
+  const formatRadiusLabel = (r) => {
+    if (r < 1) return `${r * 1000} meters`;
+    return `${r} kilometer${r !== 1 ? 's' : ''}`;
+  };
 
   const handleApply = () => {
     let lat, lng;
@@ -127,7 +132,7 @@ export default function LocationModal({ isOpen, onClose, initialLocation, initia
                 onChange={(e) => setRadius(Number(e.target.value))}
               >
                 {radiusOptions.map(opt => (
-                  <option key={opt} value={opt}>{opt} kilometer{opt !== 1 ? 's' : ''}</option>
+                  <option key={opt} value={opt}>{formatRadiusLabel(opt)}</option>
                 ))}
               </select>
               <ChevronDown size={16} className="radius-chevron" />

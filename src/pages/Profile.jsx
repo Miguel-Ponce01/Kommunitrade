@@ -27,7 +27,7 @@ import { encodeGeohash, resolveBarangayFromGeohash } from '../utils/geo';
 export default function Profile() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [lang, setLang, t] = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('inventory');
   
   // Handle tab from URL query params (reactive via useLocation)
@@ -239,13 +239,13 @@ export default function Profile() {
           ) : (
             <>
               <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 0.5rem' }}>{displayName}</h2>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem', padding: '0 1rem' }}>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
                 {userBio}
               </p>
             </>
           )}
           
-          <p style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', marginBottom: '1rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.4rem', marginBottom: '1rem' }}>
              <Shield size={14} color="var(--primary)" /> {t('trust_badge')}
           </p>
 
@@ -269,7 +269,59 @@ export default function Profile() {
             Identity verified
           </div>
 
-          <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="info-grid" style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div className="info-item" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
+              <Languages className="info-icon" size={16} />
+              <span>Speaks English and Tagalog</span>
+            </div>
+            <div className="info-item" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
+              <MapPin className="info-icon" size={16} />
+              {isEditing ? (
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', width: '100%' }}>
+                  <input 
+                    type="text" 
+                    value={userLocation}
+                    onChange={(e) => setUserLocation(e.target.value)}
+                    className="premium-input-small"
+                  />
+                  <button 
+                    onClick={detectLocation}
+                    disabled={isGeolocating}
+                    className="detect-loc-btn"
+                  >
+                    {isGeolocating ? <Loader2 className="animate-spin" size={14} /> : <MapPin size={14} />}
+                  </button>
+                </div>
+              ) : (
+                <span>Lives in {userLocation}, PH</span>
+              )}
+            </div>
+          </div>
+
+          <div className="community-status-box" style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--card-bg)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+             {isEditingStatus ? (
+               <div className="status-editor">
+                 <textarea 
+                   value={tempStatus}
+                   onChange={(e) => setTempStatus(e.target.value)}
+                   className="premium-textarea"
+                   style={{ width: '100%', height: '60px', resize: 'none', background: 'transparent', border: 'none', color: 'var(--text-main)' }}
+                   placeholder="Share your community involvement..."
+                 />
+                 <div className="status-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                   <button onClick={handleStatusSave} className="btn-save-small" style={{ fontSize: '0.7rem' }}>CONFIRM</button>
+                   <button onClick={handleStatusCancel} className="btn-cancel-small" style={{ fontSize: '0.7rem' }}>CANCEL</button>
+                 </div>
+               </div>
+             ) : (
+               <div className="status-display" onClick={() => setIsEditingStatus(true)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <p className="bio-text" style={{ fontSize: '0.85rem', margin: 0 }}>{communityStatus}</p>
+                  <Edit3 size={14} className="status-edit-icon" style={{ color: 'var(--text-muted)' }} />
+               </div>
+             )}
+          </div>
+
+          <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <button 
               className="btn-primary" 
               onClick={isEditing ? handleSave : () => setIsEditing(true)}
@@ -290,58 +342,7 @@ export default function Profile() {
         {/* Right Column: About & Content */}
         <div className="profile-main-content">
           
-          <div className="about-section premium-glass">
-            <div className="info-grid">
-              <div className="info-item">
-                <Languages className="info-icon" />
-                <span>Speaks English and Tagalog</span>
-              </div>
-              <div className="info-item">
-                <MapPin className="info-icon" />
-                {isEditing ? (
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', width: '100%' }}>
-                    <input 
-                      type="text" 
-                      value={userLocation}
-                      onChange={(e) => setUserLocation(e.target.value)}
-                      className="premium-input-small"
-                    />
-                    <button 
-                      onClick={detectLocation}
-                      disabled={isGeolocating}
-                      className="detect-loc-btn"
-                    >
-                      {isGeolocating ? <Loader2 className="animate-spin" size={14} /> : <MapPin size={14} />}
-                    </button>
-                  </div>
-                ) : (
-                  <span>Lives in {userLocation}, PH</span>
-                )}
-              </div>
-            </div>
 
-            <div className="community-status-box">
-               {isEditingStatus ? (
-                 <div className="status-editor">
-                   <textarea 
-                     value={tempStatus}
-                     onChange={(e) => setTempStatus(e.target.value)}
-                     className="premium-textarea"
-                     placeholder="Share your community involvement..."
-                   />
-                   <div className="status-actions">
-                     <button onClick={handleStatusSave} className="btn-save-small">CONFIRM</button>
-                     <button onClick={handleStatusCancel} className="btn-cancel-small">CANCEL</button>
-                   </div>
-                 </div>
-               ) : (
-                 <div className="status-display" onClick={() => setIsEditingStatus(true)}>
-                    <p className="bio-text">{communityStatus}</p>
-                    <Edit3 size={14} className="status-edit-icon" />
-                 </div>
-               )}
-            </div>
-          </div>
 
           {/* Tabs for Inventory / Security */}
           <div className="tab-nav" style={{ borderBottom: '1px solid var(--border-color)', marginBottom: '1rem', display: 'flex' }}>
@@ -396,7 +397,7 @@ export default function Profile() {
                   <Loader2 className="animate-spin" size={40} color="var(--primary)" />
                 </div>
               ) : myListings.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)' }}>
+                <div style={{ textAlign: 'center', padding: '3rem 2rem', background: 'var(--card-bg)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                   <Package size={60} style={{ opacity: 0.2, marginBottom: '1rem' }} />
                   <h3>{t('prof_no_listings')}</h3>
                   <p>{t('prof_no_listings_desc')}</p>

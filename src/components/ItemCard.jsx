@@ -56,7 +56,7 @@ const ItemCard = memo(({ item, onClick }) => {
 
         <div className="item-footer-premium">
           <div className="item-time-premium">
-             {item.createdAt && item.createdAt.includes('now') ? (
+             {typeof item.createdAt === 'string' && item.createdAt.includes('now') ? (
                <>
                  <Clock size={12} className="icon-primary" />
                  <span>{item.createdAt}</span>
@@ -64,7 +64,11 @@ const ItemCard = memo(({ item, onClick }) => {
              ) : (
                <>
                  <Calendar size={12} className="icon-primary" />
-                 <span>{item.createdAt || new Date().toLocaleDateString()}</span>
+                 <span>{
+                   item.createdAt && item.createdAt.toDate 
+                     ? item.createdAt.toDate().toLocaleDateString() 
+                     : (item.createdAt || new Date().toLocaleDateString())
+                 }</span>
                  <span className="dot-separator">•</span>
                  <Clock size={12} className="icon-primary" />
                  <span>12:00 PM</span>

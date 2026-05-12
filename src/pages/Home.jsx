@@ -4,7 +4,7 @@ import { Search, MapPin, Shield, Loader2 } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
 import LocationModal from '../components/LocationModal';
 import { CATEGORIES } from '../data/mockData';
-import { haversineDistance, isListingActive, resolveLocationCoords } from '../utils/geo';
+import { haversineDistance, isListingActive, resolveLocationCoords, encodeGeohash, getGeohashPrecisionForRadius } from '../utils/geo';
 import { initializeSearchIndex, performSearch } from '../utils/searchIndex';
 import { db, collection, onSnapshot, query, orderBy } from '../firebase';
 import { useLanguage } from '../hooks/useLanguage.jsx';
@@ -14,7 +14,7 @@ const DAVAO_CENTER = { lat: 7.0731, lng: 125.6128 };
 
 export default function Home() {
   const navigate = useNavigate();
-  const [lang, setLang, t] = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const [location, setLocation] = useState(localStorage.getItem('komuni_user_location') || "Davao City");
   const [radius, setRadius] = useState(20);
   
@@ -60,6 +60,18 @@ export default function Home() {
 
     // ── Geohash/Proximity Filter ───────────────────────────────────────────────
     if (item.lat && item.lng) {
+      // 1. Geohash prefix filter (Primary check)
+      const reqPrecision = getGeohashPrecisionForRadius(radius);
+      const userGeohash = encodeGeohash(userLat, userLng, reqPrecision);
+      const itemGeohash = item.geohash || encodeGeohash(item.lat, item.lng, reqPrecision);
+      
+      // Strict prefix matching for hyper-local performance
+      if (!itemGeohash.startsWith(userGeohash)) {
+        // If it doesn't match the same bounding box at this precision, exclude it.
+        return false;
+      }
+
+      // 2. Exact circular boundary pruning
       const distKm = haversineDistance(userLat, userLng, item.lat, item.lng);
       if (distKm > radius) return false;
     }

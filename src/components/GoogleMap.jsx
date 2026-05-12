@@ -15,10 +15,38 @@ export default function GoogleMap({
   const markerRef = useRef(null);
   const extraMarkersRef = useRef([]);
 
-  const isPlaceholderKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY === "YOUR_GOOGLE_MAPS_API_KEY_HERE";
+  const [isMapLoaded, setIsMapLoaded] = React.useState(false);
 
   useEffect(() => {
-    if (isPlaceholderKey || !window.google) return;
+    if (window.google) {
+      setIsMapLoaded(true);
+      return;
+    }
+
+    // Prevent duplicate script injections
+    if (document.querySelector('script[src^="https://maps.googleapis.com/maps/api/js"]')) {
+      const checkInterval = setInterval(() => {
+        if (window.google) {
+          setIsMapLoaded(true);
+          clearInterval(checkInterval);
+        }
+      }, 100);
+      return;
+    }
+
+    const script = document.createElement('script');
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY && import.meta.env.VITE_GOOGLE_MAPS_API_KEY !== "YOUR_GOOGLE_MAPS_API_KEY_HERE" 
+      ? import.meta.env.VITE_GOOGLE_MAPS_API_KEY 
+      : "";
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setIsMapLoaded(true);
+    document.head.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (!isMapLoaded || !mapRef.current) return;
 
     const map = new window.google.maps.Map(mapRef.current, {
       center: center,
@@ -81,7 +109,7 @@ export default function GoogleMap({
 
   // Update center/radius when props change
   useEffect(() => {
-    if (isPlaceholderKey || !googleMapRef.current) return;
+    if (!isMapLoaded || !googleMapRef.current) return;
 
     const pos = { lat: center.lat, lng: center.lng };
     
@@ -97,9 +125,8 @@ export default function GoogleMap({
     googleMapRef.current.panTo(pos);
   }, [center, radius]);
 
-  // Update extra markers when markers prop changes
   useEffect(() => {
-    if (isPlaceholderKey || !googleMapRef.current || !window.google) return;
+    if (!isMapLoaded || !googleMapRef.current || !window.google) return;
 
     // Clear old markers
     extraMarkersRef.current.forEach(m => m.setMap(null));
@@ -128,44 +155,10 @@ export default function GoogleMap({
     if (circleRef.current) circleRef.current.setCenter(pos);
   };
 
-  if (isPlaceholderKey) {
+  if (!isMapLoaded) {
     return (
-      <div 
-        style={{ 
-          width: '100%', 
-          height: '100%', 
-          borderRadius: 'inherit',
-          background: '#0f172a',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-          border: '1px solid #1e293b'
-        }} 
-      >
-        {/* Radar Animation Background */}
-        <div className="radar-ping" style={{ 
-          position: 'absolute', width: '200%', height: '200%', 
-          background: 'radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%)',
-          animation: 'pulse 3s infinite'
-        }} />
-        
-        <div style={{ zIndex: 2, textAlign: 'center', padding: '1rem' }}>
-          <div style={{ color: 'var(--primary)', fontWeight: 900, fontSize: '0.6rem', letterSpacing: '0.2em', marginBottom: '8px' }}>GPS AUTHENTICATED</div>
-          <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 600 }}>LAT: {center.lat.toFixed(4)}</div>
-          <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 600 }}>LNG: {center.lng.toFixed(4)}</div>
-          <div style={{ marginTop: '12px', height: '2px', width: '40px', background: 'var(--primary)', margin: '12px auto' }} />
-          <div style={{ color: 'var(--primary)', fontSize: '0.5rem', fontWeight: 800 }}>SATELLITE LOCK: ACTIVE</div>
-        </div>
-
-        {/* Grid lines overlay */}
-        <div style={{ 
-          position: 'absolute', inset: 0, opacity: 0.1, 
-          backgroundImage: 'linear-gradient(#94a3b8 1px, transparent 1px), linear-gradient(90deg, #94a3b8 1px, transparent 1px)',
-          backgroundSize: '20px 20px'
-        }} />
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' }}>
+        <div style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '0.8rem' }}>LOADING SATELLITE LINK...</div>
       </div>
     );
   }

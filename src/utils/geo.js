@@ -56,11 +56,6 @@ export function encodeGeohash(lat, lng, precision = 6) {
   return geohash;
 }
 
-/**
- * Decodes a geohash string into a { lat, lng } center coordinate.
- * @param {string} geohash
- * @returns {{ lat: number, lng: number }}
- */
 export function decodeGeohash(geohash) {
   let evenBit = true;
   let latMin = -90, latMax = 90;
@@ -84,6 +79,21 @@ export function decodeGeohash(geohash) {
     lat: (latMin + latMax) / 2,
     lng: (lngMin + lngMax) / 2,
   };
+}
+
+/**
+ * Determines the geohash prefix length required to cover a given radius in km.
+ * @param {number} radiusKm 
+ * @returns {number} Geohash precision length
+ */
+export function getGeohashPrecisionForRadius(radiusKm) {
+  if (radiusKm <= 0.04) return 8; // ~38m
+  if (radiusKm <= 0.15) return 7; // ~150m
+  if (radiusKm <= 1.2) return 6;  // ~1.2km
+  if (radiusKm <= 4.9) return 5;  // ~4.9km
+  if (radiusKm <= 39) return 4;   // ~39km
+  if (radiusKm <= 156) return 3;  // ~156km
+  return 2;
 }
 
 // ─── Haversine Distance ────────────────────────────────────────────────────────

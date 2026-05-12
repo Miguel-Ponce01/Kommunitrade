@@ -20,7 +20,20 @@
     <!-- Google Maps loaded dynamically by GoogleMap.jsx when a valid API key is set -->
   </head>
   <body>
+    <!-- Receipt Generator Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Clear out any stale service workers from other projects running on localhost
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+            console.log('Unregistered stale service worker.');
+          }
+        });
+      }
+    </script>
   </body>
 </html>

@@ -140,7 +140,9 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 | High | OCR Auto-Tagging | Extract text for titles/descriptions |
 | High | Geohash Location Filtering | Show only nearby listings |
 | Medium | Inverted Index Search | Fast keyword search |
-| Medium | Transaction History | Track past purchases/sales |
+| Medium | Transaction History & Receipts | Track past purchases/sales with GCash-style receipts |
+| Medium | Feedback Forum | Community feedback with admin moderation |
+| Medium | Rules & Regulations | Davao-specific consumer guidelines |
 | Medium | Anonymous Chat System | Private buyer-seller communication |
 | Medium | TTL Auto-Archiving | Auto-expire listings after 30 days |
 

@@ -15,7 +15,9 @@ import {
   Zap,
   Globe,
   Trash2,
-  Lock
+  Lock,
+  FileText,
+  X
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,12 +35,13 @@ const Switch = ({ active, onClick }) => (
 export default function Settings() {
   const navigate = useNavigate();
   const [theme, setTheme] = useTheme();
-  const [lang, setLang, t] = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const { logout } = useAuth();
   const [isSeeding, setIsSeeding] = useState(false);
   const [isPurging, setIsPurging] = useState(false);
   const [seedSuccess, setSeedSuccess] = useState(false);
   const [purgeCount, setPurgeCount] = useState(0);
+  const [showRules, setShowRules] = useState(false);
 
   const seedDatabase = async () => {
     setIsSeeding(true);
@@ -184,6 +187,19 @@ export default function Settings() {
             {lang === 'tl' && <Check size={20} color="var(--primary)" strokeWidth={3} />}
           </div>
 
+          <div className="settings-item-row" onClick={() => setLang('bis')}>
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>
+                <Globe size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">Bisaya</span>
+                <span className="settings-label-sub">Lokal nga pinulongan</span>
+              </div>
+            </div>
+            {lang === 'bis' && <Check size={20} color="var(--primary)" strokeWidth={3} />}
+          </div>
+
         </div>
       </div>
 
@@ -240,10 +256,71 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* Policies Group */}
+      <div className="settings-section">
+        <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', paddingLeft: '0.5rem' }}>
+          Legal & Policies
+        </h2>
+        <div className="settings-card-group">
+          
+          <div className="settings-item-row" onClick={() => setShowRules(true)}>
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#FCE7F3', color: '#DB2777' }}>
+                <FileText size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">Rules and Regulations</span>
+                <span className="settings-label-sub">Davao Consumer & Barter Guidelines</span>
+              </div>
+            </div>
+            <ChevronLeft size={20} style={{ transform: 'rotate(180deg)', color: 'var(--text-muted)' }} />
+          </div>
+
+        </div>
+      </div>
+
       <button className="logout-btn-premium" onClick={async () => { await logout(); navigate('/'); }}>
         <LogOut size={22} />
         {t('sett_sign_out')}
       </button>
+
+      {/* Rules Modal */}
+      {showRules && (
+        <div className="location-modal-overlay" onClick={() => setShowRules(false)} style={{ zIndex: 3000 }}>
+          <div className="location-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div className="location-modal-header" style={{ position: 'sticky', top: 0, background: 'var(--card-bg)', zIndex: 10, paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>Rules & Regulations</h2>
+              <button className="location-modal-close" onClick={() => setShowRules(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div style={{ color: 'var(--text-main)', lineHeight: 1.6, fontSize: '0.9rem' }}>
+              <h3 style={{ color: 'var(--primary)', marginTop: '1rem' }}>1. Safe Meetup Guidelines (Davao City)</h3>
+              <p>For your safety, all meetups must be conducted in public, well-lit areas with high foot traffic and CCTV coverage. Recommended locations include: SM City Davao (Ecoland), SM Lanang Premier, Abreeza Mall, Gaisano Mall of Davao, or inside branded coffee shops (e.g., Starbucks, Bo's Coffee).</p>
+              
+              <h3 style={{ color: 'var(--primary)', marginTop: '1.5rem' }}>2. Item Verification</h3>
+              <p>Buyers are required to thoroughly inspect the item at the meetup location BEFORE finalizing the payment or completing the barter. KomuniTrade acts as a platform for connection but does not provide warranties for physical goods exchanged.</p>
+              
+              <h3 style={{ color: 'var(--primary)', marginTop: '1.5rem' }}>3. Prohibited Items</h3>
+              <p>The exchange of illegal drugs, unregistered firearms, stolen goods, counterfeit items, and items restricted by the Local Government Unit of Davao City and Philippine Law is strictly prohibited. Violators will be banned and reported to the PNP Cybercrime Unit.</p>
+
+              <h3 style={{ color: 'var(--primary)', marginTop: '1.5rem' }}>4. Payment Protocol</h3>
+              <p>For cash transactions, verify the authenticity of the bills. For digital payments (GCash, Maya, Bank Transfer), ensure the amount reflects in your account BEFORE handing over the item. Do not rely solely on screenshot proofs.</p>
+
+              <h3 style={{ color: 'var(--primary)', marginTop: '1.5rem' }}>5. Respect and Anti-Haggle Policy</h3>
+              <p>Respect the agreed-upon price. "Joy reserving" and extreme lowballing at the meetup location are highly discouraged. Users reported multiple times for such behavior will have their accounts suspended to maintain community integrity.</p>
+
+              <h3 style={{ color: 'var(--primary)', marginTop: '1.5rem' }}>6. Transaction Agreement Receipts</h3>
+              <p>Utilize the built-in Transaction Agreement feature to lock in logistics and price. This digital receipt serves as your proof of agreement and helps in dispute resolution.</p>
+            </div>
+            
+            <button className="btn-primary" onClick={() => setShowRules(false)} style={{ marginTop: '2rem', width: '100%' }}>
+              I Understand & Agree
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

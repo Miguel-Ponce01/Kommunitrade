@@ -1,14 +1,28 @@
-import Tesseract from 'tesseract.js';
-import * as mobilenet from '@tensorflow-models/mobilenet';
-import '@tensorflow/tfjs';
+// Helper to dynamically load external scripts
+const loadScript = (src) => {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+};
 
 // CNN Model Cache
 let mobilenetModel = null;
 
-// Load MobileNet Model (once, reuse)
+// Load MobileNet Model (once, reuse) via CDN
 export const loadModel = async () => {
   if (!mobilenetModel) {
-    mobilenetModel = await mobilenet.load();
+    await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');
+    await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js');
+    mobilenetModel = await window.mobilenet.load();
   }
   return mobilenetModel;
 };
@@ -29,10 +43,11 @@ export const detectObject = async (imageElement) => {
   }
 };
 
-// Extract Text from Image (OCR)
+// Extract Text from Image (OCR) via CDN
 export const extractText = async (imageFile) => {
   try {
-    const result = await Tesseract.recognize(
+    await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+    const result = await window.Tesseract.recognize(
       imageFile,
       'eng',
       {

@@ -10,7 +10,7 @@ import GoogleMap from '../components/GoogleMap';
 import { analyzeImage } from '../services/imageAnalysisService';
 
 export default function PostItem() {
-  const [lang, setLang, t] = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const navigate = useNavigate();
   const [previewUrl, setPreviewUrl] = useState(null);
   const [imageFile, setImageFile] = useState(null); // actual File for Storage upload
@@ -23,7 +23,6 @@ export default function PostItem() {
   const [barangay, setBarangay] = useState('');
   const [description, setDescription] = useState('');
   const [condition, setCondition] = useState('New');
-  const [isDemoMode, setIsDemoMode] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [timeMark, setTimeMark] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -62,32 +61,39 @@ export default function PostItem() {
       const img = new Image();
       
       img.onload = async () => {
-        const result = await analyzeImage(file, img);
-        
-        if (result.cnn.success) {
-          console.log('🔍 CNN Detected:', result.cnn.topPrediction);
-          setAnalysisProgress(`Detected: ${result.cnn.topPrediction.className}`);
+        try {
+          const result = await analyzeImage(file, img);
+          
+          if (result.cnn.success) {
+            console.log('🔍 CNN Detected:', result.cnn.topPrediction);
+            setAnalysisProgress(`Detected: ${result.cnn.topPrediction.className}`);
+          }
+          
+          if (result.ocr.success) {
+            console.log('📝 OCR Extracted:', result.ocr.text.substring(0, 100));
+            setAnalysisProgress('Extracting text from image...');
+          }
+          
+          // Auto-fill form fields
+          setGeneratedData({
+            title: result.generatedTitle,
+            category: result.generatedCategory,
+            tags: result.generatedTags
+          });
+          
+          // Auto-fill form inputs
+          setTitle(result.generatedTitle);
+          setCategory(result.generatedCategory);
+          
+          setAnalysisProgress('Analysis complete! Review and edit below.');
+          setIsAnalyzing(false);
+          URL.revokeObjectURL(imageUrl);
+        } catch (error) {
+          console.error('Image analysis failed inside onload:', error);
+          setAnalysisProgress('Analysis failed. Please enter details manually.');
+          setIsAnalyzing(false);
+          URL.revokeObjectURL(imageUrl);
         }
-        
-        if (result.ocr.success) {
-          console.log('📝 OCR Extracted:', result.ocr.text.substring(0, 100));
-          setAnalysisProgress('Extracting text from image...');
-        }
-        
-        // Auto-fill form fields
-        setGeneratedData({
-          title: result.generatedTitle,
-          category: result.generatedCategory,
-          tags: result.generatedTags
-        });
-        
-        // Auto-fill form inputs
-        setTitle(result.generatedTitle);
-        setCategory(result.generatedCategory);
-        
-        setAnalysisProgress('Analysis complete! Review and edit below.');
-        setIsAnalyzing(false);
-        URL.revokeObjectURL(imageUrl);
       };
       
       img.src = imageUrl;
@@ -203,7 +209,7 @@ export default function PostItem() {
         timeMark: timeMark || null,
         sellerId: currentUser.uid,
         imageUrl: finalImageUrl,
-        expiresAt: new Date(Date.now() + (isDemoMode ? 1 : 7 * 24) * 60 * 60 * 1000).toISOString(),
+        expiresAt: new Date(Date.now() + (7 * 24) * 60 * 60 * 1000).toISOString(),
         createdAt: serverTimestamp(),
         isSold: false
       });
@@ -505,27 +511,7 @@ export default function PostItem() {
             </div>
           </div>
 
-          <div style={{ 
-            padding: '1.5rem', background: 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)', borderRadius: '24px', 
-            border: '1px solid #FCD34D', boxShadow: '0 10px 15px -3px rgba(252, 211, 77, 0.2)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-              <div style={{ padding: '0.6rem', background: '#FCD34D', borderRadius: '12px' }}>
-                <ShieldCheck size={20} color="#92400E" />
-              </div>
-              <div>
-                <span style={{ fontWeight: 900, fontSize: '0.9rem', color: '#92400E', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('post_defense_mode')}</span>
-                <p style={{ fontSize: '0.75rem', color: '#B45309', margin: '0.25rem 0 1rem', lineHeight: 1.4 }}>{t('post_defense_desc')}</p>
-                <label className="theme-toggle-pill" style={{ width: '100%', height: '40px', background: isDemoMode ? '#92400E' : '#FFF', border: '1px solid #FCD34D' }}>
-                  <input type="checkbox" hidden checked={isDemoMode} onChange={(e) => setIsDemoMode(e.target.checked)} />
-                  <div className="toggle-handle" style={{ left: isDemoMode ? 'calc(100% - 36px)' : '4px', background: isDemoMode ? '#FFF' : '#FCD34D' }}></div>
-                  <span style={{ width: '100%', textAlign: 'center', fontSize: '0.7rem', fontWeight: 800, color: isDemoMode ? '#FFF' : '#92400E', paddingLeft: isDemoMode ? '0' : '30px', paddingRight: isDemoMode ? '30px' : '0' }}>
-                    {isDemoMode ? 'ACTIVE' : 'INACTIVE'}
-                  </span>
-                </label>
-              </div>
-            </div>
-          </div>
+
         </div>
       </form>
     </div>

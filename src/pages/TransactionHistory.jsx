@@ -1,0 +1,225 @@
+import React, { useState } from 'react';
+import { Search, Filter, ChevronLeft, FileText, CheckCircle2, Clock, MapPin, Loader2, XCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import TransactionReceipt from '../components/TransactionReceipt';
+
+// Mock Data generation based on user prompt
+const generateMockTransactions = () => {
+  return [
+    {
+      id: 'tx_1',
+      reference_number: 'TRX-2026-839201',
+      status: 'Confirmed',
+      item_name: 'Nike Dunk Low Retro',
+      item_condition: 'Like New (Used once)',
+      agreed_price: 4500,
+      payment_method: 'Cash on Meetup',
+      seller_masked_name: 'John Dn.',
+      buyer_name: 'Alex R.',
+      meetup_location: 'Starbucks Obrero, Davao City',
+      meetup_date: 'May 15, 2026',
+      meetup_time: '3:00 PM',
+      agreement_summary: 'Both buyer and seller agreed to meet on May 15, 2026 at 3:00 PM at Starbucks Obrero, Davao City for the purchase of a Nike Dunk Low Retro worth ₱4,500.',
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 'tx_2',
+      reference_number: 'AGR-582941-DV',
+      status: 'Completed',
+      item_name: 'Samsung Galaxy Watch 5',
+      item_condition: 'Brand New Sealed',
+      agreed_price: 8000,
+      payment_method: 'GCash',
+      seller_masked_name: 'Maria Rz.',
+      buyer_name: 'Alex R.',
+      meetup_location: 'SM City Davao Ecoland',
+      meetup_date: 'May 10, 2026',
+      meetup_time: '1:00 PM',
+      agreement_summary: 'Transaction completed. Item picked up directly from the seller at SM City Davao Ecoland.',
+      created_at: new Date(Date.now() - 86400000 * 3).toISOString()
+    },
+    {
+      id: 'tx_3',
+      reference_number: 'MRX-20260512-001',
+      status: 'Pending Agreement',
+      item_name: 'Vintage Acoustic Guitar',
+      item_condition: 'Good (Minor scratches)',
+      agreed_price: 2500,
+      payment_method: 'To be agreed',
+      seller_masked_name: 'Kevin Tl.',
+      buyer_name: 'Alex R.',
+      meetup_location: 'TBD',
+      meetup_date: 'TBD',
+      meetup_time: 'TBD',
+      agreement_summary: 'Waiting for final confirmation from both parties regarding meetup details.',
+      created_at: new Date().toISOString()
+    }
+  ];
+};
+
+export default function TransactionHistory() {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [transactions] = useState(generateMockTransactions()); // Using mock data
+  const [selectedTx, setSelectedTx] = useState(null);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Completed': return { bg: '#dcfce7', text: '#166534', icon: <CheckCircle2 size={14} /> };
+      case 'Confirmed': return { bg: '#dbeafe', text: '#1e40af', icon: <CheckCircle2 size={14} /> };
+      case 'Pending Agreement': return { bg: '#fef3c7', text: '#92400e', icon: <Clock size={14} /> };
+      case 'Cancelled': return { bg: '#fee2e2', text: '#991b1b', icon: <XCircle size={14} /> };
+      default: return { bg: '#f3f4f6', text: '#374151', icon: <Clock size={14} /> };
+    }
+  };
+
+  const filteredTransactions = transactions.filter(tx => {
+    const matchesSearch = tx.reference_number.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          tx.item_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'All' || tx.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <div className="animate-fade-in" style={{ padding: '2rem 1.5rem', maxWidth: '800px', margin: '0 auto', minHeight: '100vh' }}>
+      
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
+        <button onClick={() => navigate(-1)} className="glass" style={{ width: '48px', height: '48px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ChevronLeft size={24} />
+        </button>
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", margin: 0 }}>Agreements</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>Your transaction history & receipts</p>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 300px', position: 'relative' }}>
+          <Search size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input 
+            type="text" 
+            placeholder="Search reference no. or item..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="form-control"
+            style={{ paddingLeft: '3rem', borderRadius: '12px', background: 'var(--card-bg)' }}
+          />
+        </div>
+        
+        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+          {['All', 'Pending Agreement', 'Confirmed', 'Completed', 'Cancelled'].map(status => (
+            <button 
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              style={{ 
+                padding: '0.5rem 1rem', 
+                borderRadius: '20px', 
+                border: '1px solid',
+                borderColor: statusFilter === status ? 'var(--primary)' : 'var(--border-color)',
+                background: statusFilter === status ? 'var(--primary)' : 'transparent',
+                color: statusFilter === status ? '#fff' : 'var(--text-main)',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s'
+              }}
+            >
+              {status}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Transaction List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {filteredTransactions.length === 0 ? (
+           <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-muted)' }}>
+             <FileText size={48} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
+             <p>No transactions found.</p>
+           </div>
+        ) : (
+          filteredTransactions.map(tx => {
+            const statusStyle = getStatusColor(tx.status);
+            return (
+              <div 
+                key={tx.id} 
+                className="glass" 
+                style={{ 
+                  borderRadius: '16px', 
+                  padding: '1.5rem', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '1rem',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--card-bg)',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                {/* Card Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace', letterSpacing: '1px', marginBottom: '4px' }}>
+                      {tx.reference_number}
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{tx.item_name}</h3>
+                  </div>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.4rem', 
+                    padding: '0.4rem 0.8rem', 
+                    borderRadius: '20px', 
+                    background: statusStyle.bg, 
+                    color: statusStyle.text,
+                    fontSize: '0.75rem',
+                    fontWeight: 700
+                  }}>
+                    {statusStyle.icon} {tx.status}
+                  </div>
+                </div>
+
+                {/* Card Body */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                   <div>
+                     <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary)' }}>₱{tx.agreed_price.toLocaleString()}</p>
+                     <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Seller: <span style={{ fontWeight: 700 }}>{tx.seller_masked_name}</span></p>
+                   </div>
+                   
+                   {tx.status !== 'Pending Agreement' && tx.status !== 'Cancelled' && (
+                     <button 
+                       onClick={() => setSelectedTx(tx)}
+                       className="btn-primary"
+                       style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', width: 'auto', borderRadius: '10px' }}
+                     >
+                       View Receipt
+                     </button>
+                   )}
+                </div>
+                
+                {tx.status !== 'Pending Agreement' && tx.status !== 'Cancelled' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--bg-color)', padding: '0.75rem', borderRadius: '8px' }}>
+                    <MapPin size={14} /> Meetup: {tx.meetup_date} @ {tx.meetup_time}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Receipt Modal */}
+      {selectedTx && (
+        <TransactionReceipt 
+          transaction={selectedTx} 
+          onClose={() => setSelectedTx(null)} 
+        />
+      )}
+
+    </div>
+  );
+}

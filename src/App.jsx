@@ -11,6 +11,7 @@ import ItemDetails from './pages/ItemDetails';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Messages from './pages/Messages';
+import TransactionHistory from './pages/TransactionHistory';
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="settings" element={<Settings />} />
               <Route path="messages" element={<Messages />} />
+              <Route path="transactions" element={<TransactionHistory />} />
             </Route>
 
             {/* Fallback */}

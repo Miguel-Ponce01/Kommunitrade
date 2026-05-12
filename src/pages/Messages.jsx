@@ -2,7 +2,7 @@ import { MessageCircle } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 
 export default function Messages() {
-  const [lang, setLang, t] = useLanguage();
+  const { lang, setLang, t } = useLanguage();
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', gap: '1.5rem' }}>

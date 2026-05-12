@@ -7,23 +7,35 @@ import '../index.css';
 
 export default function Landing() {
   const navigate = useNavigate();
-  const [lang, setLang, t] = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [feedback, setFeedback] = useState([
+    { id: 1, name: 'Juan Dela Cruz', message: 'Great platform! Very easy to use.', date: '2026-05-10' },
+    { id: 2, name: 'Maria Santos', message: 'I found a great deal on a laptop here.', date: '2026-05-11' }
+  ]);
+  const [adminMode, setAdminMode] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [newFeedbackName, setNewFeedbackName] = useState('');
+  const [newFeedbackMessage, setNewFeedbackMessage] = useState('');
 
   const openAuth = () => setShowAuthModal(true);
 
   const toggleLanguage = () => {
-    setLang(lang === 'en' ? 'tl' : 'en');
+    if (lang === 'en') setLang('tl');
+    else if (lang === 'tl') setLang('bis');
+    else setLang('en');
   };
 
   // Categories mapped to translation keys with specific images
   const CATEGORIES_DATA = [
-    { key: 'fresh', icon: '🥭', img: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=600' },
+    { key: 'durian', icon: '🥭', img: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=600' },
     { key: 'ukay', icon: '👗', img: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=600' },
     { key: 'gadgets', icon: '📱', img: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=600' },
     { key: 'services', icon: '🛠️', img: 'https://images.unsplash.com/photo-1581578731522-62047aa7451a?auto=format&fit=crop&q=80&w=600' },
-    { key: 'home', icon: '🏠', img: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&q=80&w=600' },
-    { key: 'school', icon: '🎒', img: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=600' },
+    { key: 'condo', icon: '🏠', img: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&q=80&w=600' },
+    { key: 'students', icon: '🎒', img: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=600' },
   ];
 
   return (
@@ -43,7 +55,6 @@ export default function Landing() {
             </span>
           </div>
           <div className="nav-controls">
-            <button className="auth-action-btn" onClick={openAuth} style={{ fontWeight: 700 }}>{t('nav_login')}</button>
             <button className="btn-primary" onClick={openAuth} style={{ padding: '0.5rem 1rem', borderRadius: '10px', fontSize: '0.85rem' }}>{t('nav_signup')}</button>
           </div>
         </div>
@@ -53,24 +64,24 @@ export default function Landing() {
       <section className="editorial-hero" style={{ width: '100%', overflowX: 'hidden' }}>
         <div className="apple-grid">
           <div className="location-badge" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: 'none', fontWeight: 800 }}>
-            {t('hero_davao')}
+            {t('hero_badge')}
           </div>
           
-          <h1 className="hero-heading" dangerouslySetInnerHTML={{ __html: t('hero_barangay') }} />
+          <h1 className="hero-heading" dangerouslySetInnerHTML={{ __html: t('hero_title') }} />
 
           <div className="hero-sub" style={{ border: 'none', paddingTop: 0, width: '100%' }}>
             <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)', maxWidth: '100%', marginBottom: '2.5rem', lineHeight: 1.7 }}>
-              {t('hero_buy_sell')}
+              {t('hero_subtitle')}
             </p>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <button className="hero-cta-btn" onClick={openAuth}>
-                {t('hero_mag_lista')} <ArrowRight size={22} />
+                {t('hero_cta_sell')} <ArrowRight size={22} />
               </button>
               <button onClick={openAuth} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: '2px solid var(--border-color)', padding: '1rem 1.75rem', borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', color: 'var(--text-main)', transition: 'all 0.3s ease' }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'}
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-color)'}
               >
-                {t('hero_mag_browse')}
+                {t('hero_cta_browse')}
               </button>
             </div>
           </div>
@@ -181,30 +192,122 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="editorial-faq-section" style={{ padding: '0 0 8rem' }}>
+      {/* Feedback Forum Section */}
+      <section id="feedback-section" className="editorial-faq-section" style={{ padding: '0 0 8rem' }}>
         <div className="apple-grid">
           <div className="faq-section-inner">
             <div className="faq-header">
-              <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '0.5rem' }} dangerouslySetInnerHTML={{ __html: t('faq_title') }} />
-              <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>{t('faq_subtitle')}</p>
+              <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '0.5rem' }}>Community Feedback</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>Hear from our users or share your experience.</p>
             </div>
+            
+            {/* Feedback List */}
             <div className="faq-list">
-              {[
-                { q: t('faq_q1'), a: t('faq_a1') },
-                { q: t('faq_q2'), a: t('faq_a2') },
-                { q: t('faq_q3'), a: t('faq_a3') },
-                { q: t('faq_q4'), a: t('faq_a4') }
-              ].map((item, i) => (
-                <div key={i} className="faq-item">
-                  <div className="faq-num">0{i+1}</div>
-                  <div className="faq-content">
-                    <h3>{item.q}</h3>
-                    <p>{item.a}</p>
+              {feedback.map((item) => (
+                <div key={item.id} className="faq-item" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem', background: 'var(--card-bg)', borderRadius: '12px', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{item.name}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.date}</div>
                   </div>
-                  <ArrowRight className="faq-arrow" size={18} />
+                  <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>{item.message}</p>
+                  {adminMode && (
+                    <button 
+                      onClick={() => setFeedback(feedback.filter(f => f.id !== item.id))}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 700 }}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               ))}
+            </div>
+
+            {/* Add Feedback Form */}
+            <div style={{ marginTop: '3rem', background: 'var(--card-bg)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontFamily: "'Outfit', sans-serif" }}>Leave a Feedback</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Your Name" 
+                  value={newFeedbackName}
+                  onChange={(e) => setNewFeedbackName(e.target.value)}
+                  style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
+                />
+                <textarea 
+                  placeholder="Your Feedback" 
+                  value={newFeedbackMessage}
+                  onChange={(e) => setNewFeedbackMessage(e.target.value)}
+                  style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', minHeight: '100px' }}
+                />
+                <button 
+                  onClick={() => {
+                    if (newFeedbackName && newFeedbackMessage) {
+                      setFeedback([...feedback, { id: Date.now(), name: newFeedbackName, message: newFeedbackMessage, date: new Date().toISOString().split('T')[0] }]);
+                      setNewFeedbackName('');
+                      setNewFeedbackMessage('');
+                    }
+                  }}
+                  className="btn-primary"
+                  style={{ padding: '0.75rem', borderRadius: '8px' }}
+                >
+                  Submit Feedback
+                </button>
+              </div>
+            </div>
+
+            {/* Admin Switch */}
+            <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+              {!adminMode ? (
+                <button 
+                  onClick={() => setShowAdminLogin(!showAdminLogin)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.5 }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}
+                >
+                  Admin Switch
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setAdminMode(false)}
+                  style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+                >
+                  Exit Admin Mode
+                </button>
+              )}
+
+              {showAdminLogin && !adminMode && (
+                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center' }}>
+                  <input 
+                    type="text" 
+                    placeholder="User" 
+                    value={adminUsername}
+                    onChange={(e) => setAdminUsername(e.target.value)}
+                    style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', width: '100px' }}
+                  />
+                  <input 
+                    type="password" 
+                    placeholder="Pass" 
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', width: '100px' }}
+                  />
+                  <button 
+                    onClick={() => {
+                      if (adminUsername === 'admin' && adminPassword === 'admin123') {
+                        setAdminMode(true);
+                        setShowAdminLogin(false);
+                        setAdminUsername('');
+                        setAdminPassword('');
+                      } else {
+                        alert('Invalid credentials');
+                      }
+                    }}
+                    style={{ padding: '0.5rem', borderRadius: '4px', background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer' }}
+                  >
+                    Login
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -236,7 +339,23 @@ export default function Landing() {
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 28px 50px rgba(0,0,0,0.4)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3)'; }}
             >
-              {t('cta_footer_btn_text')} <ArrowRight size={20} />
+              {t('cta_footer_btn')} <ArrowRight size={20} />
+            </button>
+
+            {/* Feedback Forum Button */}
+            <button 
+              onClick={() => document.getElementById('feedback-section')?.scrollIntoView({ behavior: 'smooth' })} 
+              style={{ 
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                padding: '0.6rem 1.25rem', borderRadius: '999px',
+                fontWeight: 800, fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)',
+                cursor: 'pointer', transition: 'all 0.3s ease', letterSpacing: '0.05em'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            >
+              <span>FEEDBACK FORUM</span>
             </button>
 
             {/* Language Toggle moved to Footer */}
@@ -262,7 +381,7 @@ export default function Landing() {
               onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
             >
               <Languages size={14} />
-              <span>{lang === 'en' ? 'ENGLISH' : 'TAGALOG'}</span>
+              <span>{lang === 'en' ? 'ENGLISH' : lang === 'tl' ? 'TAGALOG' : 'BISAYA'}</span>
             </div>
           </div>
           

@@ -70,6 +70,7 @@ export default function ChatModal({ isOpen, onClose, item }) {
       setNewMessage('');
     } catch (error) {
       console.error("Error sending message:", error);
+      alert("Failed to send message. Please check your Firebase Firestore rules. Error: " + error.message);
     }
   };
 
@@ -80,7 +81,7 @@ export default function ChatModal({ isOpen, onClose, item }) {
       <div className="location-modal-content" onClick={(e) => e.stopPropagation()} style={{ height: '80vh', display: 'flex', flexDirection: 'column' }}>
         
         {/* Chat Header */}
-        <div className="location-modal-header">
+        <div className="location-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{ width: '40px', height: '40px', background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
               <User size={20} />
@@ -90,9 +91,23 @@ export default function ChatModal({ isOpen, onClose, item }) {
               <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>Re: {item.title}</p>
             </div>
           </div>
-          <button className="location-modal-close" onClick={onClose}>
-            <X size={20} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {currentUser?.uid === item.buyerId || true ? ( // Simplified condition for prototype
+              <button 
+                className="btn-primary" 
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderRadius: '8px', width: 'auto' }}
+                onClick={() => {
+                  alert('Transaction Agreement created! Check your Transaction History.');
+                  // In a real app, this would push a doc to 'transactions' collection
+                }}
+              >
+                Finalize Agreement
+              </button>
+            ) : null}
+            <button className="location-modal-close" onClick={onClose} style={{ position: 'relative', top: 0, right: 0 }}>
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Anonymous Identity Notice */}
