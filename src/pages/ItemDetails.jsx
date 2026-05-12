@@ -9,6 +9,7 @@ export default function ItemDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [item, setItem] = useState(null);
+  const [seller, setSeller] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -20,7 +21,18 @@ export default function ItemDetails() {
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
-          setItem({ id: docSnap.id, ...docSnap.data() });
+          const itemData = { id: docSnap.id, ...docSnap.data() };
+          setItem(itemData);
+          
+          // Fetch seller info
+          const sellerId = itemData.userId || itemData.sellerId;
+          if (sellerId) {
+            const sellerRef = doc(db, 'users', sellerId);
+            const sellerSnap = await getDoc(sellerRef);
+            if (sellerSnap.exists()) {
+              setSeller(sellerSnap.data());
+            }
+          }
         } else {
           setError("Listing not found");
         }
@@ -65,9 +77,20 @@ export default function ItemDetails() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
         <h1 style={{ fontSize: '1.5rem', lineHeight: '1.2', fontWeight: 700, flex: 1 }}>{item.title}</h1>
         <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--primary)', marginLeft: '1rem' }}>
-          ₱{item.price.toLocaleString()}
+          ₱{(item.price ?? 0).toLocaleString()}
         </div>
       </div>
+
+      {/* Tags */}
+      {item.tags && item.tags.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+          {item.tags.map((tag, index) => (
+            <span key={index} style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '0.25rem 0.75rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700 }}>
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -84,6 +107,21 @@ export default function ItemDetails() {
           radius={0.3} // Privacy circle
           zoom={15}
         />
+      </div>
+
+      {/* Seller Section */}
+      <div style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', overflow: 'hidden' }}>
+          {seller?.photoURL ? <img src={seller.photoURL} alt={seller.displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{seller?.displayName || "Anonymous Seller"}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Seller</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontWeight: 700, color: 'var(--accent)' }}>⭐ 4.5</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Credibility Score</div>
+        </div>
       </div>
 
       <div style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '2rem' }}>

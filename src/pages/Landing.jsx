@@ -30,12 +30,12 @@ export default function Landing() {
 
   // Categories mapped to translation keys with specific images
   const CATEGORIES_DATA = [
-    { key: 'durian', icon: '🥭', img: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=600' },
-    { key: 'ukay', icon: '👗', img: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=600' },
+    { key: 'durian', icon: '🥭', img: '/durian_fruit.png' },
+    { key: 'ukay', icon: '👗', img: '/davao_weaves.png' },
     { key: 'gadgets', icon: '📱', img: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=600' },
-    { key: 'services', icon: '🛠️', img: 'https://images.unsplash.com/photo-1581578731522-62047aa7451a?auto=format&fit=crop&q=80&w=600' },
-    { key: 'condo', icon: '🏠', img: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&q=80&w=600' },
-    { key: 'students', icon: '🎒', img: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=600' },
+    { key: 'services', icon: '🛠️', img: '/kadayawan_dancers.png' },
+    { key: 'condo', icon: '🏠', img: '/mt_apo.png' },
+    { key: 'students', icon: '🎒', img: '/philippine_eagle.png' },
   ];
 
   return (
@@ -54,15 +54,39 @@ export default function Landing() {
               {t('nav_brand')}
             </span>
           </div>
-          <div className="nav-controls">
+          <div className="nav-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div 
+              className="language-toggle-pill" 
+              onClick={toggleLanguage}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                background: 'var(--card-bg)',
+                border: '1px solid var(--border-color)',
+                padding: '0.5rem 1rem',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                color: 'var(--text-main)',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-color)'}
+            >
+              <Languages size={14} color="var(--primary)" />
+              <span>{lang === 'en' ? 'EN' : lang === 'tl' ? 'TL' : 'BIS'}</span>
+            </div>
             <button className="btn-primary" onClick={openAuth} style={{ padding: '0.5rem 1rem', borderRadius: '10px', fontSize: '0.85rem' }}>{t('nav_signup')}</button>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="editorial-hero" style={{ width: '100%', overflowX: 'hidden' }}>
-        <div className="apple-grid">
+      <section className="editorial-hero" style={{ width: '100%', overflowX: 'hidden', backgroundImage: 'url(/davao_map_bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.8)', zIndex: 1 }} />
+        <div className="apple-grid" style={{ position: 'relative', zIndex: 2 }}>
           <div className="location-badge" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: 'none', fontWeight: 800 }}>
             {t('hero_badge')}
           </div>
@@ -93,8 +117,8 @@ export default function Landing() {
         <div className="apple-grid" style={{ padding: 0 }}>
           <div style={{ position: 'relative', borderRadius: '40px', overflow: 'hidden', height: '460px', boxShadow: 'var(--shadow-premium)' }}>
             <img 
-              src="https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&q=80&w=1400"
-              alt="Local Davao community market"
+              src="/philippine_eagle.png"
+              alt="Majestic Philippine Eagle"
               style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
             />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)' }} />

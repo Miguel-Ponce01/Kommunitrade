@@ -9,7 +9,9 @@ import {
   where, 
   orderBy, 
   onSnapshot, 
-  serverTimestamp 
+  serverTimestamp,
+  doc,
+  setDoc
 } from '../firebase';
 import { isListingActive } from '../utils/geo';
 import { encryptMessage, decryptMessage } from '../utils/crypto';
@@ -60,13 +62,28 @@ export default function ChatModal({ isOpen, onClose, item }) {
     if (!newMessage.trim() || !chatId) return;
 
     try {
+      const encryptedMsg = encryptMessage(newMessage);
+      
+      // 1. Add message to subcollection
       await addDoc(collection(db, 'chats', chatId, 'messages'), {
-        text: encryptMessage(newMessage),
+        text: encryptedMsg,
         senderId: currentUser.uid,
         senderAlias: getAlias(currentUser.uid),
         timestamp: serverTimestamp(),
         isEncrypted: true // Metadata flag for manuscript proof
       });
+      
+      // 2. Update parent document for inbox listing
+      await setDoc(doc(db, 'chats', chatId), {
+        participants: [currentUser.uid, item.sellerId || item.userId],
+        lastMessage: encryptedMsg,
+        lastTimestamp: serverTimestamp(),
+        itemTitle: item.title,
+        itemId: item.id,
+        sellerId: item.sellerId || item.userId,
+        buyerId: currentUser.uid
+      }, { merge: true });
+
       setNewMessage('');
     } catch (error) {
       console.error("Error sending message:", error);

@@ -20,9 +20,10 @@ import {
   Shield
 } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
-import { db, auth, collection, query, where, onSnapshot, doc, deleteDoc, updateDoc } from '../firebase';
+import { db, auth, collection, query, where, onSnapshot, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from '../firebase';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import { encodeGeohash, resolveBarangayFromGeohash } from '../utils/geo';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -42,8 +43,17 @@ export default function Profile() {
   const [myListings, setMyListings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const currentUser = auth.currentUser;
+  const { currentUser } = useAuth();
   
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [selectedListingForTransaction, setSelectedListingForTransaction] = useState(null);
+  const [transactionData, setTransactionData] = useState({
+    price: '',
+    paymentMethod: 'Cash on Meetup',
+    buyerName: '',
+    meetupLocation: ''
+  });
+
   // Local state for functional editing
   const [displayName, setDisplayName] = useState(
     localStorage.getItem('komuni_display_name') || 
@@ -75,10 +85,12 @@ export default function Profile() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const items = snapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(item => !item.isSold); // Hide sold items from active inventory
       setMyListings(items);
       setIsLoading(false);
     });
@@ -131,6 +143,55 @@ export default function Profile() {
       () => setIsGeolocating(false),
       { timeout: 8000 }
     );
+  };
+
+  const handleMarkAsSold = (e, item) => {
+    e.stopPropagation();
+    setSelectedListingForTransaction(item);
+    setTransactionData({
+      price: item.price || '',
+      paymentMethod: 'Cash on Meetup',
+      buyerName: '',
+      meetupLocation: item.barangay || ''
+    });
+    setShowTransactionModal(true);
+  };
+
+  const submitTransaction = async (e) => {
+    e.preventDefault();
+    if (!selectedListingForTransaction || !currentUser) return;
+
+    try {
+      // 1. Create transaction record
+      await addDoc(collection(db, 'transactions'), {
+        reference_number: `TRX-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`,
+        status: 'Completed',
+        item_name: selectedListingForTransaction.title,
+        item_condition: selectedListingForTransaction.condition || 'Used',
+        agreed_price: parseFloat(transactionData.price) || 0,
+        payment_method: transactionData.paymentMethod,
+        seller_masked_name: displayName,
+        sellerId: currentUser.uid,
+        buyer_name: transactionData.buyerName || 'Guest User',
+        meetup_location: transactionData.meetupLocation,
+        meetup_date: new Date().toLocaleDateString(),
+        meetup_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        agreement_summary: `Transaction completed. Both buyer and seller agreed to the purchase of ${selectedListingForTransaction.title} worth ₱${transactionData.price}.`,
+        created_at: serverTimestamp(),
+        listingId: selectedListingForTransaction.id
+      });
+
+      // 2. Mark listing as sold
+      const listingRef = doc(db, 'listings', selectedListingForTransaction.id);
+      await updateDoc(listingRef, { isSold: true });
+
+      alert("Transaction recorded successfully!");
+      setShowTransactionModal(false);
+      setSelectedListingForTransaction(null);
+    } catch (error) {
+      console.error("Error recording transaction:", error);
+      alert("Failed to record transaction.");
+    }
   };
 
   const handleDelete = async (e, id) => {
@@ -408,7 +469,8 @@ export default function Profile() {
                     <div key={item.id} style={{ position: 'relative' }}>
                       <ItemCard item={item} onClick={() => navigate(`/app/item/${item.id}`)} />
                       <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
-                        <button className="glass" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Edit3 size={16} /></button>
+                        <button title="Mark as Sold" className="glass" onClick={(e) => handleMarkAsSold(e, item)} style={{ width: '36px', height: '36px', borderRadius: '10px', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle2 size={16} /></button>
+                        <button className="glass" onClick={(e) => { e.stopPropagation(); navigate(`/app/edit-item/${item.id}`); }} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Edit3 size={16} /></button>
                         <button className="glass" onClick={(e) => handleDelete(e, item.id)} style={{ width: '36px', height: '36px', borderRadius: '10px', color: '#ef4444', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={16} /></button>
                       </div>
                     </div>
@@ -443,6 +505,47 @@ export default function Profile() {
 
         </div>
       </div>
+
+      {showTransactionModal && selectedListingForTransaction && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="panel animate-slide-up" style={{ width: '100%', maxWidth: '500px', padding: '2rem' }}>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <CheckCircle2 color="var(--primary)" /> Record Transaction
+            </h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Mark <strong>{selectedListingForTransaction.title}</strong> as sold.</p>
+            
+            <form onSubmit={submitTransaction} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Final Agreed Price (₱)</label>
+                <input type="number" className="premium-input" required value={transactionData.price} onChange={(e) => setTransactionData({...transactionData, price: e.target.value})} />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Payment Method</label>
+                <select className="premium-input premium-select" required value={transactionData.paymentMethod} onChange={(e) => setTransactionData({...transactionData, paymentMethod: e.target.value})}>
+                  <option value="Cash on Meetup">Cash on Meetup</option>
+                  <option value="GCash">GCash</option>
+                  <option value="Maya">Maya</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                </select>
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Buyer Name / Alias</label>
+                <input type="text" className="premium-input" placeholder="e.g. Alex from FB" required value={transactionData.buyerName} onChange={(e) => setTransactionData({...transactionData, buyerName: e.target.value})} />
+              </div>
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label>Meetup Location</label>
+                <input type="text" className="premium-input" required value={transactionData.meetupLocation} onChange={(e) => setTransactionData({...transactionData, meetupLocation: e.target.value})} />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowTransactionModal(false)} className="btn-secondary" style={{ padding: '0.8rem 1.5rem', borderRadius: '12px' }}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ padding: '0.8rem 1.5rem', borderRadius: '12px' }}>Confirm Sale</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

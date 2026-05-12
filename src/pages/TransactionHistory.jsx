@@ -1,70 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, ChevronLeft, FileText, CheckCircle2, Clock, MapPin, Loader2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { db, collection, query, where, onSnapshot } from '../firebase';
 import TransactionReceipt from '../components/TransactionReceipt';
-
-// Mock Data generation based on user prompt
-const generateMockTransactions = () => {
-  return [
-    {
-      id: 'tx_1',
-      reference_number: 'TRX-2026-839201',
-      status: 'Confirmed',
-      item_name: 'Nike Dunk Low Retro',
-      item_condition: 'Like New (Used once)',
-      agreed_price: 4500,
-      payment_method: 'Cash on Meetup',
-      seller_masked_name: 'John Dn.',
-      buyer_name: 'Alex R.',
-      meetup_location: 'Starbucks Obrero, Davao City',
-      meetup_date: 'May 15, 2026',
-      meetup_time: '3:00 PM',
-      agreement_summary: 'Both buyer and seller agreed to meet on May 15, 2026 at 3:00 PM at Starbucks Obrero, Davao City for the purchase of a Nike Dunk Low Retro worth ₱4,500.',
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 'tx_2',
-      reference_number: 'AGR-582941-DV',
-      status: 'Completed',
-      item_name: 'Samsung Galaxy Watch 5',
-      item_condition: 'Brand New Sealed',
-      agreed_price: 8000,
-      payment_method: 'GCash',
-      seller_masked_name: 'Maria Rz.',
-      buyer_name: 'Alex R.',
-      meetup_location: 'SM City Davao Ecoland',
-      meetup_date: 'May 10, 2026',
-      meetup_time: '1:00 PM',
-      agreement_summary: 'Transaction completed. Item picked up directly from the seller at SM City Davao Ecoland.',
-      created_at: new Date(Date.now() - 86400000 * 3).toISOString()
-    },
-    {
-      id: 'tx_3',
-      reference_number: 'MRX-20260512-001',
-      status: 'Pending Agreement',
-      item_name: 'Vintage Acoustic Guitar',
-      item_condition: 'Good (Minor scratches)',
-      agreed_price: 2500,
-      payment_method: 'To be agreed',
-      seller_masked_name: 'Kevin Tl.',
-      buyer_name: 'Alex R.',
-      meetup_location: 'TBD',
-      meetup_date: 'TBD',
-      meetup_time: 'TBD',
-      agreement_summary: 'Waiting for final confirmation from both parties regarding meetup details.',
-      created_at: new Date().toISOString()
-    }
-  ];
-};
 
 export default function TransactionHistory() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [transactions] = useState(generateMockTransactions()); // Using mock data
+  const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedTx, setSelectedTx] = useState(null);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    // Query transactions where the current user is the seller
+    const q = query(
+      collection(db, 'transactions'),
+      where('sellerId', '==', currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const txs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Format date for the receipt component
+          created_at: data.created_at?.toDate ? data.created_at.toDate().toISOString() : new Date().toISOString()
+        };
+      });
+      // Sort descending by date locally
+      txs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      
+      setTransactions(txs);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -137,7 +114,12 @@ export default function TransactionHistory() {
 
       {/* Transaction List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {filteredTransactions.length === 0 ? (
+        {isLoading ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <Loader2 className="animate-spin" size={32} style={{ margin: '0 auto 1rem', color: 'var(--primary)' }} />
+            <p>Loading transactions...</p>
+          </div>
+        ) : filteredTransactions.length === 0 ? (
            <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-muted)' }}>
              <FileText size={48} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
              <p>No transactions found.</p>

@@ -132,30 +132,32 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 
 ## 6.1 Feature List with Priority
 
-| Priority | Feature | Description |
-|----------|---------|-------------|
-| High | Image Upload System | Users can upload item photos |
-| High | User Registration & Login | Secure account creation and authentication |
-| High | CNN Item Classification | Auto-categorize items from images |
-| High | OCR Auto-Tagging | Extract text for titles/descriptions |
-| High | Geohash Location Filtering | Show only nearby listings |
-| Medium | Inverted Index Search | Fast keyword search |
-| Medium | Transaction History & Receipts | Track past purchases/sales with GCash-style receipts |
-| Medium | Feedback Forum | Community feedback with admin moderation |
-| Medium | Rules & Regulations | Davao-specific consumer guidelines |
-| Medium | Anonymous Chat System | Private buyer-seller communication |
-| Medium | TTL Auto-Archiving | Auto-expire listings after 30 days |
+| Priority | Feature | Description | Status |
+|----------|---------|-------------|--------|
+| High | Image Upload System | Users can upload item photos | Completed |
+| High | User Registration & Login | Secure account creation and authentication | Completed |
+| High | CNN Item Classification | Auto-categorize items from images | Completed |
+| High | OCR Auto-Tagging | Extract text for titles/descriptions | Completed |
+| High | Geohash Location Filtering | Show only nearby listings | Completed |
+| Medium | Inverted Index Search | Fast keyword search | Pending |
+| Medium | Transaction History & Receipts | Track past purchases/sales with GCash-style receipts | Completed |
+| Medium | Feedback Forum | Community feedback with admin moderation | Completed |
+| Medium | Rules & Regulations | Davao-specific consumer guidelines | Completed |
+| Medium | Anonymous Chat System | Private buyer-seller communication | Completed |
+| Medium | TTL Auto-Archiving | Auto-expire listings after 30 days | Pending |
+| Medium | Language Localization | Support for English (default), Tagalog, and Bisaya | Completed |
+| Medium | Davao Cultural Theme | Landing page with Davao map background and cultural assets | Completed |
 
 ## 6.2 Extended Feature Set (Enhanced Objectives)
 
-| Feature | Technology | Description |
-|---------|------------|-------------|
-| AI Price Suggestion | ML regression | Suggest price based on similar listings |
-| Seller Credibility Score | ML confidence algorithm | Score based on history, ratings, verification |
-| Verification Badges | Rule-based + ML | Display trust indicators on seller profiles |
-| Facial Verification | ArcFace/FaceNet | Compare profile photo with ID document |
-| Rating & Feedback System | User input + ML | Buyers rate sellers post-transaction |
-| Dashboard Analytics | Data viz (Chart.js) | Admin monitoring of listings, sales, fraud |
+| Feature | Technology | Description | Status |
+|---------|------------|-------------|--------|
+| AI Price Suggestion | ML regression | Suggest price based on similar listings | Pending |
+| Seller Credibility Score | ML confidence algorithm | Score based on history, ratings, verification | Pending |
+| Verification Badges | Rule-based + ML | Display trust indicators on seller profiles | Completed |
+| Facial Verification | ArcFace/FaceNet | Compare profile photo with ID document | Completed |
+| Rating & Feedback System | User input + ML | Buyers rate sellers post-transaction | Pending |
+| Dashboard Analytics | Data viz (Chart.js) | Admin monitoring of listings, sales, fraud | Pending |
 
 ---
 
@@ -563,11 +565,15 @@ Stores profile and reputation data for registered users.
 |---|---|---|
 | `id` | String (PK) | Unique User ID (from Firebase Auth) |
 | `email` | String | User's email address |
+| `phoneNumber` | String | User's contact number |
 | `verifiedNeighborhood` | String | The Barangay where the user is verified |
 | `bio` | String | User biography |
 | `profileImage` | String | URL to the profile image |
 | `communityStatus` | String | Member badge or status level |
 | `trustScore` | Float | Reputation score based on interactions |
+| `tradingMode` | String | Default trading mode (Cash, Barter, Both) |
+| `savedSpots` | Array | Saved meetup hotspots (Davao locations) |
+| `notificationPrefs` | Map | Notification toggle settings |
 
 ## 23.2 Listings Collection
 Stores item listings with location and AI-generated data.
@@ -609,3 +615,17 @@ Stores chat messages between buyers and sellers.
 │  │ Registration│ │             │ │ Data        │ │ Keywords    │   │
 ...
 The above content was truncated as it is too long. To view the rest of the file, use the view_file tool.
+
+---
+
+# 24. CHANGELOG & MAJOR UPDATES
+
+| Date | Time | Update |
+|---|---|---|
+| May 13, 2026 | 06:51 AM | **Feature**: Implemented Edit Listing feature, completing Sprint 5 backend CRUD operations. Added `EditItem.jsx` linked from Profile. |
+| May 13, 2026 | 06:51 AM | **Settings**: Finalized Privacy & Security (Exact Location sharing) and Support & About settings sections. |
+| May 13, 2026 | 06:45 AM | **Settings & DB Schema**: Synchronized user preferences (Phone, Trading Modes, Notification Preferences, Saved Spots) directly with Firestore `Users` collection. |
+| May 13, 2026 | 06:45 AM | **Bug Fix**: Resolved critical race condition in Firebase Authentication across `Settings.jsx` and `Profile.jsx` using reactive `useAuth()` context. |
+| May 13, 2026 | 06:45 AM | **Bug Fix**: Fixed fatal rendering crash in `ItemDetails.jsx` regarding missing listing price data. |
+| May 12, 2026 | 11:30 PM | **Feature**: Implemented Location Filtering using Geohash to automatically sort and display items based on proximity. |
+| May 12, 2026 | 08:00 PM | **UI/UX**: Overhauled UI with modern festival-inspired color palette, responsive navigation, and language switcher. |

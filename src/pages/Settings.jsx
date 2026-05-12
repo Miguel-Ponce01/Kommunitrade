@@ -1,27 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, 
+  ChevronRight,
   Moon, 
   Sun, 
-  Smartphone, 
-  Bell, 
+  Globe, 
   Shield, 
-  LogOut, 
+  AlertTriangle, 
+  Clock, 
   Database, 
+  Trash2, 
+  Smartphone, 
   Check, 
-  Loader2,
-  User,
-  Zap,
-  Globe,
-  Trash2,
-  Lock,
+  RefreshCw,
   FileText,
-  X
+  Lock,
+  LogOut,
+  User,
+  Heart,
+  MapPin,
+  X,
+  Loader2,
+  Bell
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../contexts/AuthContext';
-import { db, auth, doc, setDoc, collection, getDocs, deleteDoc } from '../firebase';
+import { db, auth, doc, setDoc, collection, getDocs, deleteDoc, getDoc, updateDoc } from '../firebase';
 import { MOCK_LISTINGS } from '../data/mockData';
 import { isListingActive } from '../utils/geo';
 import { useLanguage } from '../hooks/useLanguage.jsx';
@@ -36,12 +41,124 @@ export default function Settings() {
   const navigate = useNavigate();
   const [theme, setTheme] = useTheme();
   const { lang, setLang, t } = useLanguage();
-  const { logout } = useAuth();
+  const { currentUser, logout } = useAuth();
   const [isSeeding, setIsSeeding] = useState(false);
   const [isPurging, setIsPurging] = useState(false);
   const [seedSuccess, setSeedSuccess] = useState(false);
   const [purgeCount, setPurgeCount] = useState(0);
   const [showRules, setShowRules] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState(localStorage.getItem('komuni_user_phone') || "");
+  const [isSavingPhone, setIsSavingPhone] = useState(false);
+  const [tradingMode, setTradingMode] = useState("Open to Both");
+  const [savedSpots, setSavedSpots] = useState([]);
+  const [notifyMessages, setNotifyMessages] = useState(true);
+  const [notifyPriceDrops, setNotifyPriceDrops] = useState(true);
+  const [notifyReminders, setNotifyReminders] = useState(true);
+  const [notifySMS, setNotifySMS] = useState(false);
+  const [exactLocation, setExactLocation] = useState(false);
+  const [isSavingPrivacy, setIsSavingPrivacy] = useState(false);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (currentUser) {
+        const userRef = doc(db, 'users', currentUser.uid);
+        const snap = await getDoc(userRef);
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.phoneNumber) setPhoneNumber(data.phoneNumber);
+          if (data.tradingMode) setTradingMode(data.tradingMode);
+          if (data.savedSpots) setSavedSpots(data.savedSpots);
+          if (data.notificationPrefs) {
+            setNotifyMessages(data.notificationPrefs.messages ?? true);
+            setNotifyPriceDrops(data.notificationPrefs.priceDrops ?? true);
+            setNotifyReminders(data.notificationPrefs.reminders ?? true);
+            setNotifySMS(data.notificationPrefs.sms ?? false);
+          }
+          if (data.exactLocation !== undefined) setExactLocation(data.exactLocation);
+        }
+      }
+    };
+    fetchUserData();
+  }, [currentUser]);
+
+  const handleSavePhone = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    setIsSavingPhone(true);
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        phoneNumber: phoneNumber
+      });
+      alert("Phone number updated in Firebase!");
+    } catch (error) {
+      console.error("Error updating phone number:", error);
+      alert("Failed to update phone number.");
+    } finally {
+      setIsSavingPhone(false);
+    }
+  };
+
+  const [isSavingPrefs, setIsSavingPrefs] = useState(false);
+  const handleSavePreferences = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    setIsSavingPrefs(true);
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        tradingMode: tradingMode,
+        savedSpots: savedSpots
+      });
+      alert("Trading preferences updated in Firebase!");
+    } catch (error) {
+      console.error("Error updating preferences:", error);
+      alert("Failed to update preferences.");
+    } finally {
+      setIsSavingPrefs(false);
+    }
+  };
+
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
+  const handleSaveNotifications = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    setIsSavingNotifications(true);
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        notificationPrefs: {
+          messages: notifyMessages,
+          priceDrops: notifyPriceDrops,
+          reminders: notifyReminders,
+          sms: notifySMS
+        }
+      });
+      alert("Notification preferences updated in Firebase!");
+    } catch (error) {
+      console.error("Error updating notifications:", error);
+      alert("Failed to update notifications.");
+    } finally {
+      setIsSavingNotifications(false);
+    }
+  };
+
+  const handleSavePrivacy = async () => {
+    if (!currentUser) return;
+    setIsSavingPrivacy(true);
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        exactLocation: exactLocation
+      });
+      alert("Privacy preferences updated in Firebase!");
+    } catch (error) {
+      console.error("Error updating privacy:", error);
+      alert("Failed to update privacy settings.");
+    } finally {
+      setIsSavingPrivacy(false);
+    }
+  };
 
   const seedDatabase = async () => {
     setIsSeeding(true);
@@ -102,6 +219,320 @@ export default function Settings() {
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", lineHeight: 1.2 }}>{t('sett_title')}</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>Manage your preferences and security</p>
+        </div>
+      </div>
+
+      {/* Account Settings Group */}
+      <div className="settings-section">
+        <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', paddingLeft: '0.5rem' }}>
+          Account & Security
+        </h2>
+        <div className="settings-card-group">
+          
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#E0E7FF', color: '#4F46E5' }}>
+                <User size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">Email Address</span>
+                <span className="settings-label-sub">{auth.currentUser?.email || "Not set"}</span>
+              </div>
+            </div>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Verified</span>
+          </div>
+
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                <Smartphone size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">Phone Number</span>
+                <span className="settings-label-sub">Used for meetup coordination</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <input 
+                type="text" 
+                className="premium-input-small" 
+                placeholder="+63 9xx xxx xxxx"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                style={{ width: '150px', textAlign: 'right', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.25rem 0.5rem', color: 'var(--text-main)' }}
+              />
+              <button 
+                onClick={handleSavePhone}
+                disabled={isSavingPhone}
+                className="btn-primary"
+                style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem', width: 'auto', borderRadius: '8px' }}
+              >
+                {isSavingPhone ? <Loader2 className="animate-spin" size={12} /> : "Save"}
+              </button>
+            </div>
+          </div>
+
+          <div className="settings-item-row" onClick={() => alert("Verification system coming soon!")} style={{ cursor: 'pointer' }}>
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#D1FAE5', color: '#059669' }}>
+                <Shield size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">Apply for Verification</span>
+                <span className="settings-label-sub">Get badge for manuscript trust claims</span>
+              </div>
+            </div>
+            <ChevronLeft size={20} style={{ transform: 'rotate(180deg)', color: 'var(--text-muted)' }} />
+          </div>
+
+        </div>
+      </div>
+
+      {/* Trading & Meetups Group */}
+      <div className="settings-section">
+        <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', paddingLeft: '0.5rem' }}>
+          Trading & Meetups
+        </h2>
+        <div className="settings-card-group">
+          
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#FFE4E6', color: '#E11D48' }}>
+                <Heart size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">Default Trading Mode</span>
+                <span className="settings-label-sub">Prefer Cash, Barter, or Both</span>
+              </div>
+            </div>
+            <select 
+              value={tradingMode}
+              onChange={(e) => setTradingMode(e.target.value)}
+              style={{ background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.25rem 0.5rem', color: 'var(--text-main)', fontSize: '0.85rem' }}
+            >
+              <option value="Prefer Cash">Prefer Cash</option>
+              <option value="Prefer Barter">Prefer Barter</option>
+              <option value="Open to Both">Open to Both</option>
+            </select>
+          </div>
+
+          <div className="settings-item-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', width: '100%' }}>
+              <div className="settings-icon-box" style={{ background: '#E0F2FE', color: '#0369A1' }}>
+                <MapPin size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">Saved Meetup Spots</span>
+                <span className="settings-label-sub">Quick-add your favorite locations</span>
+              </div>
+            </div>
+            
+            {/* Tag List */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', width: '100%' }}>
+              {savedSpots.map((spot, index) => (
+                <div key={index} style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '0.25rem 0.75rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span>{spot}</span>
+                  <button 
+                    onClick={() => setSavedSpots(savedSpots.filter((_, i) => i !== index))}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Hotspots Quick Add */}
+            <div style={{ width: '100%' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Davao Hotspots (Click to add):</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {["SM City Ecoland", "Abreeza Mall", "SM Lanang", "GMall Davao", "Roxas Night Market", "People's Park"].map((spot) => (
+                  <button
+                    key={spot}
+                    onClick={() => {
+                      if (!savedSpots.includes(spot)) {
+                        setSavedSpots([...savedSpots, spot]);
+                      }
+                    }}
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-main)', cursor: 'pointer' }}
+                  >
+                    + {spot}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Manual Input */}
+            <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+              <input 
+                type="text" 
+                className="premium-input-small" 
+                placeholder="Add custom spot..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.target.value) {
+                    if (!savedSpots.includes(e.target.value)) {
+                      setSavedSpots([...savedSpots, e.target.value]);
+                    }
+                    e.target.value = '';
+                  }
+                }}
+                style={{ flex: 1, background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.25rem 0.5rem', color: 'var(--text-main)' }}
+              />
+            </div>
+          </div>
+
+          {/* Save Button for this section */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem' }}>
+            <button 
+              onClick={handleSavePreferences}
+              disabled={isSavingPrefs}
+              className="btn-primary"
+              style={{ width: 'auto', padding: '0.5rem 1.5rem' }}
+            >
+              {isSavingPrefs ? <Loader2 className="animate-spin" size={16} /> : "Save Preferences"}
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Notifications Group */}
+      <div className="settings-section">
+        <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', paddingLeft: '0.5rem' }}>
+          Notifications
+        </h2>
+        <div className="settings-card-group">
+          
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#E0F2FE', color: '#0369A1' }}>
+                <Bell size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">New Messages</span>
+                <span className="settings-label-sub">Alerts for new chat messages</span>
+              </div>
+            </div>
+            <input 
+              type="checkbox" 
+              checked={notifyMessages}
+              onChange={(e) => setNotifyMessages(e.target.checked)}
+              style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--primary-color)' }}
+            />
+          </div>
+
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                <Bell size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">Price Drops</span>
+                <span className="settings-label-sub">Alerts for liked items</span>
+              </div>
+            </div>
+            <input 
+              type="checkbox" 
+              checked={notifyPriceDrops}
+              onChange={(e) => setNotifyPriceDrops(e.target.checked)}
+              style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--primary-color)' }}
+            />
+          </div>
+
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#D1FAE5', color: '#059669' }}>
+                <Bell size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">Meetup Reminders</span>
+                <span className="settings-label-sub">Alerts for scheduled meetups</span>
+              </div>
+            </div>
+            <input 
+              type="checkbox" 
+              checked={notifyReminders}
+              onChange={(e) => setNotifyReminders(e.target.checked)}
+              style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--primary-color)' }}
+            />
+          </div>
+
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#FEE2E2', color: '#DC2626' }}>
+                <Smartphone size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">SMS Alerts</span>
+                <span className="settings-label-sub">Urgent notifications via SMS</span>
+              </div>
+            </div>
+            <input 
+              type="checkbox" 
+              checked={notifySMS}
+              onChange={(e) => setNotifySMS(e.target.checked)}
+              style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--primary-color)' }}
+            />
+          </div>
+
+          {/* Save Button for this section */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem' }}>
+            <button 
+              onClick={handleSaveNotifications}
+              disabled={isSavingNotifications}
+              className="btn-primary"
+              style={{ width: 'auto', padding: '0.5rem 1.5rem' }}
+            >
+              {isSavingNotifications ? <Loader2 className="animate-spin" size={16} /> : "Save Notifications"}
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Privacy & Security Group */}
+      <div className="settings-section">
+        <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', paddingLeft: '0.5rem' }}>
+          Privacy & Security
+        </h2>
+        <div className="settings-card-group">
+          <div className="settings-item-row" onClick={() => setExactLocation(!exactLocation)}>
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#ECFDF5', color: '#10B981' }}>
+                <MapPin size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">Share Exact Location</span>
+                <span className="settings-label-sub">Show precise GPS instead of Barangay radius</span>
+              </div>
+            </div>
+            <Switch active={exactLocation} onClick={() => setExactLocation(!exactLocation)} />
+          </div>
+
+          <div className="settings-item-row" onClick={() => navigate('/app/verification')} style={{ cursor: 'pointer' }}>
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#E0F2FE', color: '#0369A1' }}>
+                <Shield size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">ID Verification</span>
+                <span className="settings-label-sub">Verify your ID with AI facial recognition</span>
+              </div>
+            </div>
+            <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
+          </div>
+
+          {/* Save Button for this section */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem' }}>
+            <button 
+              onClick={handleSavePrivacy}
+              disabled={isSavingPrivacy}
+              className="btn-primary"
+              style={{ width: 'auto', padding: '0.5rem 1.5rem' }}
+            >
+              {isSavingPrivacy ? <Loader2 className="animate-spin" size={16} /> : "Save Privacy"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -274,6 +705,41 @@ export default function Settings() {
               </div>
             </div>
             <ChevronLeft size={20} style={{ transform: 'rotate(180deg)', color: 'var(--text-muted)' }} />
+          </div>
+
+        </div>
+      </div>
+
+      {/* Support & About Group */}
+      <div className="settings-section">
+        <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', paddingLeft: '0.5rem' }}>
+          Support & About
+        </h2>
+        <div className="settings-card-group">
+          
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#F0F9FF', color: '#0EA5E9' }}>
+                <AlertTriangle size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">Help & FAQ</span>
+                <span className="settings-label-sub">Common questions and support</span>
+              </div>
+            </div>
+            <ChevronLeft size={20} style={{ transform: 'rotate(180deg)', color: 'var(--text-muted)' }} />
+          </div>
+
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#F3F4F6', color: '#4B5563' }}>
+                <Check size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">App Version</span>
+                <span className="settings-label-sub">v1.0.0 (Anti-Gravity Core)</span>
+              </div>
+            </div>
           </div>
 
         </div>

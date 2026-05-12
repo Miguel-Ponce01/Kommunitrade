@@ -169,41 +169,41 @@
 | 5.1 | Set up React + Vite project | [x] |
 | 5.2 | Install and configure Firebase SDK | [x] |
 | 5.3 | Implement Landing Page UI | [x] |
-| 5.4 | Implement Registration form with validation | [ ] |
-| 5.5 | Implement Login form with validation | [ ] |
-| 5.6 | Implement email/password authentication | [ ] |
-| 5.7 | Implement session management | [ ] |
-| 5.8 | Implement protected routes | [ ] |
+| 5.4 | Implement Registration form with validation | [x] |
+| 5.5 | Implement Login form with validation | [x] |
+| 5.6 | Implement email/password authentication | [x] |
+| 5.7 | Implement session management | [x] |
+| 5.8 | Implement protected routes | [x] |
 
 ## Task Category: Frontend - Home & Navigation
 
 | # | Task | Status |
 |---|------|--------|
-| 5.9 | Implement Main Navigation Bar | [ ] |
-| 5.10 | Implement Home Page layout | [ ] |
-| 5.11 | Implement listing card component | [ ] |
-| 5.12 | Implement search bar UI | [ ] |
-| 5.13 | Implement category filter UI | [ ] |
+| 5.9 | Implement Main Navigation Bar | [x] |
+| 5.10 | Implement Home Page layout | [x] |
+| 5.11 | Implement listing card component | [x] |
+| 5.12 | Implement search bar UI | [x] |
+| 5.13 | Implement category filter UI | [x] |
 
 ## Task Category: Frontend - Item Posting
 
 | # | Task | Status |
 |---|------|--------|
-| 5.14 | Implement Post Item page layout | [ ] |
-| 5.15 | Implement image upload component | [ ] |
-| 5.16 | Implement image preview functionality | [ ] |
-| 5.17 | Implement form fields (title, description, price, category) | [ ] |
-| 5.18 | Implement location picker | [ ] |
-| 5.19 | Implement submit listing functionality | [ ] |
+| 5.14 | Implement Post Item page layout | [x] |
+| 5.15 | Implement image upload component | [x] |
+| 5.16 | Implement image preview functionality | [x] |
+| 5.17 | Implement form fields (title, description, price, category) | [x] |
+| 5.18 | Implement location picker | [x] |
+| 5.19 | Implement submit listing functionality | [x] |
 
 ## Task Category: Frontend - Item Details & Profile
 
 | # | Task | Status |
 |---|------|--------|
-| 5.20 | Implement Item Details page | [ ] |
-| 5.21 | Implement seller info component | [ ] |
+| 5.20 | Implement Item Details page | [x] |
+| 5.21 | Implement seller info component | [x] |
 | 5.22 | Implement User Profile page | [x] |
-| 5.23 | Implement user listings tab | [ ] |
+| 5.23 | Implement user listings tab | [x] |
 | 5.24 | Implement transaction history tab | [x] |
 | 5.25 | Implement Settings page | [x] |
 | 5.26 | Implement Chat Interface UI | [x] |
@@ -212,23 +212,23 @@
 
 | # | Task | Status |
 |---|------|--------|
-| 5.27 | Create Firebase project | [ ] |
-| 5.28 | Enable Authentication (Email/Password) | [ ] |
-| 5.29 | Set up Firestore database | [ ] |
-| 5.30 | Configure Firestore security rules | [ ] |
-| 5.31 | Set up Firebase Storage for images | [ ] |
-| 5.32 | Configure Storage security rules | [ ] |
-| 5.33 | Set up Firebase Hosting | [ ] |
+| 5.27 | Create Firebase project | [x] |
+| 5.28 | Enable Authentication (Email/Password) | [x] |
+| 5.29 | Set up Firestore database | [x] |
+| 5.30 | Configure Firestore security rules | [x] |
+| 5.31 | Set up Firebase Storage for images | [x] |
+| 5.32 | Configure Storage security rules | [x] |
+| 5.33 | Set up Firebase Hosting | [x] |
 
 ## Task Category: Backend - CRUD Operations
 
 | # | Task | Status |
 |---|------|--------|
-| 5.34 | Implement create listing function | [ ] |
-| 5.35 | Implement read listings function | [ ] |
-| 5.36 | Implement update listing function | [ ] |
-| 5.37 | Implement delete listing function | [ ] |
-| 5.38 | Implement user profile CRUD | [ ] |
+| 5.34 | Implement create listing function | [x] |
+| 5.35 | Implement read listings function | [x] |
+| 5.36 | Implement update listing function | [x] |
+| 5.37 | Implement delete listing function | [x] |
+| 5.38 | Implement user profile CRUD | [x] |
 | 5.39 | Implement transaction recording | [ ] |
 
 ## Task Category: Prototype Validation
@@ -278,10 +278,10 @@
 | 6.17 | Set up Tesseract.js library | [x] |
 | 6.18 | Configure Google Vision API (fallback) | [ ] |
 | 6.19 | Implement text extraction from images | [x] |
-| 6.20 | Implement post-processing for OCR output | [ ] |
+| 6.20 | Implement post-processing for OCR output | [x] |
 | 6.21 | Test OCR on various image types | [ ] |
-| 6.22 | Implement auto-generation of titles from extracted text | [ ] |
-| 6.23 | Implement auto-generation of tags/descriptions | [ ] |
+| 6.22 | Implement auto-generation of titles from extracted text | [~] |
+| 6.23 | Implement auto-generation of tags/descriptions | [x] |
 | 6.24 | Handle OCR failure cases | [ ] |
 
 ## Task Category: AI Listing Generation Pipeline
@@ -289,24 +289,24 @@
 | # | Task | Status |
 |---|------|--------|
 | 6.25 | Integrate CNN + OCR into unified pipeline | [x] |
-| 6.26 | Implement auto-categorization | [ ] |
-| 6.27 | Implement auto-title generation | [ ] |
-| 6.28 | Implement auto-description generation | [ ] |
-| 6.29 | Implement AI price suggestion | [ ] |
-| 6.30 | Add manual edit option before posting | [ ] |
+| 6.26 | Implement auto-categorization | [x] |
+| 6.27 | Implement auto-title generation | [x] |
+| 6.28 | Implement auto-description generation | [x] |
+| 6.29 | Implement AI price suggestion | [x] |
+| 6.30 | Add manual edit option before posting | [x] |
 | 6.31 | Measure processing time (target <5 seconds) | [ ] |
 
 ## Task Category: Facial Recognition Module
 
 | # | Task | Status |
 |---|------|--------|
-| 6.32 | Set up facial recognition library (ArcFace/FaceNet) | [ ] |
-| 6.33 | Implement face detection from uploaded images | [ ] |
-| 6.34 | Implement facial feature extraction | [ ] |
-| 6.35 | Implement face comparison (selfie vs ID) | [ ] |
-| 6.36 | Calculate similarity confidence score | [ ] |
-| 6.37 | Set verification threshold (≥85% = verified) | [ ] |
-| 6.38 | Implement verification badge assignment | [ ] |
+| 6.32 | Set up facial recognition library (ArcFace/FaceNet) | [x] |
+| 6.33 | Implement face detection from uploaded images | [x] |
+| 6.34 | Implement facial feature extraction | [x] |
+| 6.35 | Implement face comparison (selfie vs ID) | [x] |
+| 6.36 | Calculate similarity confidence score | [x] |
+| 6.37 | Set verification threshold (≥85% = verified) | [x] |
+| 6.38 | Implement verification badge assignment | [x] |
 
 ## Task Category: ML Credibility Scoring
 
@@ -319,6 +319,13 @@
 | 6.43 | Implement low-confidence flagging system | [ ] |
 | 6.44 | Test scoring accuracy with sample data | [ ] |
 
+## Task Category: UI/UX & Localization
+
+| # | Task | Status |
+|---|------|--------|
+| 6.45 | Implement English as default language and add switcher | [x] |
+| 6.46 | Redesign Landing Page with Davao map and cultural assets | [x] |
+
 ---
 
 # SPRINT 7: TESTING AND OPTIMIZATION (Week 8-9)
@@ -328,9 +335,9 @@
 | # | Task | Status |
 |---|------|--------|
 | 7.1 | Integrate geohash encoding library | [x] |
-| 7.2 | Convert user addresses to geohash | [ ] |
-| 7.3 | Implement proximity calculation | [ ] |
-| 7.4 | Implement nearby listings query | [ ] |
+| 7.2 | Convert user addresses to geohash | [x] |
+| 7.3 | Implement proximity calculation | [x] |
+| 7.4 | Implement nearby listings query | [x] |
 | 7.5 | Test location filtering accuracy | [ ] |
 | 7.6 | Handle location permission denial | [ ] |
 
@@ -359,11 +366,11 @@
 
 | # | Task | Status |
 |---|------|--------|
-| 7.18 | Design chat data structure | [ ] |
-| 7.19 | Implement chat room creation per transaction | [ ] |
-| 7.20 | Implement real-time message sending | [ ] |
-| 7.21 | Hide personal contact information | [ ] |
-| 7.22 | Implement message history persistence | [ ] |
+| 7.18 | Design chat data structure | [x] |
+| 7.19 | Implement chat room creation per transaction | [x] |
+| 7.20 | Implement real-time message sending | [x] |
+| 7.21 | Hide personal contact information | [x] |
+| 7.22 | Implement message history persistence | [x] |
 | 7.23 | Add unread message indicators | [ ] |
 
 ## Task Category: Dashboard Analytics

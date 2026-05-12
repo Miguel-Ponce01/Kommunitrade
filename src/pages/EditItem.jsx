@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Camera, Loader2, Save, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, Check, TrendingUp } from 'lucide-react';
 import { MOCK_BARANGAYS, CATEGORIES } from '../data/mockData';
-import { db, auth, storage, collection, addDoc, serverTimestamp } from '../firebase';
+import { db, auth, storage, doc, getDoc, updateDoc } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from '../firebase';
 import { encodeGeohash, resolveLocationCoords, findNearestBarangay } from '../utils/geo';
 import { useLanguage } from '../hooks/useLanguage.jsx';
@@ -10,7 +10,8 @@ import GoogleMap from '../components/GoogleMap';
 import { extractText } from '../services/imageAnalysisService';
 import { analyzeListingWithDeepSeek } from '../services/deepseekService';
 
-export default function PostItem() {
+export default function EditItem() {
+  const { id } = useParams();
   const { lang, setLang, t } = useLanguage();
   const navigate = useNavigate();
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -28,20 +29,54 @@ export default function PostItem() {
   const [timeMark, setTimeMark] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
   const [tags, setTags] = useState([]);
-
+  const [originalImageUrl, setOriginalImageUrl] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState('');
-  const [generatedData, setGeneratedData] = useState({
-    title: '',
-    category: '',
-    tags: []
-  });
 
   const fileInputRef = useRef(null);
 
   const addLog = (message, type = 'info') => {
     setDebugLog(prev => [...prev, { time: new Date().toLocaleTimeString(), message, type }]);
   };
+
+  useEffect(() => {
+    async function fetchListing() {
+      try {
+        const docRef = doc(db, 'listings', id);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          
+          // Permission check
+          if (auth.currentUser && auth.currentUser.uid !== data.sellerId) {
+            alert("You don't have permission to edit this listing.");
+            navigate('/app/profile');
+            return;
+          }
+
+          setTitle(data.title || '');
+          setPrice(data.price?.toString() || '');
+          setCategory(data.category || '');
+          setBarangay(data.barangay || '');
+          setDescription(data.description || '');
+          setCondition(data.condition || 'New');
+          setTags(data.tags || []);
+          setPreviewUrl(data.imageUrl || null);
+          setOriginalImageUrl(data.imageUrl || null);
+          if (data.timeMark) setTimeMark(data.timeMark);
+        } else {
+          alert("Listing not found.");
+          navigate('/app/profile');
+        }
+      } catch (err) {
+        console.error("Fetch Error:", err);
+        alert("Failed to load listing.");
+        navigate('/app/profile');
+      }
+    }
+    fetchListing();
+  }, [id, navigate]);
 
   // Revoke previous blob URL to prevent memory leaks
   useEffect(() => {
@@ -52,6 +87,24 @@ export default function PostItem() {
     };
   }, [previewUrl]);
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (previewUrl && previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    const localImageUrl = URL.createObjectURL(file);
+    setPreviewUrl(localImageUrl);
+    setImageFile(file);
+
+    setDebugLog([]);
+    addLog("Visual signal received. Activating GPS verification...", "primary");
+    captureTimeMark();
+    handleImageAnalysis(file);
+  };
+
   const runDeepSeekAnalysis = async (ocrText = '') => {
     setIsAnalyzing(true);
     setAnalysisProgress('DeepSeek AI is optimizing your listing...');
@@ -59,11 +112,6 @@ export default function PostItem() {
     const result = await analyzeListingWithDeepSeek({ title, description, ocrText });
     
     if (result.success) {
-      setGeneratedData({
-        title: result.data.title,
-        category: result.data.category,
-        tags: result.data.tags
-      });
       if (result.data.title && result.data.title !== "None provided") setTitle(result.data.title);
       if (result.data.category && result.data.category !== "Other") setCategory(result.data.category);
       if (result.data.tags && result.data.tags.length > 0) setTags(result.data.tags);
@@ -98,29 +146,6 @@ export default function PostItem() {
       setAnalysisProgress('Analysis failed.');
       setIsAnalyzing(false);
     }
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Revoke old blob URL before creating a new one
-    if (previewUrl && previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(previewUrl);
-    }
-
-    const localImageUrl = URL.createObjectURL(file);
-    setPreviewUrl(localImageUrl);  // local preview only
-    setImageFile(file);            // save File for Storage upload
-
-    // Clear logs for new capture
-    setDebugLog([]);
-    addLog("Visual signal received. Activating GPS verification...", "primary");
-
-    captureTimeMark();
-    
-    // Run AI analysis
-    handleImageAnalysis(file);
   };
 
   const captureTimeMark = () => {
@@ -179,19 +204,21 @@ export default function PostItem() {
       : resolveLocationCoords(barangay);
 
     setIsPublishing(true);
-    addLog("Uploading image to secure storage...", "primary");
+    addLog("Updating listing...", "primary");
 
     try {
-      // ── Upload image to Firebase Storage (if a file was selected) ──
-      let finalImageUrl = "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=300";
+      let finalImageUrl = originalImageUrl;
       if (imageFile) {
+        addLog("Uploading new image to secure storage...", "primary");
         const storageRef = ref(storage, `listings/${currentUser.uid}/${Date.now()}_${imageFile.name}`);
         const snapshot = await uploadBytes(storageRef, imageFile);
         finalImageUrl = await getDownloadURL(snapshot.ref);
         addLog("Image uploaded successfully.", "success");
       }
 
-      await addDoc(collection(db, 'listings'), {
+      const listingRef = doc(db, 'listings', id);
+      
+      const updateData = {
         title,
         price: parseFloat(price),
         description,
@@ -201,21 +228,25 @@ export default function PostItem() {
         barangay,
         lat: coords.lat,
         lng: coords.lng,
-        geohash: encodeGeohash(coords.lat, coords.lng),
-        timeMark: timeMark || null,
-        sellerId: currentUser.uid,
-        imageUrl: finalImageUrl,
-        expiresAt: new Date(Date.now() + (7 * 24) * 60 * 60 * 1000).toISOString(),
-        createdAt: serverTimestamp(),
-        isSold: false
-      });
+        geohash: encodeGeohash(coords.lat, coords.lng)
+      };
 
-      alert(t('post_success_msg'));
-      navigate('/app');
+      if (timeMark) {
+        updateData.timeMark = timeMark;
+      }
+      
+      if (finalImageUrl) {
+        updateData.imageUrl = finalImageUrl;
+      }
+
+      await updateDoc(listingRef, updateData);
+
+      alert("Listing updated successfully!");
+      navigate('/app/profile');
     } catch (error) {
-      console.error("Publishing Error:", error);
+      console.error("Update Error:", error);
       addLog(`Error: ${error.message}`, "error");
-      alert("Publishing Error. Check connection or Storage rules.");
+      alert("Update Error. Check connection or Storage rules.");
     } finally {
       setIsPublishing(false);
     }
@@ -225,8 +256,8 @@ export default function PostItem() {
     <div className="animate-fade-in" style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
         <div>
-          <h2 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 900, fontSize: '2.25rem', fontFamily: "'Outfit', sans-serif" }}>{t('post_title')}</h2>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>{t('post_subtitle')}</p>
+          <h2 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 900, fontSize: '2.25rem', fontFamily: "'Outfit', sans-serif" }}>Edit Listing</h2>
+          <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>Update your item details and save changes</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button 
@@ -239,7 +270,7 @@ export default function PostItem() {
           </button>
           <button type="button" onClick={handleSubmit} disabled={isPublishing} className="btn-primary" style={{ width: 'auto', padding: '0 2rem', height: '54px', borderRadius: '16px', fontSize: '1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             {isPublishing ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} 
-            {isPublishing ? t('post_publishing') : t('post_publish')}
+            {isPublishing ? "Updating..." : "Update Item"}
           </button>
         </div>
       </div>
@@ -253,7 +284,7 @@ export default function PostItem() {
             <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Network Authenticated • GPS Core active</div>
           </div>
           <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {debugLog.length === 0 && <div style={{ color: '#475569', fontSize: '0.85rem', fontFamily: 'monospace' }}>_ Waiting for neighborhood signal...</div>}
+            {debugLog.length === 0 && <div style={{ color: '#475569', fontSize: '0.85rem', fontFamily: 'monospace' }}>_ Ready to update.</div>}
             {debugLog.map((log, i) => (
               <div key={i} style={{ fontSize: '0.85rem', fontFamily: 'monospace', display: 'flex', gap: '1rem' }}>
                 <span style={{ color: '#475569', minWidth: '70px' }}>[{log.time}]</span>
@@ -274,7 +305,7 @@ export default function PostItem() {
           
           <div className="panel" style={{ padding: '2rem' }}>
             <div className="panel-header" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <ShieldCheck size={22} color="var(--primary)" /> Time Mark Engine
+              <ShieldCheck size={22} color="var(--primary)" /> Image & Location
             </div>
             
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -292,7 +323,6 @@ export default function PostItem() {
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                     />
                     
-                    {/* Small Map Overlay (Picture-in-Picture) */}
                     {timeMark && (
                       <div style={{ 
                         position: 'absolute', top: '15px', right: '15px', 
@@ -307,7 +337,6 @@ export default function PostItem() {
                       </div>
                     )}
 
-                    {/* Authenticated Time Mark Bar */}
                     {timeMark && (
                       <div style={{ 
                         position: 'absolute', bottom: '15px', left: '15px', right: '15px',
@@ -325,7 +354,7 @@ export default function PostItem() {
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end' }}>
-                            <ShieldCheck size={14} color="var(--primary)" /> {timeMark.barangay.toUpperCase()}
+                            <ShieldCheck size={14} color="var(--primary)" /> {timeMark.barangay?.toUpperCase()}
                           </div>
                           <div style={{ fontSize: '0.65rem', opacity: 0.7, fontFamily: 'monospace', marginTop: '4px' }}>{timeMark.lat}, {timeMark.lng}</div>
                           <div style={{ fontSize: '0.6rem', color: 'var(--primary)', fontWeight: 700, letterSpacing: '0.05em', marginTop: '4px' }}>VERIFIED GPS SIGNAL</div>
@@ -351,70 +380,6 @@ export default function PostItem() {
                 )}
               </div>
             </div>
-
-            {/* Smart Advisor Panel (Real-time Feedback) */}
-            <div style={{ 
-              marginTop: '1.5rem', padding: '1.5rem', background: 'var(--bg-card)', 
-              borderRadius: '24px', border: '1px solid var(--border-color)',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <div style={{ padding: '0.5rem', background: 'var(--primary-light)', borderRadius: '10px' }}>
-                  <Sparkles size={18} color="var(--primary)" />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900 }}>{t('post_advisor_title')}</h3>
-                  <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t('post_advisor_sub')}</p>
-                </div>
-              </div>
-
-              {/* AI Analysis Status */}
-              {isAnalyzing && (
-                <div style={{ padding: '0.75rem', borderRadius: '14px', background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.2)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Loader2 className="animate-spin" size={16} color="#3B82F6" />
-                  <span style={{ fontSize: '0.75rem', color: '#1D4ED8' }}>{analysisProgress}</span>
-                </div>
-              )}
-
-              {!isAnalyzing && generatedData.title && (
-                <div style={{ padding: '0.75rem', borderRadius: '14px', background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)', marginBottom: '1rem' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700, marginBottom: '4px' }}>✨ Smart Advisor Suggestion</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-main)' }}>
-                    <strong>Title:</strong> "{generatedData.title}"<br />
-                    <strong>Category:</strong> {generatedData.category}<br />
-                    <strong>Tags:</strong> {generatedData.tags.join(', ')}
-                  </div>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px' }}>Review and edit before posting.</div>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {/* Title Check */}
-                <div style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', borderRadius: '14px', background: title.length > 5 ? 'rgba(16,185,129,0.05)' : 'rgba(245,158,11,0.05)', border: `1px solid ${title.length > 5 ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}` }}>
-                   {title.length > 5 ? <Check size={16} color="var(--primary)" /> : <Info size={16} color="#F59E0B" />}
-                   <div style={{ fontSize: '0.75rem', lineHeight: 1.4 }}>
-                     <strong style={{ display: 'block', marginBottom: '2px', color: title.length > 5 ? 'var(--primary)' : '#D97706' }}>
-                       {title.length > 5 ? t('post_keyword_detected') : t('post_keyword_guidance')}
-                     </strong>
-                     {title.length > 5 ? t('post_keyword_success') : t('post_keyword_hint')}
-                   </div>
-                </div>
-
-                {/* Pricing Advisor */}
-                <div style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', borderRadius: '14px', background: parseFloat(price) > 0 ? 'rgba(16,185,129,0.05)' : 'rgba(59,130,246,0.05)', border: `1px solid ${parseFloat(price) > 0 ? 'rgba(16,185,129,0.2)' : 'rgba(59,130,246,0.2)'}` }}>
-                   {parseFloat(price) > 0 ? <TrendingUp size={16} color="var(--primary)" /> : <Info size={16} color="#3B82F6" />}
-                   <div style={{ fontSize: '0.75rem', lineHeight: 1.4 }}>
-                     <strong style={{ display: 'block', marginBottom: '2px', color: parseFloat(price) > 0 ? 'var(--primary)' : '#2563EB' }}>
-                       {parseFloat(price) > 0 ? t('post_price_check') : t('post_price_assessment')}
-                     </strong>
-                     {parseFloat(price) > 0 
-                       ? t('post_price_success', { price, barangay: barangay || 'current' }) 
-                       : t('post_price_hint')}
-                   </div>
-                </div>
-
-              </div>
-            </div>
           </div>
 
           <div className="panel" style={{ padding: '2rem' }}>
@@ -422,8 +387,9 @@ export default function PostItem() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Info size={22} color="var(--primary)" /> {t('post_info_title')}
               </div>
-              <button type="button" onClick={() => runDeepSeekAnalysis('')} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--primary-light)', color: 'var(--primary)', border: 'none' }}>
-                <Sparkles size={14} /> Auto-Fill with DeepSeek
+              <button type="button" onClick={() => runDeepSeekAnalysis('')} disabled={isAnalyzing} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--primary-light)', color: 'var(--primary)', border: 'none' }}>
+                {isAnalyzing ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />} 
+                {isAnalyzing ? analysisProgress : "Auto-Fill with DeepSeek"}
               </button>
             </div>
             <div className="form-group">
@@ -524,31 +490,6 @@ export default function PostItem() {
               </div>
             </div>
           </div>
-
-          <div className="panel" style={{ padding: '1.5rem', background: 'var(--bg-card)' }}>
-            <div className="panel-header" style={{ marginBottom: '1.25rem', fontSize: '1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Info size={18} /> Listing Pro Tips
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
-                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '2px' }}>✨ Keywords</strong>
-                <p style={{ color: 'var(--text-muted)', margin: 0 }}>Use relevant keywords in the title to improve searchability within Davao.</p>
-              </div>
-              <div style={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
-                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '2px' }}>📸 High-Quality Photos</strong>
-                <p style={{ color: 'var(--text-muted)', margin: 0 }}>Use well-lit photos with a plain background for better visibility.</p>
-              </div>
-              <div style={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
-                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '2px' }}>📝 Specific Details</strong>
-                <p style={{ color: 'var(--text-muted)', margin: 0 }}>Provide brand, size, and condition to reduce buyer queries.</p>
-              </div>
-              <div style={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
-                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '2px' }}>💰 Competitive Pricing</strong>
-                <p style={{ color: 'var(--text-muted)', margin: 0 }}>Research competitors to set a fair price for your neighborhood.</p>
-              </div>
-            </div>
-          </div>
-
 
         </div>
       </form>

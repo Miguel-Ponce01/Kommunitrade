@@ -1,3 +1,5 @@
+import { TRENDING_KEYWORDS } from '../data/trendingKeywords';
+
 // Helper to dynamically load external scripts
 const loadScript = (src) => {
   return new Promise((resolve, reject) => {
@@ -76,7 +78,7 @@ export const analyzeImage = async (imageFile, imageElement) => {
     ocr: ocrResult,
     cnn: cnnResult,
     generatedTitle: generateTitle(ocrResult, cnnResult),
-    generatedCategory: mapCnnToCategory(cnnResult),
+    generatedCategory: mapCnnToCategory(cnnResult, ocrResult),
     generatedTags: generateTags(ocrResult, cnnResult)
   };
 };
@@ -104,39 +106,38 @@ const generateTitle = (ocrResult, cnnResult) => {
   return title || "Unnamed Item";
 };
 
-// Helper: Map CNN prediction to your categories
-const mapCnnToCategory = (cnnResult) => {
-  if (!cnnResult.success) return 'Other';
+// Helper: Map CNN prediction and OCR text to categories
+const mapCnnToCategory = (cnnResult, ocrResult) => {
+  let className = '';
+  if (cnnResult.success) {
+    className = cnnResult.topPrediction.className.toLowerCase();
+  }
   
-  const className = cnnResult.topPrediction.className.toLowerCase();
+  let ocrText = '';
+  if (ocrResult.success && ocrResult.text) {
+    ocrText = ocrResult.text.toLowerCase();
+  }
   
   const categoryMap = {
-    'smartphone': 'Electronics',
-    'laptop': 'Electronics',
-    'computer': 'Electronics',
-    'tv': 'Electronics',
-    'television': 'Electronics',
-    'shirt': 'Clothing',
-    'dress': 'Clothing',
-    'jean': 'Clothing',
-    'pants': 'Clothing',
-    'shoe': 'Clothing',
-    'sneaker': 'Clothing',
-    'book': 'Books & Media',
-    'magazine': 'Books & Media',
-    'furniture': 'Furniture',
-    'chair': 'Furniture',
-    'table': 'Furniture',
-    'desk': 'Furniture',
-    'sofa': 'Furniture',
-    'refrigerator': 'Appliances',
-    'microwave': 'Appliances',
-    'oven': 'Appliances',
-    'washing machine': 'Appliances'
+    'Electronics': ['smartphone', 'laptop', 'computer', 'tv', 'television', 'iphone', 'samsung', 'redmi', 'poco', 'realme', 'vivo', 'oppo', 'pixel', 'gaming pc', 'rtx', 'ryzen', 'intel', 'keyboard', 'monitor', 'ps5', 'switch', 'deck'],
+    'Clothing': ['shirt', 'dress', 'jean', 'pants', 'shoe', 'sneaker', 'hoodie', 'jersey', 'cargo', 'jorts', 'denim', 'jacket', 'puffer', 'flannel', 'polo', 'tank top', 'tracksuit'],
+    'Books & Media': ['book', 'magazine'],
+    'Furniture': ['furniture', 'chair', 'table', 'desk', 'sofa'],
+    'Appliances': ['refrigerator', 'microwave', 'oven', 'washing machine']
   };
   
-  for (const [key, category] of Object.entries(categoryMap)) {
-    if (className.includes(key)) return category;
+  // Check OCR text first (often more specific for brands/models)
+  for (const [category, keywords] of Object.entries(categoryMap)) {
+    for (const keyword of keywords) {
+      if (ocrText.includes(keyword)) return category;
+    }
+  }
+  
+  // Fallback to CNN classification
+  for (const [category, keywords] of Object.entries(categoryMap)) {
+    for (const keyword of keywords) {
+      if (className.includes(keyword)) return category;
+    }
   }
   
   return 'Other';
@@ -151,17 +152,28 @@ const generateTags = (ocrResult, cnnResult) => {
     tags.add(cnnResult.topPrediction.className.split(',')[0].toLowerCase());
   }
   
-  // Extract potential tags from OCR text
+  // Extract potential tags from OCR text using trending keywords
   if (ocrResult.success && ocrResult.text) {
-    const words = ocrResult.text.split(/\s+/);
-    const commonBrands = ['apple', 'samsung', 'nike', 'adidas', 'canon', 'sony', 'lg', 'hp', 'dell'];
+    const ocrText = ocrResult.text.toLowerCase();
+    
+    // Check all categories of keywords
+    for (const [key, list] of Object.entries(TRENDING_KEYWORDS)) {
+      list.forEach(keyword => {
+        if (ocrText.includes(keyword.toLowerCase())) {
+          tags.add(keyword.toLowerCase());
+        }
+      });
+    }
+    
+    // Also extract potential price (numbers with currency)
+    const words = ocrText.split(/\s+/);
     words.forEach(word => {
-      const lowerWord = word.toLowerCase();
-      if (commonBrands.includes(lowerWord)) tags.add(lowerWord);
-      // Extract potential price (numbers with currency)
-      if (lowerWord.match(/\d+/) && lowerWord.length < 10) tags.add('item');
+      if (word.match(/\d+/) && word.length < 10 && word.length > 2) {
+        // Avoid adding simple short numbers as tags unless they look like models
+        if (word.match(/^[a-zA-Z]*\d+[a-zA-Z]*$/)) tags.add(word);
+      }
     });
   }
   
-  return Array.from(tags).slice(0, 5);
+  return Array.from(tags).slice(0, 8); // Allow up to 8 tags
 };

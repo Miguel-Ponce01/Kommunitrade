@@ -6,7 +6,7 @@ import LocationModal from '../components/LocationModal';
 import { CATEGORIES } from '../data/mockData';
 import { haversineDistance, isListingActive, resolveLocationCoords, encodeGeohash, getGeohashPrecisionForRadius } from '../utils/geo';
 import { initializeSearchIndex, performSearch } from '../utils/searchIndex';
-import { db, collection, onSnapshot, query, orderBy } from '../firebase';
+import { db, collection, onSnapshot, query, orderBy, startAt, endAt } from '../firebase';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 
 // Default to Davao City center
@@ -30,21 +30,45 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, 'listings'), orderBy('createdAt', 'desc'));
+    setIsLoading(true);
+    const precision = getGeohashPrecisionForRadius(radius);
+    const userGeohash = encodeGeohash(userLat, userLng, precision);
+    
+    // Query listings where geohash starts with userGeohash
+    const q = query(
+      collection(db, 'listings'),
+      orderBy('geohash'),
+      startAt(userGeohash),
+      endAt(userGeohash + '\uf8ff')
+    );
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const liveListings = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        // Handle Firestore timestamps vs ISO strings
-        createdAt: doc.data().createdAt?.toDate ? "Just now" : doc.data().createdAt 
+        // Save raw date for sorting
+        rawDate: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt || Date.now())
       }));
-      setListings(liveListings);
-      initializeSearchIndex(liveListings);
+      
+      // Sort by date in memory
+      liveListings.sort((a, b) => b.rawDate - a.rawDate);
+      
+      // Map to display format
+      const displayListings = liveListings.map(item => ({
+        ...item,
+        createdAt: item.createdAt?.toDate ? "Just now" : item.createdAt
+      }));
+      
+      setListings(displayListings);
+      initializeSearchIndex(displayListings);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Firestore Query Error:", error);
       setIsLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [userLat, userLng, radius]);
 
 
 
@@ -179,6 +203,15 @@ export default function Home() {
             <div className="empty-icon">🔍</div>
             <h3>{t('dash_empty_title')}</h3>
             <p>{t('dash_empty_desc')}</p>
+            {radius < 50 && (
+              <button 
+                className="btn btn-primary" 
+                onClick={() => setRadius(radius + 10)} 
+                style={{ width: 'auto', marginTop: '1rem' }}
+              >
+                Expand Radius to {radius + 10}km
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -3959,3 +3959,27 @@ ul {
 .auth-verify-header {
   margin-bottom: 1rem;
 }
+
+/* ── Davao Festival Theme ────────────────────────────────────────── */
+.editorial-landing {
+  --primary: #FF4757; /* Vibrant Coral Red */
+  --secondary: #2ED573; /* Vibrant Emerald Green */
+  --accent: #FFA502; /* Vibrant Orange */
+  --primary-light: #FFE3E3; /* Light tint for pink/red */
+}
+
+/* Infographic Style Adjustments */
+.editorial-landing .category-card {
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.editorial-landing .category-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-5px);
+}
+
+.editorial-landing .hero-heading {
+  color: var(--text-main);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

@@ -27,6 +27,8 @@ import {
   serverTimestamp,
   where,
   updateDoc,
+  startAt,
+  endAt,
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
@@ -78,6 +80,8 @@ export {
   serverTimestamp,
   where,
   updateDoc,
+  startAt,
+  endAt,
 };
 
 // Storage helpers

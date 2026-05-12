@@ -7,11 +7,13 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import PostItem from './pages/PostItem';
+import EditItem from './pages/EditItem';
 import ItemDetails from './pages/ItemDetails';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Messages from './pages/Messages';
 import TransactionHistory from './pages/TransactionHistory';
+import Verification from './pages/Verification';
 
 function App() {
   return (
@@ -34,11 +36,13 @@ function App() {
             >
               <Route index element={<Home />} />
               <Route path="post" element={<PostItem />} />
+              <Route path="edit-item/:id" element={<EditItem />} />
               <Route path="item/:id" element={<ItemDetails />} />
               <Route path="profile" element={<Profile />} />
               <Route path="settings" element={<Settings />} />
               <Route path="messages" element={<Messages />} />
               <Route path="transactions" element={<TransactionHistory />} />
+              <Route path="verification" element={<Verification />} />
             </Route>
 
             {/* Fallback */}

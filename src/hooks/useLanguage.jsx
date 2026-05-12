@@ -710,7 +710,7 @@ const LanguageContext = createContext();
 export const LanguageProvider = ({ children }) => {
   const [lang, setLang] = useState(() => {
     const savedLang = localStorage.getItem('komunitrade-language');
-    return LANGUAGE_OPTIONS.some(opt => opt.code === savedLang) ? savedLang : 'bis';
+    return LANGUAGE_OPTIONS.some(opt => opt.code === savedLang) ? savedLang : 'en';
   });
 
   const [direction, setDirection] = useState('ltr');
