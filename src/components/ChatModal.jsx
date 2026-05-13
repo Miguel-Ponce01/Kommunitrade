@@ -20,6 +20,7 @@ export default function ChatModal({ isOpen, onClose, item }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [chatId, setChatId] = useState(null);
+  const [sendError, setSendError] = useState(null);
   const scrollRef = useRef(null);
 
   const currentUser = auth.currentUser;
@@ -60,6 +61,7 @@ export default function ChatModal({ isOpen, onClose, item }) {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !chatId) return;
+    setSendError(null);
 
     try {
       const encryptedMsg = encryptMessage(newMessage);
@@ -70,7 +72,7 @@ export default function ChatModal({ isOpen, onClose, item }) {
         senderId: currentUser.uid,
         senderAlias: getAlias(currentUser.uid),
         timestamp: serverTimestamp(),
-        isEncrypted: true // Metadata flag for manuscript proof
+        isEncrypted: true
       });
       
       // 2. Update parent document for inbox listing
@@ -87,15 +89,17 @@ export default function ChatModal({ isOpen, onClose, item }) {
       setNewMessage('');
     } catch (error) {
       console.error("Error sending message:", error);
-      alert("Failed to send message. Please check your Firebase Firestore rules. Error: " + error.message);
+      setSendError(error.message.includes('permission') 
+        ? 'Permission denied. Please make sure you are logged in.' 
+        : 'Failed to send. Please try again.');
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="location-modal-overlay" onClick={onClose} style={{ zIndex: 1000 }}>
-      <div className="location-modal-content" onClick={(e) => e.stopPropagation()} style={{ height: '80vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="location-modal-overlay chat-modal-overlay" onClick={onClose} style={{ zIndex: 1000 }}>
+      <div className="location-modal-content chat-modal-content" onClick={(e) => e.stopPropagation()}>
         
         {/* Chat Header */}
         <div className="location-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -108,20 +112,16 @@ export default function ChatModal({ isOpen, onClose, item }) {
               <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>Re: {item.title}</p>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {currentUser?.uid === item.buyerId || true ? ( // Simplified condition for prototype
-              <button 
-                className="btn-primary" 
-                style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderRadius: '8px', width: 'auto' }}
-                onClick={() => {
-                  alert('Transaction Agreement created! Check your Transaction History.');
-                  // In a real app, this would push a doc to 'transactions' collection
-                }}
-              >
-                Finalize Agreement
-              </button>
-            ) : null}
-            <button className="location-modal-close" onClick={onClose} style={{ position: 'relative', top: 0, right: 0 }}>
+          <div className="chat-header-actions">
+            <button 
+              className="btn-primary chat-finalize-btn"
+              onClick={() => {
+                alert('Transaction Agreement created! Check your Transaction History.');
+              }}
+            >
+              Finalize Agreement
+            </button>
+            <button className="location-modal-close" onClick={onClose}>
               <X size={20} />
             </button>
           </div>
@@ -165,6 +165,22 @@ export default function ChatModal({ isOpen, onClose, item }) {
               <p>No messages yet. Start the conversation!</p>
             </div>
           )}
+          {sendError && (
+            <div style={{ 
+              background: 'rgba(239,68,68,0.15)', 
+              border: '1px solid rgba(239,68,68,0.4)',
+              borderRadius: '8px',
+              padding: '0.6rem 0.9rem',
+              color: '#f87171',
+              fontSize: '0.8rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem'
+            }}>
+              <AlertTriangle size={14} />
+              {sendError}
+            </div>
+          )}
           {messages.map((msg) => (
             <div 
               key={msg.id} 
@@ -193,16 +209,19 @@ export default function ChatModal({ isOpen, onClose, item }) {
         </div>
 
         {/* Input Area */}
-        <form onSubmit={handleSendMessage} style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '0.5rem' }}>
+        <form onSubmit={handleSendMessage} className="chat-input-form">
           <input 
+            id="chat-message-input"
+            name="chat-message"
             type="text" 
             className="form-control" 
             placeholder={isListingActive(item.expiresAt) ? "Type a message..." : "Chat disabled"} 
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={(e) => { setNewMessage(e.target.value); setSendError(null); }}
             disabled={!isListingActive(item.expiresAt)}
+            autoComplete="off"
           />
-          <button type="submit" className="btn btn-primary" style={{ width: 'auto', padding: '0.5rem' }}>
+          <button type="submit" className="btn btn-primary chat-send-btn" disabled={!newMessage.trim()}>
             <Send size={20} />
           </button>
         </form>

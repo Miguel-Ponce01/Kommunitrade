@@ -161,6 +161,9 @@ export default function Layout() {
         <NavLink to="/app/profile" className={({isActive}) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
           <User />
         </NavLink>
+        <NavLink to="/app/settings" className={({isActive}) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+          <Settings />
+        </NavLink>
       </nav>
     </div>
   );

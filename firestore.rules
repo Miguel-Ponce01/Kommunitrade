@@ -15,11 +15,21 @@ service cloud.firestore {
       allow create: if request.auth != null;
     }
     
+    // Users: Anyone can read profiles, only owner can write
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+    }
+    
     // Chats: Only participants can read/write to their specific chat threads
     // Note: Chat ID is composed as [uid1, uid2, itemId].sort().join('_')
-    match /chats/{chatId}/{document=**} {
-      allow read, write: if request.auth != null && 
-        (chatId.contains(request.auth.uid));
+    match /chats/{chatId} {
+      allow read: if request.auth != null && (request.auth.uid in resource.data.participants);
+      allow write: if request.auth != null && (chatId.matches(".*" + request.auth.uid + ".*"));
+      
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null && (chatId.matches(".*" + request.auth.uid + ".*"));
+      }
     }
   }
 }

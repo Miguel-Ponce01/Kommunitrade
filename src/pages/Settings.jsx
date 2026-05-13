@@ -22,7 +22,8 @@ import {
   MapPin,
   X,
   Loader2,
-  Bell
+  Bell,
+  Zap
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../contexts/AuthContext';
@@ -57,6 +58,7 @@ export default function Settings() {
   const [notifySMS, setNotifySMS] = useState(false);
   const [exactLocation, setExactLocation] = useState(false);
   const [isSavingPrivacy, setIsSavingPrivacy] = useState(false);
+  const [isDeletingSample, setIsDeletingSample] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -208,6 +210,27 @@ export default function Settings() {
     }
   };
 
+  const deleteSampleListings = async () => {
+    setIsDeletingSample(true);
+    try {
+      let deleted = 0;
+      for (let i = 1; i <= 12; i++) {
+        const docRef = doc(db, 'listings', i.toString());
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          await deleteDoc(docRef);
+          deleted++;
+        }
+      }
+      alert(`Deleted ${deleted} sample listings!`);
+    } catch (error) {
+      console.error("Delete Error:", error);
+      alert("Failed to delete sample listings.");
+    } finally {
+      setIsDeletingSample(false);
+    }
+  };
+
   return (
     <div className="settings-container-redesign animate-fade-in">
       
@@ -242,7 +265,7 @@ export default function Settings() {
             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Verified</span>
           </div>
 
-          <div className="settings-item-row">
+          <div className="settings-item-row settings-phone-row">
             <div className="settings-item-left">
               <div className="settings-icon-box" style={{ background: '#FEF3C7', color: '#D97706' }}>
                 <Smartphone size={20} />
@@ -252,20 +275,20 @@ export default function Settings() {
                 <span className="settings-label-sub">Used for meetup coordination</span>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div className="settings-phone-controls">
               <input 
-                type="text" 
+                id="settings-phone-input"
+                name="phone"
+                type="tel" 
                 className="premium-input-small" 
                 placeholder="+63 9xx xxx xxxx"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                style={{ width: '150px', textAlign: 'right', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.25rem 0.5rem', color: 'var(--text-main)' }}
               />
               <button 
                 onClick={handleSavePhone}
                 disabled={isSavingPhone}
-                className="btn-primary"
-                style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem', width: 'auto', borderRadius: '8px' }}
+                className="btn-primary settings-phone-save-btn"
               >
                 {isSavingPhone ? <Loader2 className="animate-spin" size={12} /> : "Save"}
               </button>
@@ -681,6 +704,26 @@ export default function Settings() {
               style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', color: '#EF4444', borderColor: '#EF4444', width: 'auto' }}
             >
               {isPurging ? <Loader2 className="animate-spin" size={14} /> : (purgeCount > 0 ? `Deleted ${purgeCount}` : t('sett_purge_now'))}
+            </button>
+          </div>
+
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#FEF2F2', color: '#EF4444' }}>
+                <Trash2 size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">Remove Sample Listings</span>
+                <span className="settings-label-sub">Delete mock items from database</span>
+              </div>
+            </div>
+            <button 
+              onClick={deleteSampleListings}
+              disabled={isDeletingSample}
+              className="btn-secondary"
+              style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', color: '#EF4444', borderColor: '#EF4444', width: 'auto' }}
+            >
+              {isDeletingSample ? <Loader2 className="animate-spin" size={14} /> : "Remove Now"}
             </button>
           </div>
 

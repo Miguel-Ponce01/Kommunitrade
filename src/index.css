@@ -3397,6 +3397,7 @@ ul {
   border-bottom: 1px solid var(--border-color);
   transition: background 0.2s ease;
   cursor: pointer;
+  gap: 0.75rem;
 }
 
 .settings-item-row:last-child {
@@ -3410,7 +3411,9 @@ ul {
 .settings-item-left {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0; /* allow text to truncate/wrap */
 }
 
 .settings-icon-box {
@@ -3426,17 +3429,125 @@ ul {
 .settings-label-wrap {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .settings-label-main {
   font-weight: 700;
   font-size: 1rem;
   color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .settings-label-sub {
   font-size: 0.8rem;
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Settings Mobile Responsive ── */
+@media (max-width: 640px) {
+  .settings-container-redesign {
+    padding: 1.5rem 0.75rem 8rem;
+  }
+
+  .settings-card-group {
+    border-radius: 18px;
+    margin-bottom: 1.5rem;
+  }
+
+  .settings-item-row {
+    padding: 1rem 1rem;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .settings-item-left {
+    gap: 0.75rem;
+    align-items: center;
+    flex: 1;
+  }
+
+  .settings-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .settings-label-main {
+    font-size: 0.9rem;
+    white-space: normal;
+  }
+
+  .settings-label-sub {
+    font-size: 0.75rem;
+    white-space: normal;
+    margin-top: 1px;
+  }
+
+  /* Phone number row: stack the input + save button below the label */
+  .settings-item-row .settings-phone-controls {
+    flex-direction: column;
+    width: 100%;
+  }
+}
+
+/* ── Phone Row Controls ── */
+.settings-phone-row {
+  flex-wrap: wrap;
+  row-gap: 0.75rem;
+}
+
+.settings-phone-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.settings-phone-controls .premium-input-small {
+  width: 140px;
+  text-align: right;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.25rem 0.5rem;
+  color: var(--text-main);
+  font-size: 0.85rem;
+}
+
+.settings-phone-save-btn {
+  padding: 0.3rem 0.85rem;
+  font-size: 0.75rem;
+  width: auto;
+  border-radius: 8px;
+}
+
+@media (max-width: 480px) {
+  .settings-phone-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .settings-phone-controls {
+    width: 100%;
+    padding-left: calc(36px + 0.75rem);
+  }
+
+  .settings-phone-controls .premium-input-small {
+    width: 100%;
+    flex: 1;
+    text-align: left;
+  }
+
+  .settings-phone-save-btn {
+    flex-shrink: 0;
+  }
 }
 
 /* Custom Toggle/Switch */
@@ -3982,4 +4093,77 @@ ul {
 .editorial-landing .hero-heading {
   color: var(--text-main);
   text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* ── Chat Modal ── */
+.chat-modal-content {
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  max-width: 500px;
+}
+
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.chat-finalize-btn {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.75rem;
+  border-radius: 8px;
+  width: auto;
+  white-space: nowrap;
+}
+
+.chat-input-form {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.chat-send-btn {
+  width: auto !important;
+  padding: 0.5rem 0.75rem !important;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .chat-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .chat-modal-content {
+    height: 92vh;
+    max-height: 92dvh;
+    border-radius: 24px 24px 0 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .chat-finalize-btn {
+    font-size: 0.7rem;
+    padding: 0.35rem 0.65rem;
+  }
+
+  .chat-input-form {
+    padding: 0.6rem 0.75rem;
+    padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .chat-input-form .form-control {
+    font-size: 1rem; /* Prevent iOS zoom on focus */
+  }
 }

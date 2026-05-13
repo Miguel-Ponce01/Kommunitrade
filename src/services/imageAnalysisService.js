@@ -45,8 +45,18 @@ export const detectObject = async (imageElement) => {
   }
 };
 
-// Extract Text from Image (OCR) via CDN
-export const extractText = async (imageFile) => {
+// Helper: Convert file to base64
+const fileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
+// Extract Text from Image (OCR) via local fallback
+export const extractTextLocal = async (imageFile) => {
   try {
     await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
     const result = await window.Tesseract.recognize(
@@ -64,6 +74,56 @@ export const extractText = async (imageFile) => {
   } catch (error) {
     console.error('OCR extraction failed:', error);
     return { success: false, error: error.message };
+  }
+};
+
+// Extract Text from Image (OCR) via Google Cloud Vision API
+export const extractText = async (imageFile) => {
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  if (!apiKey || apiKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
+    console.warn("Google Cloud API key is missing. Using local fallback.");
+    return extractTextLocal(imageFile);
+  }
+
+  try {
+    const base64 = await fileToBase64(imageFile);
+    const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        requests: [
+          {
+            image: {
+              content: base64.split(',')[1]
+            },
+            features: [
+              {
+                type: "TEXT_DETECTION"
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Vision API Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const textAnnotations = data.responses[0]?.textAnnotations;
+    const text = textAnnotations ? textAnnotations[0].description : '';
+
+    return {
+      success: true,
+      text: text,
+      confidence: 1.0
+    };
+  } catch (error) {
+    console.error('Google Vision OCR failed, falling back to local:', error);
+    return extractTextLocal(imageFile);
   }
 };
 

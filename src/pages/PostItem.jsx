@@ -8,7 +8,6 @@ import { encodeGeohash, resolveLocationCoords, findNearestBarangay } from '../ut
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import GoogleMap from '../components/GoogleMap';
 import { extractText } from '../services/imageAnalysisService';
-import { analyzeListingWithDeepSeek } from '../services/deepseekService';
 
 export default function PostItem() {
   const { lang, setLang, t } = useLanguage();
@@ -52,32 +51,6 @@ export default function PostItem() {
     };
   }, [previewUrl]);
 
-  const runDeepSeekAnalysis = async (ocrText = '') => {
-    setIsAnalyzing(true);
-    setAnalysisProgress('DeepSeek AI is optimizing your listing...');
-    
-    const result = await analyzeListingWithDeepSeek({ title, description, ocrText });
-    
-    if (result.success) {
-      setGeneratedData({
-        title: result.data.title,
-        category: result.data.category,
-        tags: result.data.tags
-      });
-      if (result.data.title && result.data.title !== "None provided") setTitle(result.data.title);
-      if (result.data.category && result.data.category !== "Other") setCategory(result.data.category);
-      if (result.data.tags && result.data.tags.length > 0) setTags(result.data.tags);
-      if (result.data.suggestedPrice && !price) setPrice(result.data.suggestedPrice.toString());
-      
-      setAnalysisProgress('DeepSeek Optimization complete! Review suggestions below.');
-      addLog("DeepSeek API optimization applied.", "success");
-    } else {
-      setAnalysisProgress('AI Analysis failed.');
-      addLog("DeepSeek API failed: " + result.error, "error");
-    }
-    setIsAnalyzing(false);
-  };
-
   const handleImageAnalysis = async (file) => {
     if (!file) return;
     
@@ -90,14 +63,25 @@ export default function PostItem() {
       
       if (extractedText) {
         addLog(`Extracted text: ${extractedText.substring(0, 30)}...`, "primary");
+        
+        // Auto-fill title with the first line of OCR text if title is empty
+        const lines = extractedText.split('\n').filter(l => l.trim().length > 0);
+        if (lines.length > 0 && !title) {
+          setTitle(lines[0].trim().substring(0, 60));
+        }
+        
+        // Auto-fill description with the rest of the text if description is empty
+        if (!description) {
+          setDescription(extractedText);
+        }
       }
       
-      await runDeepSeekAnalysis(extractedText);
+      setAnalysisProgress('Analysis complete!');
     } catch (error) {
       console.error('Image analysis failed:', error);
       setAnalysisProgress('Analysis failed.');
-      setIsAnalyzing(false);
     }
+    setIsAnalyzing(false);
   };
 
   const handleFileChange = (e) => {
@@ -422,9 +406,7 @@ export default function PostItem() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Info size={22} color="var(--primary)" /> {t('post_info_title')}
               </div>
-              <button type="button" onClick={() => runDeepSeekAnalysis('')} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--primary-light)', color: 'var(--primary)', border: 'none' }}>
-                <Sparkles size={14} /> Auto-Fill with DeepSeek
-              </button>
+
             </div>
             <div className="form-group">
               <label>{t('post_item_title')}</label>
