@@ -13,9 +13,13 @@ const ItemCard = memo(({ item, onClick }) => {
   return (
     <div className="item-card premium-card animate-scale-in" onClick={() => onClick(item.id)}>
       <div className="item-img-wrap placeholder-wrap">
-        <div className="item-placeholder">
-          <span>?</span>
-        </div>
+        {item.imageUrl ? (
+          <img src={item.imageUrl} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <div className="item-placeholder">
+            <span>?</span>
+          </div>
+        )}
         {item.condition && (
           <div className={`item-badge-top-left ${
             item.condition === 'New' ? 'badge-new' : 

@@ -45,6 +45,56 @@ export const detectObject = async (imageElement) => {
   }
 };
 
+// Detect Object in Image via Imagga API (Alternative CNN)
+export const detectObjectImagga = async (imageFile) => {
+  const apiKey = import.meta.env.VITE_IMAGGA_API_KEY;
+  const apiSecret = import.meta.env.VITE_IMAGGA_API_SECRET;
+  
+  if (!apiKey || !apiSecret) {
+    console.warn("Imagga API credentials missing.");
+    return { success: false, error: "Missing credentials" };
+  }
+  
+  try {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    
+    const response = await fetch('https://api.imagga.com/v2/tags', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(`${apiKey}:${apiSecret}`)}`
+      },
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Imagga API Error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const tags = data.result.tags;
+    
+    if (!tags || tags.length === 0) {
+      return { success: false, error: "No tags found" };
+    }
+    
+    return {
+      success: true,
+      topPrediction: {
+        className: tags[0].tag.en,
+        probability: tags[0].confidence / 100
+      },
+      allPredictions: tags.map(t => ({
+        className: t.tag.en,
+        probability: t.confidence / 100
+      }))
+    };
+  } catch (error) {
+    console.error('Imagga tagging failed:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // Helper: Convert file to base64
 const fileToBase64 = (file) => {
   return new Promise((resolve, reject) => {
@@ -129,9 +179,19 @@ export const extractText = async (imageFile) => {
 
 // Combined Analysis (OCR + CNN)
 export const analyzeImage = async (imageFile, imageElement) => {
+  const apiKey = import.meta.env.VITE_IMAGGA_API_KEY;
+  const apiSecret = import.meta.env.VITE_IMAGGA_API_SECRET;
+  
+  let cnnPromise;
+  if (apiKey && apiSecret) {
+    cnnPromise = detectObjectImagga(imageFile);
+  } else {
+    cnnPromise = detectObject(imageElement);
+  }
+
   const [ocrResult, cnnResult] = await Promise.all([
     extractText(imageFile),
-    detectObject(imageElement)
+    cnnPromise
   ]);
 
   return {

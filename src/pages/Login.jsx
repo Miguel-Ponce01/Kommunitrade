@@ -371,26 +371,52 @@ export default function Auth() {
 
         {/* PHONE STEP 2: OTP */}
         {tab === "phone" && step === 2 && (
-          <form onSubmit={handleVerifyOTP} className="auth-form">
-            <div className="auth-verify-header">
-              <button type="button" className="auth-back-link" onClick={() => { setStep(1); setOtp("      "); setError(""); setInfo(""); }}>
-                <ArrowLeft size={14} /> Change number
-              </button>
-              <p className="auth-hint" style={{ marginTop: "0.5rem" }}>
-                Enter the 6-digit code sent to <strong>+63 {phone}</strong>
+          <form onSubmit={handleVerifyOTP} className="auth-form" style={{ textAlign: 'center' }}>
+            <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {/* Illustration Placeholder */}
+              <div style={{ width: '120px', height: '120px', background: 'var(--primary-light)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                <Phone size={48} color="var(--primary)" />
+              </div>
+              
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", marginBottom: '0.5rem', color: 'var(--text-main)' }}>
+                Enter verification code
+              </h2>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                You'll get an SMS message on <strong>+63 ******* {phone.slice(-4)}</strong>
               </p>
             </div>
 
-            <OTPInput value={otp} onChange={setOtp} />
+            <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '0.5rem', display: 'block' }}>
+                6-digit code
+              </label>
+              <OTPInput value={otp} onChange={setOtp} />
+            </div>
 
-            <button type="submit" className="btn-primary btn-full" disabled={loading || otp.trim().length < 6} style={{ marginTop: "1.25rem" }}>
-              {loading ? "Verifying…" : "Verify & Sign In"}
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              {resendCooldown > 0 ? (
+                `Resend code in 0:${resendCooldown.toString().padStart(2, '0')}`
+              ) : (
+                <span style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 700 }} onClick={handleResendOTP}>
+                  Resend code
+                </span>
+              )}
+            </div>
+
+            <button type="submit" className="btn-primary btn-full" disabled={loading || otp.trim().length < 6} style={{ padding: '0.85rem', borderRadius: '12px' }}>
+              {loading ? "Verifying…" : "Next"}
             </button>
 
-            <button type="button" className="btn-ghost btn-full" onClick={handleResendOTP} disabled={loading || resendCooldown > 0} style={{ marginTop: "0.5rem" }}>
-              <RotateCcw size={14} style={{ marginRight: 6 }} />
-              {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : "Resend OTP"}
-            </button>
+            <div style={{ marginTop: '1.5rem' }}>
+              <button 
+                type="button" 
+                className="auth-back-link" 
+                onClick={() => { setStep(1); setOtp("      "); setError(""); setInfo(""); }}
+                style={{ justifyContent: 'center', width: '100%' }}
+              >
+                Try signing in another way
+              </button>
+            </div>
           </form>
         )}
 

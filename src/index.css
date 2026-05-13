@@ -763,6 +763,60 @@ ul {
   padding: 1.25rem 0.75rem 0.5rem;
 }
 
+.item-wishlist-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(-10px);
+  z-index: 10;
+}
+
+.item-card.premium-card:hover .item-wishlist-btn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.item-badge-top-left {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(-10px);
+  z-index: 10;
+}
+
+.item-card.premium-card:hover .item-badge-top-left {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.item-footer-premium {
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.item-card.premium-card:hover .item-footer-premium {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* Category Filter Scroll */
 .category-filter-container {
   display: flex;
@@ -3144,33 +3198,47 @@ ul {
 /* ── GitHub Style Profile ───────────────────────────────────── */
 .profile-container-redesign {
   max-width: 1280px;
-  margin: 2rem auto;
-  padding: 0 2rem;
+  margin: 1rem auto;
+  padding: 0 1rem;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
 @media (min-width: 768px) {
   .profile-container-redesign {
+    margin: 2rem auto;
+    padding: 0 2rem;
     grid-template-columns: 296px 1fr;
+    gap: 2rem;
   }
 }
 
 .profile-sidebar-card {
-  background: transparent;
-  padding: 0;
-  box-shadow: none;
-  border: none;
+  background: var(--card-bg);
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
   text-align: left;
-  position: sticky;
-  top: 100px;
-  height: fit-content;
+  position: relative;
+  height: auto;
+}
+
+@media (min-width: 768px) {
+  .profile-sidebar-card {
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+    border: none;
+    position: sticky;
+    top: 100px;
+    height: fit-content;
+  }
 }
 
 .profile-avatar-circle {
-  width: 296px;
-  height: 296px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   margin: 0 0 1rem 0;
   overflow: hidden;
@@ -3181,10 +3249,10 @@ ul {
   justify-content: center;
 }
 
-@media (max-width: 767px) {
+@media (min-width: 768px) {
   .profile-avatar-circle {
-    width: 120px;
-    height: 120px;
+    width: 296px;
+    height: 296px;
   }
 }
 
@@ -4165,5 +4233,104 @@ ul {
 
   .chat-input-form .form-control {
     font-size: 1rem; /* Prevent iOS zoom on focus */
+  }
+}
+
+/* Auth & OTP Styles */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 100px);
+  padding: 2rem;
+}
+
+.auth-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-premium);
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  background: var(--bg-color);
+  padding: 0.25rem;
+  border-radius: 12px;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.auth-tab.active {
+  background: var(--card-bg);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.otp-grid {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.otp-box {
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.otp-box:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+.auth-card .btn-primary {
+  border-radius: 12px;
+  box-shadow: none;
+  background-color: #FF4B5C !important;
+  color: white !important;
+  font-weight: 700;
+}
+
+.auth-card .btn-primary:hover {
+  background-color: #E03E4D !important;
+  transform: none;
+}
+
+@media (max-width: 640px) {
+  .hero-heading {
+    font-size: 2rem !important;
+    line-height: 1.2 !important;
+    word-break: keep-all !important;
+    overflow-wrap: break-word !important;
   }
 }

@@ -7,7 +7,7 @@ import { ref, uploadBytes, getDownloadURL } from '../firebase';
 import { encodeGeohash, resolveLocationCoords, findNearestBarangay } from '../utils/geo';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import GoogleMap from '../components/GoogleMap';
-import { extractText } from '../services/imageAnalysisService';
+import { analyzeImage } from '../services/imageAnalysisService';
 
 export default function PostItem() {
   const { lang, setLang, t } = useLanguage();
@@ -55,24 +55,51 @@ export default function PostItem() {
     if (!file) return;
     
     setIsAnalyzing(true);
-    setAnalysisProgress('Extracting text from image...');
+    setAnalysisProgress('Running AI analysis (OCR + Object Detection)...');
     
     try {
-      const ocrResult = await extractText(file);
-      const extractedText = ocrResult.success ? ocrResult.text : '';
+      // Create image element for CNN
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.src = objectUrl;
       
-      if (extractedText) {
-        addLog(`Extracted text: ${extractedText.substring(0, 30)}...`, "primary");
-        
-        // Auto-fill title with the first line of OCR text if title is empty
-        const lines = extractedText.split('\n').filter(l => l.trim().length > 0);
-        if (lines.length > 0 && !title) {
-          setTitle(lines[0].trim().substring(0, 60));
-        }
-        
-        // Auto-fill description with the rest of the text if description is empty
-        if (!description) {
-          setDescription(extractedText);
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+      
+      addLog("Analyzing image content...", "primary");
+      const result = await analyzeImage(file, img);
+      URL.revokeObjectURL(objectUrl);
+      
+      if (result.ocr.success && result.ocr.text) {
+        addLog(`Extracted text: ${result.ocr.text.substring(0, 30)}...`, "primary");
+      }
+      
+      if (result.cnn.success && result.cnn.topPrediction) {
+        addLog(`Detected object: ${result.cnn.topPrediction.className} (${Math.round(result.cnn.topPrediction.probability * 100)}%)`, "success");
+      }
+      
+      setGeneratedData({
+        title: result.generatedTitle,
+        category: result.generatedCategory,
+        tags: result.generatedTags
+      });
+      
+      // Auto-fill fields if they are empty
+      if (!title) setTitle(result.generatedTitle);
+      if (!category) setCategory(result.generatedCategory);
+      if (!description && result.ocr.text) setDescription(result.ocr.text);
+      if (tags.length === 0) setTags(result.generatedTags);
+      
+      // Simple price suggestion if category is Electronics
+      if (!price) {
+        if (result.generatedCategory === 'Electronics') {
+          setPrice('5000');
+          addLog("Suggested default price for Electronics: ₱5000", "success");
+        } else if (result.generatedCategory === 'Clothing') {
+          setPrice('500');
+          addLog("Suggested default price for Clothing: ₱500", "success");
         }
       }
       
@@ -80,6 +107,7 @@ export default function PostItem() {
     } catch (error) {
       console.error('Image analysis failed:', error);
       setAnalysisProgress('Analysis failed.');
+      addLog(`Analysis failed: ${error.message}`, "error");
     }
     setIsAnalyzing(false);
   };
@@ -352,13 +380,7 @@ export default function PostItem() {
                 </div>
               </div>
 
-              {/* AI Analysis Status */}
-              {isAnalyzing && (
-                <div style={{ padding: '0.75rem', borderRadius: '14px', background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.2)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Loader2 className="animate-spin" size={16} color="#3B82F6" />
-                  <span style={{ fontSize: '0.75rem', color: '#1D4ED8' }}>{analysisProgress}</span>
-                </div>
-              )}
+
 
               {!isAnalyzing && generatedData.title && (
                 <div style={{ padding: '0.75rem', borderRadius: '14px', background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)', marginBottom: '1rem' }}>
@@ -532,8 +554,28 @@ export default function PostItem() {
           </div>
 
 
-        </div>
-      </form>
-    </div>
-  );
+          </div>
+        </form>
+
+        {/* AI Analysis Popup Overlay */}
+        {isAnalyzing && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(8px)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999
+          }}>
+            <div style={{ background: 'var(--card-bg)', padding: '2.5rem', borderRadius: '24px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', maxWidth: '400px', width: '90%', textAlign: 'center', boxShadow: 'var(--shadow-premium)' }}>
+              <div style={{ width: '64px', height: '64px', background: 'var(--primary-light)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                <Loader2 className="animate-spin" size={32} />
+              </div>
+              <div>
+                <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: "'Outfit', sans-serif" }}>Analyzing Image</h3>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)' }}>{analysisProgress}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
 }

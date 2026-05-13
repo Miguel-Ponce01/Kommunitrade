@@ -100,6 +100,7 @@ const translations = {
 
     // DASHBOARD
     dash_badge: 'Verified Davaoeño Marketplace',
+    dash_verify_badge: 'Identity Verified',
     dash_title: 'Discover Nearby Deals',
     dash_subtitle: 'Find affordable items and trusted sellers near your area.',
     dash_search_ph: 'Search gadgets, ukay, food, services...',
@@ -112,6 +113,7 @@ const translations = {
 
     // SIDEBAR
     side_main: 'Main Menu',
+    side_comm: 'Communication',
     side_dash: 'Marketplace',
     side_inventory: 'My Listings',
     side_messages: 'Messages',
@@ -264,7 +266,7 @@ const translations = {
     hero_cta_browse: 'Maghanap ng Sulit',
 
     stats_barangays: 'Mga Barangay Connected',
-    stats_verified: 'Verified Sellers',
+    stats_verified: 'Mga Beripikadong Nagbebenta',
     stats_secure: 'Ligtas at Secure',
     stats_title: 'Marketplace ng Komunidad',
     stats_subtitle: 'Pagpapalago ng lokal na ekonomiya sa Davao.',
@@ -331,6 +333,7 @@ const translations = {
     cta_footer_btn: 'Sumali sa KomuniTrade',
 
     dash_badge: 'Verified Davaoeño Marketplace',
+    dash_verify_badge: 'Beripikadong Pagkakakilanlan',
     dash_title: 'Tuklasin ang mga Kalapit na Deals',
     dash_subtitle: 'Maghanap ng abot-kayang mga produkto at mapagkakatiwalaang nagbebenta malapit sa iyo.',
     dash_search_ph: 'Maghanap ng gadgets, ukay, pagkain, serbisyo...',
@@ -342,6 +345,7 @@ const translations = {
     dash_filter_by: 'I-filter ayon sa',
 
     side_main: 'Pangunahing Menu',
+    side_comm: 'Komunikasyon',
     side_dash: 'Marketplace',
     side_inventory: 'Aking mga Listahan',
     side_messages: 'Mga Mensahe',
@@ -486,7 +490,7 @@ const translations = {
     hero_cta_browse: 'Pangita ug Sulit',
 
     stats_barangays: 'Mga Barangay Connected',
-    stats_verified: 'Verified Sellers',
+    stats_verified: 'Mga Beripikadong Seller',
     stats_secure: 'Ligtas ug Secure',
     stats_title: 'Marketplace sa Komunidad',
     stats_subtitle: 'Nagtabang sa lokal nga negosyo ug sideline sa Davao.',
@@ -553,6 +557,7 @@ const translations = {
     cta_footer_btn: 'Apil sa KomuniTrade',
 
     dash_badge: 'Verified Davaoeño Marketplace',
+    dash_verify_badge: 'Verified nga Account',
     dash_title: 'Mga Sulit nga Duol Ra Nimo',
     dash_subtitle: 'Pamalit ug baligya sulod sa inyong barangay.',
     dash_search_ph: 'Pangita ug gadgets, ukay, pagkaon, serbisyo...',
@@ -564,6 +569,7 @@ const translations = {
     dash_filter_by: 'I-filter pinaagi sa',
 
     side_main: 'Main Menu',
+    side_comm: 'Komunikasyon',
     side_dash: 'Marketplace',
     side_inventory: 'Akong Listings',
     side_messages: 'Messages',

@@ -35,9 +35,8 @@ export default function ChatModal({ isOpen, onClose, item }) {
   useEffect(() => {
     if (!isOpen || !item || !currentUser) return;
 
-    // In a real app, you'd find or create a specific chat document for this buyer/seller/item combo
-    // For this prototype, we'll use a simple collection keyed by buyer + seller + item
-    const chatIdString = [currentUser.uid, item.sellerId, item.id].sort().join('_');
+    const sellerId = item.sellerId || item.userId;
+    const chatIdString = [currentUser.uid, sellerId, item.id].sort().join('_');
     setChatId(chatIdString);
 
     const q = query(
@@ -46,11 +45,21 @@ export default function ChatModal({ isOpen, onClose, item }) {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        text: decryptMessage(doc.data().text)
-      }));
+      const msgs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let decryptedText = '';
+        try {
+          decryptedText = decryptMessage(data.text);
+        } catch (e) {
+          console.error("Failed to decrypt message:", e);
+          decryptedText = "[Unable to decrypt message]";
+        }
+        return {
+          id: doc.id,
+          ...data,
+          text: decryptedText
+        };
+      });
       setMessages(msgs);
       setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     });

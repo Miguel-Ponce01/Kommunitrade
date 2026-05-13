@@ -331,11 +331,11 @@ export default function Settings() {
             <select 
               value={tradingMode}
               onChange={(e) => setTradingMode(e.target.value)}
-              style={{ background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.25rem 0.5rem', color: 'var(--text-main)', fontSize: '0.85rem' }}
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.25rem 0.5rem', color: 'var(--text-main)', fontSize: '0.85rem' }}
             >
-              <option value="Prefer Cash">Prefer Cash</option>
-              <option value="Prefer Barter">Prefer Barter</option>
-              <option value="Open to Both">Open to Both</option>
+              <option value="Prefer Cash" style={{ background: 'var(--card-bg)', color: 'var(--text-main)' }}>Prefer Cash</option>
+              <option value="Prefer Barter" style={{ background: 'var(--card-bg)', color: 'var(--text-main)' }}>Prefer Barter</option>
+              <option value="Open to Both" style={{ background: 'var(--card-bg)', color: 'var(--text-main)' }}>Open to Both</option>
             </select>
           </div>
 
@@ -707,25 +707,7 @@ export default function Settings() {
             </button>
           </div>
 
-          <div className="settings-item-row">
-            <div className="settings-item-left">
-              <div className="settings-icon-box" style={{ background: '#FEF2F2', color: '#EF4444' }}>
-                <Trash2 size={20} />
-              </div>
-              <div className="settings-label-wrap">
-                <span className="settings-label-main">Remove Sample Listings</span>
-                <span className="settings-label-sub">Delete mock items from database</span>
-              </div>
-            </div>
-            <button 
-              onClick={deleteSampleListings}
-              disabled={isDeletingSample}
-              className="btn-secondary"
-              style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', color: '#EF4444', borderColor: '#EF4444', width: 'auto' }}
-            >
-              {isDeletingSample ? <Loader2 className="animate-spin" size={14} /> : "Remove Now"}
-            </button>
-          </div>
+
 
         </div>
       </div>
@@ -804,24 +786,74 @@ export default function Settings() {
               </button>
             </div>
             
-            <div style={{ color: 'var(--text-main)', lineHeight: 1.6, fontSize: '0.9rem' }}>
-              <h3 style={{ color: 'var(--primary)', marginTop: '1rem' }}>1. Safe Meetup Guidelines (Davao City)</h3>
-              <p>For your safety, all meetups must be conducted in public, well-lit areas with high foot traffic and CCTV coverage. Recommended locations include: SM City Davao (Ecoland), SM Lanang Premier, Abreeza Mall, Gaisano Mall of Davao, or inside branded coffee shops (e.g., Starbucks, Bo's Coffee).</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               
-              <h3 style={{ color: 'var(--primary)', marginTop: '1.5rem' }}>2. Item Verification</h3>
-              <p>Buyers are required to thoroughly inspect the item at the meetup location BEFORE finalizing the payment or completing the barter. KomuniTrade acts as a platform for connection but does not provide warranties for physical goods exchanged.</p>
-              
-              <h3 style={{ color: 'var(--primary)', marginTop: '1.5rem' }}>3. Prohibited Items</h3>
-              <p>The exchange of illegal drugs, unregistered firearms, stolen goods, counterfeit items, and items restricted by the Local Government Unit of Davao City and Philippine Law is strictly prohibited. Violators will be banned and reported to the PNP Cybercrime Unit.</p>
+              {/* Rule 1 */}
+              <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem', display: 'flex', gap: '1rem' }}>
+                <div style={{ background: '#FFE4E6', color: '#E11D48', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>1. Safe Meetup Guidelines (Davao City)</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>For your safety, all meetups must be conducted in public, well-lit areas with high foot traffic and CCTV coverage. Recommended locations include: SM City Davao (Ecoland), SM Lanang Premier, Abreeza Mall, Gaisano Mall of Davao, or inside branded coffee shops.</p>
+                </div>
+              </div>
 
-              <h3 style={{ color: 'var(--primary)', marginTop: '1.5rem' }}>4. Payment Protocol</h3>
-              <p>For cash transactions, verify the authenticity of the bills. For digital payments (GCash, Maya, Bank Transfer), ensure the amount reflects in your account BEFORE handing over the item. Do not rely solely on screenshot proofs.</p>
+              {/* Rule 2 */}
+              <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem', display: 'flex', gap: '1rem' }}>
+                <div style={{ background: '#D1FAE5', color: '#059669', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Shield size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>2. Item Verification</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>Buyers are required to thoroughly inspect the item at the meetup location BEFORE finalizing the payment or completing the barter. KomuniTrade acts as a platform for connection but does not provide warranties for physical goods exchanged.</p>
+                </div>
+              </div>
 
-              <h3 style={{ color: 'var(--primary)', marginTop: '1.5rem' }}>5. Respect and Anti-Haggle Policy</h3>
-              <p>Respect the agreed-upon price. "Joy reserving" and extreme lowballing at the meetup location are highly discouraged. Users reported multiple times for such behavior will have their accounts suspended to maintain community integrity.</p>
+              {/* Rule 3 */}
+              <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem', display: 'flex', gap: '1rem' }}>
+                <div style={{ background: '#FEE2E2', color: '#DC2626', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <AlertTriangle size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>3. Prohibited Items</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>The exchange of illegal drugs, unregistered firearms, stolen goods, counterfeit items, and items restricted by the Local Government Unit of Davao City and Philippine Law is strictly prohibited. Violators will be banned and reported.</p>
+                </div>
+              </div>
 
-              <h3 style={{ color: 'var(--primary)', marginTop: '1.5rem' }}>6. Transaction Agreement Receipts</h3>
-              <p>Utilize the built-in Transaction Agreement feature to lock in logistics and price. This digital receipt serves as your proof of agreement and helps in dispute resolution.</p>
+              {/* Rule 4 */}
+              <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem', display: 'flex', gap: '1rem' }}>
+                <div style={{ background: '#FEF3C7', color: '#D97706', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Smartphone size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>4. Payment Protocol</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>For cash transactions, verify the authenticity of the bills. For digital payments (GCash, Maya, Bank Transfer), ensure the amount reflects in your account BEFORE handing over the item. Do not rely solely on screenshot proofs.</p>
+                </div>
+              </div>
+
+              {/* Rule 5 */}
+              <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem', display: 'flex', gap: '1rem' }}>
+                <div style={{ background: '#FFE4E6', color: '#E11D48', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Heart size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>5. Respect and Anti-Haggle Policy</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>Respect the agreed-upon price. "Joy reserving" and extreme lowballing at the meetup location are highly discouraged. Users reported multiple times for such behavior will have their accounts suspended.</p>
+                </div>
+              </div>
+
+              {/* Rule 6 */}
+              <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem', display: 'flex', gap: '1rem' }}>
+                <div style={{ background: '#E0F2FE', color: '#0369A1', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>6. Transaction Agreement Receipts</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>Utilize the built-in Transaction Agreement feature to lock in logistics and price. This digital receipt serves as your proof of agreement and helps in dispute resolution.</p>
+                </div>
+              </div>
+
             </div>
             
             <button className="btn-primary" onClick={() => setShowRules(false)} style={{ marginTop: '2rem', width: '100%' }}>

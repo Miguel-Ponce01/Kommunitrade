@@ -164,7 +164,7 @@ export default function Home() {
             className={`category-pill ${selectedCategory === cat.id ? 'active' : ''}`}
             onClick={() => setSelectedCategory(cat.id)}
           >
-            <span className="cat-emoji">{cat.emoji}</span> {cat.label}
+            {cat.label}
           </button>
         ))}
       </div>
