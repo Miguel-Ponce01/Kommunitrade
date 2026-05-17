@@ -11,10 +11,11 @@ export default function LocationModal({ isOpen, onClose, initialLocation, initia
   const [geoError, setGeoError] = useState(null);
   const [detectedGeohash, setDetectedGeohash] = useState(null);
   const [resolvedCoords, setResolvedCoords] = useState(initialLocation ? resolveLocationCoords(initialLocation) : { lat: 7.0707, lng: 125.6092 });
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   if (!isOpen) return null;
 
-  const radiusOptions = [0.05, 0.1, 0.5, 1, 2, 5, 10, 20, 50];
+  const radiusOptions = [1, 2, 5, 10, 20, 50];
 
   const formatRadiusLabel = (r) => {
     if (r < 1) return `${r * 1000} meters`;
@@ -125,17 +126,82 @@ export default function LocationModal({ isOpen, onClose, initialLocation, initia
           )}
 
           <div className="radius-select-wrapper">
-            <label>Radius</label>
-            <div className="radius-select-container">
-              <select 
-                value={radius}
-                onChange={(e) => setRadius(Number(e.target.value))}
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem', display: 'block' }}>Radius</label>
+            <div className="radius-select-container" style={{ position: 'relative' }}>
+              <button 
+                type="button"
+                className="custom-dropdown-btn"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  color: 'var(--text-main)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  fontSize: '0.95rem',
+                  fontFamily: 'inherit',
+                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                }}
               >
-                {radiusOptions.map(opt => (
-                  <option key={opt} value={opt}>{formatRadiusLabel(opt)}</option>
-                ))}
-              </select>
-              <ChevronDown size={16} className="radius-chevron" />
+                <span style={{ fontWeight: 700 }}>{formatRadiusLabel(radius)}</span>
+                <ChevronDown size={16} style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: 'var(--text-muted)' }} />
+              </button>
+
+              {isDropdownOpen && (
+                <div 
+                  className="custom-dropdown-list"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    marginTop: '0.5rem',
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '12px',
+                    boxShadow: 'var(--shadow-premium)',
+                    zIndex: 100,
+                    overflow: 'hidden'
+                  }}
+                >
+                  {radiusOptions.map(opt => (
+                    <div 
+                      key={opt}
+                      className="custom-dropdown-option"
+                      onClick={() => {
+                        setRadius(opt);
+                        setIsDropdownOpen(false);
+                      }}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        cursor: 'pointer',
+                        color: 'var(--text-main)',
+                        fontSize: '0.95rem',
+                        background: radius === opt ? 'rgba(var(--primary-rgb, 79,70,229), 0.1)' : 'transparent',
+                        fontWeight: radius === opt ? 700 : 400,
+                        transition: 'background 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (radius !== opt) e.target.style.background = 'rgba(255,255,255,0.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (radius !== opt) e.target.style.background = 'transparent';
+                      }}
+                    >
+                      <span>{formatRadiusLabel(opt)}</span>
+                      {radius === opt && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--primary)' }}></div>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

@@ -128,7 +128,7 @@ export default function Layout() {
           </button>
           <button className="nav-item" onClick={handleLogout} style={{ width: '100%', background: 'none', border: 'none', textAlign: 'left', color: '#ef4444' }}>
             <LogOut className="nav-icon" />
-            <span className="nav-label">{t('side_logout')} ({displayName})</span>
+            <span className="nav-label">{t('side_logout')}</span>
           </button>
         </div>
       </nav>
@@ -160,6 +160,9 @@ export default function Layout() {
         </NavLink>
         <NavLink to="/app/profile" className={({isActive}) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
           <User />
+        </NavLink>
+        <NavLink to="/app/transactions" className={({isActive}) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+          <History />
         </NavLink>
         <NavLink to="/app/settings" className={({isActive}) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
           <Settings />

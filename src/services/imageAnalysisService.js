@@ -127,79 +127,95 @@ export const extractTextLocal = async (imageFile) => {
   }
 };
 
-// Extract Text from Image (OCR) via Google Cloud Vision API
-export const extractText = async (imageFile) => {
+// Extract Text from Image (OCR) and Labels (CNN) via Google Cloud Vision API
+export const analyzeImageGoogleVision = async (imageFile) => {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   if (!apiKey || apiKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
-    console.warn("Google Cloud API key is missing. Using local fallback.");
-    return extractTextLocal(imageFile);
+    throw new Error("Google Cloud API key is missing.");
   }
 
-  try {
-    const base64 = await fileToBase64(imageFile);
-    const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        requests: [
-          {
-            image: {
-              content: base64.split(',')[1]
-            },
-            features: [
-              {
-                type: "TEXT_DETECTION"
-              }
-            ]
-          }
-        ]
-      })
-    });
+  const base64 = await fileToBase64(imageFile);
+  const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      requests: [
+        {
+          image: {
+            content: base64.split(',')[1]
+          },
+          features: [
+            { type: "TEXT_DETECTION" },
+            { type: "LABEL_DETECTION" }
+          ]
+        }
+      ]
+    })
+  });
 
-    if (!response.ok) {
-      throw new Error(`Vision API Error: ${response.status}`);
-    }
+  if (!response.ok) {
+    throw new Error(`Vision API Error: ${response.status}`);
+  }
 
-    const data = await response.json();
-    const textAnnotations = data.responses[0]?.textAnnotations;
-    const text = textAnnotations ? textAnnotations[0].description : '';
+  const data = await response.json();
+  const responseData = data.responses[0];
+  
+  const textAnnotations = responseData.textAnnotations;
+  const text = textAnnotations ? textAnnotations[0].description : '';
+  
+  const labelAnnotations = responseData.labelAnnotations;
+  const labels = labelAnnotations || [];
+  
+  const topPrediction = labels.length > 0 ? {
+    className: labels[0].description,
+    probability: labels[0].score
+  } : null;
 
-    return {
+  return {
+    ocr: {
       success: true,
       text: text,
       confidence: 1.0
-    };
+    },
+    cnn: {
+      success: true,
+      topPrediction: topPrediction,
+      allPredictions: labels.map(l => ({
+        className: l.description,
+        probability: l.score
+      }))
+    }
+  };
+};
+// Extract Text from Image (OCR) - Wrapper for EditItem.jsx
+export const extractText = async (imageFile) => {
+  try {
+    const result = await analyzeImageGoogleVision(imageFile);
+    return result.ocr;
   } catch (error) {
-    console.error('Google Vision OCR failed, falling back to local:', error);
+    console.error("extractText failed, falling back to local:", error);
     return extractTextLocal(imageFile);
   }
 };
 
 // Combined Analysis (OCR + CNN)
-export const analyzeImage = async (imageFile, imageElement) => {
-  const apiKey = import.meta.env.VITE_IMAGGA_API_KEY;
-  const apiSecret = import.meta.env.VITE_IMAGGA_API_SECRET;
+export const analyzeImage = async (imageFile) => {
+  const googleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   
-  let cnnPromise;
-  if (apiKey && apiSecret) {
-    cnnPromise = detectObjectImagga(imageFile);
-  } else {
-    cnnPromise = detectObject(imageElement);
+  if (!googleKey || googleKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
+    throw new Error("Google Cloud API key is missing. Please configure VITE_GOOGLE_MAPS_API_KEY in .env.local.");
   }
 
-  const [ocrResult, cnnResult] = await Promise.all([
-    extractText(imageFile),
-    cnnPromise
-  ]);
-
+  console.log("Using Google Vision for both OCR and CNN...");
+  const result = await analyzeImageGoogleVision(imageFile);
+  
   return {
-    ocr: ocrResult,
-    cnn: cnnResult,
-    generatedTitle: generateTitle(ocrResult, cnnResult),
-    generatedCategory: mapCnnToCategory(cnnResult, ocrResult),
-    generatedTags: generateTags(ocrResult, cnnResult)
+    ...result,
+    generatedTitle: generateTitle(result.ocr, result.cnn),
+    generatedCategory: mapCnnToCategory(result.cnn, result.ocr),
+    generatedTags: generateTags(result.ocr, result.cnn)
   };
 };
 

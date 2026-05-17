@@ -36,7 +36,8 @@ export default function ChatModal({ isOpen, onClose, item }) {
     if (!isOpen || !item || !currentUser) return;
 
     const sellerId = item.sellerId || item.userId;
-    const chatIdString = [currentUser.uid, sellerId, item.id].sort().join('_');
+    const buyerId = item.buyerId || currentUser.uid;
+    const chatIdString = item.chatId || [buyerId, sellerId, item.id].sort().join('_');
     setChatId(chatIdString);
 
     const q = query(
@@ -85,14 +86,17 @@ export default function ChatModal({ isOpen, onClose, item }) {
       });
       
       // 2. Update parent document for inbox listing
+      const sellerId = item.sellerId || item.userId;
+      const buyerId = item.buyerId || currentUser.uid;
+      
       await setDoc(doc(db, 'chats', chatId), {
-        participants: [currentUser.uid, item.sellerId || item.userId],
+        participants: [buyerId, sellerId],
         lastMessage: encryptedMsg,
         lastTimestamp: serverTimestamp(),
         itemTitle: item.title,
         itemId: item.id,
-        sellerId: item.sellerId || item.userId,
-        buyerId: currentUser.uid
+        sellerId: sellerId,
+        buyerId: buyerId
       }, { merge: true });
 
       setNewMessage('');

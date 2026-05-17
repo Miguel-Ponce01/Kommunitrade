@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Loader2, Save, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, Check, TrendingUp } from 'lucide-react';
+import { Camera, Loader2, Save, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, Check, TrendingUp, Plus } from 'lucide-react';
 import { MOCK_BARANGAYS, CATEGORIES } from '../data/mockData';
 import { db, auth, storage, collection, addDoc, serverTimestamp } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from '../firebase';
@@ -12,8 +12,9 @@ import { analyzeImage } from '../services/imageAnalysisService';
 export default function PostItem() {
   const { lang, setLang, t } = useLanguage();
   const navigate = useNavigate();
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [imageFile, setImageFile] = useState(null); // actual File for Storage upload
+  const [previewUrls, setPreviewUrls] = useState([]);
+  const [imageFiles, setImageFiles] = useState([]); // actual Files for Storage upload
+  const [selectedImageForAI, setSelectedImageForAI] = useState(0); // Index of image to analyze
   const [isPublishing, setIsPublishing] = useState(false);
   const [debugLog, setDebugLog] = useState([]);
   
@@ -42,14 +43,16 @@ export default function PostItem() {
     setDebugLog(prev => [...prev, { time: new Date().toLocaleTimeString(), message, type }]);
   };
 
-  // Revoke previous blob URL to prevent memory leaks
+  // Revoke previous blob URLs to prevent memory leaks
   useEffect(() => {
     return () => {
-      if (previewUrl && previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(previewUrl);
-      }
+      previewUrls.forEach(url => {
+        if (url && url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
     };
-  }, [previewUrl]);
+  }, [previewUrls]);
 
   const handleImageAnalysis = async (file) => {
     if (!file) return;
@@ -86,11 +89,11 @@ export default function PostItem() {
         tags: result.generatedTags
       });
       
-      // Auto-fill fields if they are empty
-      if (!title) setTitle(result.generatedTitle);
-      if (!category) setCategory(result.generatedCategory);
-      if (!description && result.ocr.text) setDescription(result.ocr.text);
-      if (tags.length === 0) setTags(result.generatedTags);
+      // Auto-fill fields (Override with new analysis results as requested)
+      setTitle(result.generatedTitle);
+      setCategory(result.generatedCategory);
+      if (result.ocr.text) setDescription(result.ocr.text);
+      setTags(result.generatedTags);
       
       // Simple price suggestion if category is Electronics
       if (!price) {
@@ -113,26 +116,36 @@ export default function PostItem() {
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
-    // Revoke old blob URL before creating a new one
-    if (previewUrl && previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(previewUrl);
+    // Limit to 4 images total
+    if (imageFiles.length + files.length > 4) {
+      alert("You can only upload a maximum of 4 images.");
+      return;
     }
 
-    const localImageUrl = URL.createObjectURL(file);
-    setPreviewUrl(localImageUrl);  // local preview only
-    setImageFile(file);            // save File for Storage upload
+    const newPreviewUrls = files.map(file => URL.createObjectURL(file));
+    
+    // We don't revoke here because we want to keep all previews visible!
+    // But we should clean them up when the component unmounts or when images are removed.
+
+    setPreviewUrls([...previewUrls, ...newPreviewUrls]);
+    setImageFiles([...imageFiles, ...files]);
 
     // Clear logs for new capture
     setDebugLog([]);
-    addLog("Visual signal received. Activating GPS verification...", "primary");
+    addLog(`${files.length} visual signal(s) received. Activating GPS verification...`, "primary");
 
     captureTimeMark();
     
-    // Run AI analysis
-    handleImageAnalysis(file);
+    // Run AI analysis on the first image if no images were present before
+    if (imageFiles.length === 0) {
+      handleImageAnalysis(files[0]);
+      setSelectedImageForAI(0);
+    }
+    
+    e.target.value = ''; // Reset to allow selecting same file again
   };
 
   const captureTimeMark = () => {
@@ -194,14 +207,20 @@ export default function PostItem() {
     addLog("Uploading image to secure storage...", "primary");
 
     try {
-      // ── Upload image to Firebase Storage (if a file was selected) ──
-      let finalImageUrl = "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=300";
-      if (imageFile) {
-        const storageRef = ref(storage, `listings/${currentUser.uid}/${Date.now()}_${imageFile.name}`);
-        const snapshot = await uploadBytes(storageRef, imageFile);
-        finalImageUrl = await getDownloadURL(snapshot.ref);
-        addLog("Image uploaded successfully.", "success");
+      // ── Upload images to Firebase Storage ──
+      const imageUrls = [];
+      if (imageFiles.length > 0) {
+        addLog(`Uploading ${imageFiles.length} images...`, "primary");
+        for (const file of imageFiles) {
+          const storageRef = ref(storage, `listings/${currentUser.uid}/${Date.now()}_${file.name}`);
+          const snapshot = await uploadBytes(storageRef, file);
+          const url = await getDownloadURL(snapshot.ref);
+          imageUrls.push(url);
+        }
+        addLog("All images uploaded successfully.", "success");
       }
+
+      const finalImageUrl = imageUrls[0] || "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=300";
 
       await addDoc(collection(db, 'listings'), {
         title,
@@ -216,6 +235,7 @@ export default function PostItem() {
         geohash: encodeGeohash(coords.lat, coords.lng),
         timeMark: timeMark || null,
         sellerId: currentUser.uid,
+        imageUrls: imageUrls,
         imageUrl: finalImageUrl,
         expiresAt: new Date(Date.now() + (7 * 24) * 60 * 60 * 1000).toISOString(),
         createdAt: serverTimestamp(),
@@ -290,76 +310,144 @@ export default function PostItem() {
             </div>
             
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
+              <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} multiple />
               
               <div className="image-upload-area" onClick={triggerFileInput} style={{ 
                 position: 'relative', height: '320px', borderRadius: '24px', border: '2px dashed var(--border-color)',
                 background: 'var(--bg-color)', overflow: 'hidden'
               }}>
-                {previewUrl ? (
-                  <>
-                    <img 
-                      src={previewUrl} 
-                      alt="Preview" 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                    />
-                    
-                    {/* Small Map Overlay (Picture-in-Picture) */}
-                    {timeMark && (
-                      <div style={{ 
-                        position: 'absolute', top: '15px', right: '15px', 
-                        width: '120px', height: '120px', borderRadius: '16px',
-                        overflow: 'hidden', border: '3px solid white',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 20
-                      }}>
-                         <GoogleMap 
-                           center={{ lat: parseFloat(timeMark.lat), lng: parseFloat(timeMark.lng) }}
-                           zoom={15}
-                         />
+                {previewUrls.length > 0 ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '1rem', height: '100%', width: '100%' }}>
+                    {/* Main Image */}
+                    <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden' }}>
+                      <img 
+                        src={previewUrls[selectedImageForAI]} 
+                        alt="Main Preview" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      />
+                      <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(var(--primary-rgb, 79,70,229), 0.9)', color: 'white', padding: '0.25rem 0.5rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, zIndex: 12 }}>
+                        ✨ Selected for AI
                       </div>
-                    )}
 
-                    {/* Authenticated Time Mark Bar */}
-                    {timeMark && (
-                      <div style={{ 
-                        position: 'absolute', bottom: '15px', left: '15px', right: '15px',
-                        background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)',
-                        border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '18px',
-                        padding: '1.25rem', color: 'white', display: 'flex', justifyContent: 'space-between',
-                        alignItems: 'flex-end', textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-                        animation: 'animate-slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1)', zIndex: 11,
-                        boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)'
-                      }}>
-                        <div>
-                          <div style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--primary)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>Authenticated Time Mark</div>
-                          <div style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{timeMark.time}</div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.8, marginTop: '4px' }}>{timeMark.date}</div>
+                      {/* Small Map Overlay (Picture-in-Picture) */}
+                      {timeMark && (
+                        <div style={{ 
+                          position: 'absolute', top: '15px', right: '15px', 
+                          width: '100px', height: '100px', borderRadius: '16px',
+                          overflow: 'hidden', border: '3px solid white',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 20
+                        }}>
+                           <GoogleMap 
+                             center={{ lat: parseFloat(timeMark.lat), lng: parseFloat(timeMark.lng) }}
+                             zoom={15}
+                           />
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end' }}>
-                            <ShieldCheck size={14} color="var(--primary)" /> {timeMark.barangay.toUpperCase()}
+                      )}
+
+                      {/* Authenticated Time Mark Bar */}
+                      {timeMark && (
+                        <div style={{ 
+                          position: 'absolute', bottom: '15px', left: '15px', right: '15px',
+                          background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)',
+                          border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '18px',
+                          padding: '1rem', color: 'white', display: 'flex', justifyContent: 'space-between',
+                          alignItems: 'flex-end', textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                          zIndex: 11,
+                          boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)'
+                        }}>
+                          <div>
+                            <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--primary)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '2px' }}>Authenticated Time Mark</div>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{timeMark.time}</div>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.8, marginTop: '2px' }}>{timeMark.date}</div>
                           </div>
-                          <div style={{ fontSize: '0.65rem', opacity: 0.7, fontFamily: 'monospace', marginTop: '4px' }}>{timeMark.lat}, {timeMark.lng}</div>
-                          <div style={{ fontSize: '0.6rem', color: 'var(--primary)', fontWeight: 700, letterSpacing: '0.05em', marginTop: '4px' }}>VERIFIED GPS SIGNAL</div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 900, color: 'white', display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'flex-end' }}>
+                              <ShieldCheck size={12} color="var(--primary)" /> {timeMark.barangay.toUpperCase()}
+                            </div>
+                            <div style={{ fontSize: '0.6rem', opacity: 0.7, fontFamily: 'monospace', marginTop: '2px' }}>{timeMark.lat}, {timeMark.lng}</div>
+                            <div style={{ fontSize: '0.55rem', color: 'var(--primary)', fontWeight: 700, letterSpacing: '0.05em', marginTop: '2px' }}>VERIFIED GPS SIGNAL</div>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    {isLocating && (
-                      <div style={{ position: 'absolute', top: '15px', left: '15px', padding: '0.5rem 0.75rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', borderRadius: '10px', color: 'white', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 11 }}>
-                        <Loader2 className="animate-spin" size={12} /> SYNCING GPS...
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ width: '64px', height: '64px', background: 'var(--primary-light)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', color: 'var(--primary)' }}>
-                        <Camera size={32} />
-                      </div>
-                      <div style={{ fontWeight: 800, color: 'var(--text-main)' }}>Take or Upload Photo</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Visual proof is required for Time Mark</div>
+                      )}
+                      {isLocating && (
+                        <div style={{ position: 'absolute', top: '15px', left: '15px', padding: '0.5rem 0.75rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', borderRadius: '10px', color: 'white', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 11 }}>
+                          <Loader2 className="animate-spin" size={12} /> SYNCING GPS...
+                        </div>
+                      )}
                     </div>
-                  </>
+
+                    {/* Thumbnails */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto', padding: '0.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px' }}>
+                      {previewUrls.map((url, index) => (
+                        <div 
+                          key={index} 
+                          style={{ 
+                            position: 'relative', 
+                            height: '60px', 
+                            borderRadius: '10px', 
+                            overflow: 'hidden',
+                            border: selectedImageForAI === index ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                            cursor: 'pointer',
+                            flexShrink: 0
+                          }}
+                          onClick={() => {
+                            setSelectedImageForAI(index);
+                            handleImageAnalysis(imageFiles[index]);
+                          }}
+                        >
+                          <img src={url} alt={`Preview ${index}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button 
+                            type="button" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newUrls = previewUrls.filter((_, i) => i !== index);
+                              const newFiles = imageFiles.filter((_, i) => i !== index);
+                              setPreviewUrls(newUrls);
+                              setImageFiles(newFiles);
+                              if (selectedImageForAI === index) {
+                                setSelectedImageForAI(0);
+                                if (newFiles.length > 0) handleImageAnalysis(newFiles[0]);
+                              } else if (selectedImageForAI > index) {
+                                setSelectedImageForAI(selectedImageForAI - 1);
+                              }
+                            }}
+                            style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', cursor: 'pointer' }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      {previewUrls.length < 4 && (
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            triggerFileInput();
+                          }}
+                          style={{ 
+                            height: '60px', 
+                            borderRadius: '10px', 
+                            border: '1px dashed var(--border-color)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: 'var(--text-muted)',
+                            flexShrink: 0
+                          }}
+                        >
+                          <Plus size={20} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                    <div style={{ width: '64px', height: '64px', background: 'var(--primary-light)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', color: 'var(--primary)' }}>
+                      <Camera size={32} />
+                    </div>
+                    <div style={{ fontWeight: 800, color: 'var(--text-main)' }}>Take or Upload Photos</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Upload up to 4 images. Visual proof is required for Time Mark.</div>
+                  </div>
                 )}
               </div>
             </div>
@@ -529,29 +617,7 @@ export default function PostItem() {
             </div>
           </div>
 
-          <div className="panel" style={{ padding: '1.5rem', background: 'var(--bg-card)' }}>
-            <div className="panel-header" style={{ marginBottom: '1.25rem', fontSize: '1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Info size={18} /> Listing Pro Tips
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
-                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '2px' }}>✨ Keywords</strong>
-                <p style={{ color: 'var(--text-muted)', margin: 0 }}>Use relevant keywords in the title to improve searchability within Davao.</p>
-              </div>
-              <div style={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
-                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '2px' }}>📸 High-Quality Photos</strong>
-                <p style={{ color: 'var(--text-muted)', margin: 0 }}>Use well-lit photos with a plain background for better visibility.</p>
-              </div>
-              <div style={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
-                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '2px' }}>📝 Specific Details</strong>
-                <p style={{ color: 'var(--text-muted)', margin: 0 }}>Provide brand, size, and condition to reduce buyer queries.</p>
-              </div>
-              <div style={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
-                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '2px' }}>💰 Competitive Pricing</strong>
-                <p style={{ color: 'var(--text-muted)', margin: 0 }}>Research competitors to set a fair price for your neighborhood.</p>
-              </div>
-            </div>
-          </div>
+
 
 
           </div>

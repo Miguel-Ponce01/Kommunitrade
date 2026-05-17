@@ -30,12 +30,12 @@ export default function Landing() {
 
   // Categories mapped to translation keys with specific images
   const CATEGORIES_DATA = [
-    { key: 'durian', img: '/durian_fruit.png' },
-    { key: 'ukay', img: '/davao_weaves.png' },
-    { key: 'gadgets', img: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=600' },
-    { key: 'services', img: '/kadayawan_dancers.png' },
-    { key: 'condo', img: '/mt_apo.png' },
-    { key: 'students', img: '/philippine_eagle.png' },
+    { key: 'durian', img: '/fresh.png' },
+    { key: 'ukay', img: '/thrift.png' },
+    { key: 'gadgets', img: '/gadgets.png' },
+    { key: 'services', img: '/Services.png' },
+    { key: 'Furniture', img: '/sofa.png' },
+    { key: 'students', img: '/student_esse.png' },
   ];
 
   return (
@@ -84,8 +84,7 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="editorial-hero" style={{ width: '100%', overflowX: 'hidden', backgroundImage: 'url(/davao_map_bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.8)', zIndex: 1 }} />
+      <section className="editorial-hero" style={{ width: '100%', overflowX: 'hidden', position: 'relative' }}>
         <div className="apple-grid" style={{ position: 'relative', zIndex: 2 }}>
           <div className="location-badge" style={{ background: 'var(--primary-light)', color: 'var(--primary)', border: 'none', fontWeight: 800 }}>
             {t('hero_badge')}
@@ -113,8 +112,8 @@ export default function Landing() {
       </section>
 
       {/* Why KomuniTrade — Trust Features */}
-      <section style={{ background: 'var(--card-bg)', padding: '8rem 0', marginBottom: '8rem' }}>
-        <div className="apple-grid">
+      <section style={{ background: 'var(--card-bg)', padding: '8rem 0', marginBottom: '8rem', position: 'relative' }}>
+        <div className="apple-grid" style={{ position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5rem', alignItems: 'center' }}>
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '0.4rem 1rem', borderRadius: '999px', fontWeight: 800, fontSize: '0.85rem', marginBottom: '1.5rem' }}>
@@ -142,11 +141,8 @@ export default function Landing() {
             </div>
             <div style={{ position: 'relative' }}>
               <div style={{ borderRadius: '32px', overflow: 'hidden', boxShadow: 'var(--shadow-premium)' }}>
-                <img
-                  src="/infographic_trade.png"
-                  alt="Safe community trading"
-                  style={{ width: '100%', height: '400px', objectFit: 'cover' }}
-                />
+
+
               </div>
               <div style={{ position: 'absolute', bottom: '-1rem', left: '-1rem', background: 'var(--primary)', color: 'white', borderRadius: '20px', padding: '1rem 1.5rem', boxShadow: '0 20px 40px rgba(16,185,129,0.4)' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.8 }}>VERIFICATION SPEED</div>
@@ -188,220 +184,220 @@ export default function Landing() {
       </section>
 
       {/* Feedback Forum Section */}
-          <section id="feedback-section" className="editorial-faq-section" style={{ padding: '0 0 8rem' }}>
-            <div className="apple-grid">
-              <div className="faq-section-inner">
-                <div className="faq-header">
-                  <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '0.5rem' }}>Community Feedback</h2>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>Hear from our users or share your experience.</p>
-                </div>
+      <section id="feedback-section" className="editorial-faq-section" style={{ padding: '0 0 8rem' }}>
+        <div className="apple-grid">
+          <div className="faq-section-inner">
+            <div className="faq-header">
+              <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '0.5rem' }}>Community Feedback</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>Hear from our users or share your experience.</p>
+            </div>
 
-                {/* Feedback List */}
-                <div className="faq-list">
-                  {feedback.map((item) => (
-                    <div key={item.id} className="faq-item" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem', background: 'var(--card-bg)', borderRadius: '12px', marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                        <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{item.name}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.date}</div>
-                      </div>
-                      <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>{item.message}</p>
-                      {adminMode && (
-                        <button
-                          onClick={() => setFeedback(feedback.filter(f => f.id !== item.id))}
-                          style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 700 }}
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Add Feedback Form */}
-                <div style={{ marginTop: '3rem', background: 'var(--card-bg)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-                  <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontFamily: "'Outfit', sans-serif" }}>Leave a Feedback</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <input
-                      type="text"
-                      placeholder="Your Name"
-                      value={newFeedbackName}
-                      onChange={(e) => setNewFeedbackName(e.target.value)}
-                      style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
-                    />
-                    <textarea
-                      placeholder="Your Feedback"
-                      value={newFeedbackMessage}
-                      onChange={(e) => setNewFeedbackMessage(e.target.value)}
-                      style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', minHeight: '100px' }}
-                    />
-                    <button
-                      onClick={() => {
-                        if (newFeedbackName && newFeedbackMessage) {
-                          setFeedback([...feedback, { id: Date.now(), name: newFeedbackName, message: newFeedbackMessage, date: new Date().toISOString().split('T')[0] }]);
-                          setNewFeedbackName('');
-                          setNewFeedbackMessage('');
-                        }
-                      }}
-                      className="btn-primary"
-                      style={{ padding: '0.75rem', borderRadius: '8px' }}
-                    >
-                      Submit Feedback
-                    </button>
+            {/* Feedback List */}
+            <div className="faq-list">
+              {feedback.map((item) => (
+                <div key={item.id} className="faq-item" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem', background: 'var(--card-bg)', borderRadius: '12px', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{item.name}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.date}</div>
                   </div>
-                </div>
-
-                {/* Admin Switch */}
-                <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-                  {!adminMode ? (
+                  <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>{item.message}</p>
+                  {adminMode && (
                     <button
-                      onClick={() => setShowAdminLogin(!showAdminLogin)}
-                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.5 }}
-                      onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                      onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}
+                      onClick={() => setFeedback(feedback.filter(f => f.id !== item.id))}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 700 }}
                     >
-                      Admin Switch
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setAdminMode(false)}
-                      style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
-                    >
-                      Exit Admin Mode
+                      Delete
                     </button>
                   )}
-
-                  {showAdminLogin && !adminMode && (
-                    <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center' }}>
-                      <input
-                        type="text"
-                        placeholder="User"
-                        value={adminUsername}
-                        onChange={(e) => setAdminUsername(e.target.value)}
-                        style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', width: '100px' }}
-                      />
-                      <input
-                        type="password"
-                        placeholder="Pass"
-                        value={adminPassword}
-                        onChange={(e) => setAdminPassword(e.target.value)}
-                        style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', width: '100px' }}
-                      />
-                      <button
-                        onClick={() => {
-                          if (adminUsername === 'admin' && adminPassword === 'admin123') {
-                            setAdminMode(true);
-                            setShowAdminLogin(false);
-                            setAdminUsername('');
-                            setAdminPassword('');
-                          } else {
-                            alert('Invalid credentials');
-                          }
-                        }}
-                        style={{ padding: '0.5rem', borderRadius: '4px', background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer' }}
-                      >
-                        Login
-                      </button>
-                    </div>
-                  )}
                 </div>
+              ))}
+            </div>
+
+            {/* Add Feedback Form */}
+            <div style={{ marginTop: '3rem', background: 'var(--card-bg)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontFamily: "'Outfit', sans-serif" }}>Leave a Feedback</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <input
+                  type="text"
+                  placeholder="Your Name"
+                  value={newFeedbackName}
+                  onChange={(e) => setNewFeedbackName(e.target.value)}
+                  style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
+                />
+                <textarea
+                  placeholder="Your Feedback"
+                  value={newFeedbackMessage}
+                  onChange={(e) => setNewFeedbackMessage(e.target.value)}
+                  style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', minHeight: '100px' }}
+                />
+                <button
+                  onClick={() => {
+                    if (newFeedbackName && newFeedbackMessage) {
+                      setFeedback([...feedback, { id: Date.now(), name: newFeedbackName, message: newFeedbackMessage, date: new Date().toISOString().split('T')[0] }]);
+                      setNewFeedbackName('');
+                      setNewFeedbackMessage('');
+                    }
+                  }}
+                  className="btn-primary"
+                  style={{ padding: '0.75rem', borderRadius: '8px' }}
+                >
+                  Submit Feedback
+                </button>
               </div>
             </div>
-          </section>
 
-          {/* Footer CTA */}
-          <section className="editorial-footer-cta">
-            <div className="apple-grid">
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '1.5rem', position: 'relative' }}>
-                {t('cta_footer_location')}
-              </p>
-              <h2 dangerouslySetInnerHTML={{ __html: t('cta_footer_title') }} />
-              <p>
-                {t('cta_footer_desc')}
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2.5rem' }}>
+            {/* Admin Switch */}
+            <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+              {!adminMode ? (
                 <button
-                  onClick={() => openAuth('register')}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
-                    background: '#fff', color: '#0F172A', border: 'none',
-                    padding: '1.1rem 2.5rem', borderRadius: '16px',
-                    fontWeight: 800, fontSize: '1.1rem', cursor: 'pointer',
-                    fontFamily: "'Outfit', sans-serif",
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-                    transition: 'all 0.3s ease', position: 'relative'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 28px 50px rgba(0,0,0,0.4)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3)'; }}
+                  onClick={() => setShowAdminLogin(!showAdminLogin)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.5 }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}
                 >
-                  {t('cta_footer_btn')} <ArrowRight size={20} />
+                  Admin Switch
                 </button>
-
-                {/* Feedback Forum Button */}
+              ) : (
                 <button
-                  onClick={() => document.getElementById('feedback-section')?.scrollIntoView({ behavior: 'smooth' })}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                    padding: '0.6rem 1.25rem', borderRadius: '999px',
-                    fontWeight: 800, fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)',
-                    cursor: 'pointer', transition: 'all 0.3s ease', letterSpacing: '0.05em'
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                  onClick={() => setAdminMode(false)}
+                  style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
                 >
-                  <span>FEEDBACK FORUM</span>
+                  Exit Admin Mode
                 </button>
+              )}
 
-                {/* Language Toggle moved to Footer */}
-                <div
-                  className="language-toggle-pill"
-                  onClick={toggleLanguage}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.6rem',
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    padding: '0.6rem 1.25rem',
-                    borderRadius: '999px',
-                    cursor: 'pointer',
-                    fontWeight: 800,
-                    fontSize: '0.75rem',
-                    color: 'rgba(255,255,255,0.5)',
-                    transition: 'all 0.3s ease',
-                    letterSpacing: '0.05em'
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                >
-                  <Languages size={14} />
-                  <span>{lang === 'en' ? 'ENGLISH' : lang === 'tl' ? 'TAGALOG' : 'BISAYA'}</span>
+              {showAdminLogin && !adminMode && (
+                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    placeholder="User"
+                    value={adminUsername}
+                    onChange={(e) => setAdminUsername(e.target.value)}
+                    style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', width: '100px' }}
+                  />
+                  <input
+                    type="password"
+                    placeholder="Pass"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', width: '100px' }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (adminUsername === 'admin' && adminPassword === 'admin123') {
+                        setAdminMode(true);
+                        setShowAdminLogin(false);
+                        setAdminUsername('');
+                        setAdminPassword('');
+                      } else {
+                        alert('Invalid credentials');
+                      }
+                    }}
+                    style={{ padding: '0.5rem', borderRadius: '4px', background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer' }}
+                  >
+                    Login
+                  </button>
                 </div>
-              </div>
-
-              <div style={{ marginTop: '5rem', paddingTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.2)', fontSize: '0.75rem', textAlign: 'center' }}>
-                © 2026 KomuniTrade. {t('footer_tagline')}
-              </div>
+              )}
             </div>
-          </section>
-
-          {/* Auth Modal Popup */}
-          {showAuthModal && (
-            <div className="auth-modal-overlay" onClick={() => setShowAuthModal(false)}>
-              <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-                <button
-                  className="auth-modal-close"
-                  onClick={() => setShowAuthModal(false)}
-                  style={{ top: '1.5rem', right: '1.5rem', zIndex: 10 }}
-                >
-                  <X size={20} />
-                </button>
-                <Auth />
-              </div>
-            </div>
-          )}
-
+          </div>
         </div>
-        );
+      </section>
+
+      {/* Footer CTA */}
+      <section className="editorial-footer-cta">
+        <div className="apple-grid">
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '1.5rem', position: 'relative' }}>
+            {t('cta_footer_location')}
+          </p>
+          <h2 dangerouslySetInnerHTML={{ __html: t('cta_footer_title') }} />
+          <p>
+            {t('cta_footer_desc')}
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2.5rem' }}>
+            <button
+              onClick={() => openAuth('register')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
+                background: '#fff', color: '#0F172A', border: 'none',
+                padding: '1.1rem 2.5rem', borderRadius: '16px',
+                fontWeight: 800, fontSize: '1.1rem', cursor: 'pointer',
+                fontFamily: "'Outfit', sans-serif",
+                boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+                transition: 'all 0.3s ease', position: 'relative'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 28px 50px rgba(0,0,0,0.4)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3)'; }}
+            >
+              {t('cta_footer_btn')} <ArrowRight size={20} />
+            </button>
+
+            {/* Feedback Forum Button */}
+            <button
+              onClick={() => document.getElementById('feedback-section')?.scrollIntoView({ behavior: 'smooth' })}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                padding: '0.6rem 1.25rem', borderRadius: '999px',
+                fontWeight: 800, fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)',
+                cursor: 'pointer', transition: 'all 0.3s ease', letterSpacing: '0.05em'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            >
+              <span>FEEDBACK FORUM</span>
+            </button>
+
+            {/* Language Toggle moved to Footer */}
+            <div
+              className="language-toggle-pill"
+              onClick={toggleLanguage}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                padding: '0.6rem 1.25rem',
+                borderRadius: '999px',
+                cursor: 'pointer',
+                fontWeight: 800,
+                fontSize: '0.75rem',
+                color: 'rgba(255,255,255,0.5)',
+                transition: 'all 0.3s ease',
+                letterSpacing: '0.05em'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            >
+              <Languages size={14} />
+              <span>{lang === 'en' ? 'ENGLISH' : lang === 'tl' ? 'TAGALOG' : 'BISAYA'}</span>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '5rem', paddingTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.2)', fontSize: '0.75rem', textAlign: 'center' }}>
+            © 2026 KomuniTrade. {t('footer_tagline')}
+          </div>
+        </div>
+      </section>
+
+      {/* Auth Modal Popup */}
+      {showAuthModal && (
+        <div className="auth-modal-overlay" onClick={() => setShowAuthModal(false)}>
+          <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+            <button
+              className="auth-modal-close"
+              onClick={() => setShowAuthModal(false)}
+              style={{ top: '1.5rem', right: '1.5rem', zIndex: 10 }}
+            >
+              <X size={20} />
+            </button>
+            <Auth />
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
 }

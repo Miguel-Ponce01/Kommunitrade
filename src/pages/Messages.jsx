@@ -69,7 +69,8 @@ export default function Messages() {
       id: chat.itemId,
       title: chat.itemTitle,
       sellerId: chat.sellerId,
-      // Provide a dummy future expiration date to bypass the check if it's missing
+      buyerId: chat.buyerId,
+      chatId: chat.id,
       expiresAt: chat.expiresAt || new Date(Date.now() + 86400000 * 30).toISOString() 
     };
     setSelectedChat(mockItem);

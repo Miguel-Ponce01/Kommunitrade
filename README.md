@@ -359,7 +359,7 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 
 | Target | Quantity | Categories |
 |--------|----------|------------|
-| Item images | 500-1,000 | Electronics, clothing, books, furniture, household |
+| Item images | 500-1,000 | Durian & Fruits, Ukay-Ukay, Gadgets, Sideline Services, Condo Moving Sale, Student Essentials |
 | Seller profiles | Multiple | Diverse transaction histories |
 | Text-containing images | 200+ | Product labels, handwritten notes, printed text |
 
@@ -559,49 +559,98 @@ Level 1: KomuniTrade System Development
 KomuniTrade uses Cloud Firestore for its real-time, NoSQL database. Below are the core data nodes (collections) and their document structures based on `DATABASE_NOTES.md`.
 
 ## 23.1 Users Collection
-Stores profile and reputation data for registered users.
+Stores profile, reputation, identity verification, and settings data for registered users.
 
 | Field | Type | Description |
 |---|---|---|
 | `id` | String (PK) | Unique User ID (from Firebase Auth) |
-| `email` | String | User's email address |
-| `phoneNumber` | String | User's contact number |
-| `verifiedNeighborhood` | String | The Barangay where the user is verified |
+| `email` | String | User's registered email address |
+| `displayName` | String | User's customized nickname or alias |
+| `phoneNumber` | String | User's mobile contact number |
+| `verifiedNeighborhood` | String | The Davao Barangay where the user is verified |
 | `bio` | String | User biography |
-| `profileImage` | String | URL to the profile image |
+| `profileImage` | String | URL to the profile image avatar |
 | `communityStatus` | String | Member badge or status level |
-| `trustScore` | Float | Reputation score based on interactions |
-| `tradingMode` | String | Default trading mode (Cash, Barter, Both) |
-| `savedSpots` | Array | Saved meetup hotspots (Davao locations) |
-| `notificationPrefs` | Map | Notification toggle settings |
+| `trustScore` | Float | Reputation rating score based on successful trades |
+| `tradingMode` | String | Default trading mode preference (Cash, Barter, or Both) |
+| `savedSpots` | Array | Saved meetup hotspot locations in Davao |
+| `notificationPrefs` | Map | Map containing boolean flags: `messages`, `priceDrops`, `reminders`, `sms` |
+| `exactLocation` | Boolean | Privacy preference toggle for sharing exact GPS coordinates |
+| `isVerified` | Boolean | Flag indicating completed facial biometric verification |
+| `verificationScore` | Float | Face API selfie-to-ID similarity confidence score |
+| `verifiedAt` | String | Biometric identity verification timestamp |
 
 ## 23.2 Listings Collection
-Stores item listings with location and AI-generated data.
+Stores hyperlocal items listed by community sellers with proof of presence and AI-generated metadata.
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | String (PK) | Unique Item ID |
-| `sellerId` | String (FK) | ID of the user who owns the listing |
-| `title` | String | Item name or title |
-| `price` | Float | Price in PHP |
-| `category` | String | Product category (Electronics, Clothing, etc.) |
-| `condition` | String | Quality scale (New, Used, etc.) |
-| `barangay` | String | Hyperlocal location |
-| `timeMark` | Object | GPS Proof (lat, lng, timestamp) |
-| `geohash` | String | Search index for location filtering |
-| `expiresAt` | Timestamp | TTL (Time To Live) for auto-archiving |
-| `isSold` | Boolean | Status of the item |
+| `id` | String (PK) | Unique Listing ID (Auto-generated) |
+| `sellerId` | String (FK) | Unique UID of the posting seller |
+| `title` | String | Custom or AI-generated listing title |
+| `price` | Float | Listing price in PHP |
+| `category` | String | Product category (Electronics, Clothing, Books, Furniture, etc.) |
+| `condition` | String | Quality condition scale (New, Like New, Good, Fair, Poor) |
+| `barangay` | String | Barangay location of physical listing presence |
+| `timeMark` | Object | Proof of presence map: `latitude`, `longitude`, `timestamp`, `date`, `time` |
+| `geohash` | String | Geospatial grid coordinate string for nearby filtering queries |
+| `expiresAt` | Timestamp | TTL (Time To Live) expiration timestamp for automated auto-archiving |
+| `isSold` | Boolean | Item availability status |
+| `imageUrl` | String | Direct URL to the primary listing photo |
+| `imageUrls` | Array | Array of secondary uploaded photo URLs (up to 4) |
+| `description` | String | AI Tesseract OCR extracted text or customized description |
+| `tags` | Array | Array of tags generated for search optimization |
+| `createdAt` | Timestamp | Listing creation timestamp |
 
-## 23.3 Messages Collection
-Stores chat messages between buyers and sellers.
+## 23.3 Chats Collection
+Stores real-time conversation rooms between buyers and sellers, indexed deterministically to prevent duplicate channels.
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | String (PK) | Unique Message ID |
-| `listingId` | String (FK) | ID of the listing the chat is about |
-| `senderId` | String (FK) | ID of the message sender |
-| `text` | String | Message content |
-| `createdAt` | Timestamp | Time message was sent |
+| `id` | String (PK) | Deterministic Chat ID format: `buyerId_sellerId_itemId` |
+| `participants` | Array | Array containing buyer and seller UIDs |
+| `lastMessage` | String | Preview snippet of the most recent message |
+| `lastTimestamp` | Timestamp | Timestamp of the last sent message |
+| `itemId` | String (FK) | Reference listing ID the conversation is about |
+| `itemTitle` | String | Title of the listing |
+| `sellerId` | String (FK) | Seller user UID |
+| `buyerId` | String (FK) | Buyer user UID |
+
+## 23.4 Messages Sub-collection (`chats/{chatId}/messages`)
+Stores real-time conversation text logs with local Double Ratchet E2EE verification.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | String (PK) | Unique message document ID |
+| `chatId` | String (FK) | Parent room Chat ID |
+| `text` | String | Locally encrypted message body content |
+| `senderId` | String (FK) | Sender user UID |
+| `senderAlias` | String | Sender friendly alias displayed in chat bubble |
+| `timestamp` | Timestamp | Date and time message was sent |
+| `isEncrypted` | Boolean | True if message is encrypted using Signal Protocol cryptosystem |
+
+## 23.5 Transactions Collection
+Stores transaction histories, meetup terms, and GCash-style receipt agreements generated upon listing purchases.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | String (PK) | Unique transaction document ID |
+| `reference_number` | String | Unique transactional agreement receipt number (e.g. `TRX-2026-XXXXXX`) |
+| `itemId` | String (FK) | Purchased listing ID |
+| `item_name` | String | Title of the purchased item |
+| `item_condition` | String | Product condition scale rating |
+| `agreed_price` | Float | Bargained and agreed transaction price |
+| `payment_method` | String | Chosen settlement method (Cash, GCash, or Maya) |
+| `seller_masked_name` | String | Masked seller name to guarantee buyer privacy |
+| `sellerId` | String (FK) | Seller user UID |
+| `buyer_name` | String | Buyer name or custom alias |
+| `buyerId` | String (FK) | Buyer user UID |
+| `meetup_location` | String | Selected Davao hotspot meetup location |
+| `meetup_date` | String | Scheduled meetup date |
+| `meetup_time` | String | Scheduled meetup time |
+| `agreement_summary` | String | Transaction agreement rules and terms summary |
+| `status` | String | Transaction state: `Pending Agreement`, `Confirmed`, `Completed`, `Cancelled` |
+| `created_at` | Timestamp | Date and time the transaction agreement was initiated |
 
 ---
 
@@ -613,8 +662,41 @@ Stores chat messages between buyers and sellers.
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐   │
 │  │ User        │ │ Item Images │ │ Location    │ │ Search      │   │
 │  │ Registration│ │             │ │ Data        │ │ Keywords    │   │
-...
-The above content was truncated as it is too long. To view the rest of the file, use the view_file tool.
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                            PROCESSES                                 │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                    KOMUNITRADE SYSTEM                        │   │
+│  │  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐   │   │
+│  │  │   CNN     │ │   OCR     │ │  Geohash  │ │ Inverted  │   │   │
+│  │  │Classify   │ │ Extract   │ │  Filter   │ │  Index    │   │   │
+│  │  └───────────┘ └───────────┘ └───────────┘ └───────────┘   │   │
+│  │  ┌───────────┐ ┌───────────┐ ┌───────────┐                 │   │
+│  │  │  Facial   │ │  ML Conf  │ │   TTL     │                 │   │
+│  │  │  Verify   │ │  Score    │ │  Expire   │                 │   │
+│  │  └───────────┘ └───────────┘ └───────────┘                 │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                             OUTPUTS                                  │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐   │
+│  │ Auto-       │ │ Nearby      │ │ Verified    │ │ Trust       │   │
+│  │ Generated   │ │ Listings    │ │ Sellers     │ │ Score       │   │
+│  │ Listings    │ │             │ │             │ │             │   │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     GOAL: Secure, Intelligent, Hyperlocal           │
+│                     Marketplace System for Community Trading        │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -622,6 +704,7 @@ The above content was truncated as it is too long. To view the rest of the file,
 
 | Date | Time | Update |
 |---|---|---|
+| May 17, 2026 | 06:29 PM | **Documentation**: Fully synchronized database schemas, E2EE message definitions, GCash receipt transactions, and 100% completion checklist milestones. |
 | May 13, 2026 | 06:51 AM | **Feature**: Implemented Edit Listing feature, completing Sprint 5 backend CRUD operations. Added `EditItem.jsx` linked from Profile. |
 | May 13, 2026 | 06:51 AM | **Settings**: Finalized Privacy & Security (Exact Location sharing) and Support & About settings sections. |
 | May 13, 2026 | 06:45 AM | **Settings & DB Schema**: Synchronized user preferences (Phone, Trading Modes, Notification Preferences, Saved Spots) directly with Firestore `Users` collection. |
@@ -629,3 +712,4 @@ The above content was truncated as it is too long. To view the rest of the file,
 | May 13, 2026 | 06:45 AM | **Bug Fix**: Fixed fatal rendering crash in `ItemDetails.jsx` regarding missing listing price data. |
 | May 12, 2026 | 11:30 PM | **Feature**: Implemented Location Filtering using Geohash to automatically sort and display items based on proximity. |
 | May 12, 2026 | 08:00 PM | **UI/UX**: Overhauled UI with modern festival-inspired color palette, responsive navigation, and language switcher. |
+

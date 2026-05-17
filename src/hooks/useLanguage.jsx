@@ -20,7 +20,7 @@ const translations = {
     nav_safety: 'Safety Tips',
 
     // HERO SECTION
-    hero_badge: '📍 Built for Davaoeños',
+    hero_badge: ' Built for Davaoeños',
     hero_title: "Buy & sell with <span class='text-gradient'>neighbors you trust</span>",
     hero_subtitle: 'From ukay-ukay and gadgets to fresh durian and sideline services — KomuniTrade helps Davaoeños connect locally and trade safely.',
     hero_cta_sell: 'Sell Now',
@@ -38,16 +38,16 @@ const translations = {
     cat_subtitle: 'Everything from local products to student essentials — all nearby.',
     cat_view_all: 'View All Categories',
 
-    cat_ukay: 'Ukay-Ukay',
+    cat_ukay: 'Thrifted Clothes',
     cat_ukay_desc: 'Affordable pre-loved fashion',
 
     cat_gadgets: 'Gadgets',
     cat_gadgets_desc: 'Phones, laptops, accessories',
 
-    cat_durian: 'Durian & Fruits',
+    cat_durian: 'Fresh Fruits',
     cat_durian_desc: 'Fresh Davao harvests',
 
-    cat_services: 'Sideline Services',
+    cat_services: 'Services',
     cat_services_desc: 'Delivery, freelance, repairs',
 
     cat_motor: 'Motor Parts',
@@ -58,6 +58,10 @@ const translations = {
 
     cat_condo: 'Condo Moving Sale',
     cat_condo_desc: 'Furniture & appliances nearby',
+
+
+    cat_Furniture: 'Furniture',
+    cat_Furniture_desc: 'Sofas, tables, and home decor',
 
     cat_sari: 'Sari-Sari Supplies',
     cat_sari_desc: 'Wholesale and retail goods',
@@ -159,7 +163,7 @@ const translations = {
     sett_privacy: 'Privacy & Safety',
     sett_sign_out: 'Log Out',
     sett_signout_confirm: 'Are you sure you want to log out?',
-    
+
     // Dev Tools
     sett_dev_tools: 'Developer Tools',
     sett_seed_db: 'Seed Database',
@@ -389,7 +393,7 @@ const translations = {
     sett_privacy: 'Privacy at Kaligtasan',
     sett_sign_out: 'Mag-logout',
     sett_signout_confirm: 'Sigurado ka bang gusto mong mag-logout?',
-    
+
     // Dev Tools
     sett_dev_tools: 'Mga Developer Tool',
     sett_seed_db: 'Seed Database',
@@ -613,7 +617,7 @@ const translations = {
     sett_privacy: 'Privacy ug Safety',
     sett_sign_out: 'Logout',
     sett_signout_confirm: 'Sigurado ka nga gusto ka mag logout?',
-    
+
     // Dev Tools
     sett_dev_tools: 'Developer Tools',
     sett_seed_db: 'Seed Database',

@@ -36,34 +36,53 @@ export default function TransactionReceipt({ transaction, onClose }) {
 
   return (
     <div className="location-modal-overlay" style={{ zIndex: 2000 }}>
+      <style>{`
+        .receipt-container::-webkit-scrollbar {
+          width: 8px;
+          display: block !important;
+        }
+        .receipt-container::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 4px;
+        }
+        .receipt-container::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+        }
+        .receipt-container::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+      `}</style>
       <div className="location-modal-content" style={{ maxWidth: '450px', background: 'transparent', boxShadow: 'none' }}>
         
         {/* Actions Header (Not captured in image) */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', background: 'var(--card-bg)', padding: '1rem', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-           <button onClick={handleDownload} className="btn-primary" style={{ width: 'auto', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '8px' }}>
-             <Download size={18} /> Download Receipt
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', background: 'var(--card-bg)', padding: '1rem', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', gap: '0.5rem' }}>
+           <button onClick={handleDownload} className="btn-primary" style={{ width: 'auto', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+             <Download size={16} /> Download
            </button>
-           <button onClick={onClose} className="glass" style={{ width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+           <button onClick={onClose} className="glass" style={{ width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
              <X size={20} />
            </button>
         </div>
 
-        {/* The Actual Receipt Element to Capture */}
+        {/* Receipt (Captured in image) */}
         <div 
           ref={receiptRef}
+          className="receipt-container"
           style={{
             background: '#ffffff',
             borderRadius: '16px',
-            overflow: 'hidden',
+            overflowY: 'auto',
+            maxHeight: '70vh',
             boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
             position: 'relative',
             color: '#1a1a1a',
             fontFamily: "'Inter', sans-serif"
           }}
         >
-          {/* Header */}
-          <div style={{ background: '#2563eb', padding: '1.5rem', textAlign: 'center', color: 'white' }}>
-             <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", letterSpacing: '1px' }}>KOMUNITRADE</h2>
+          {/* Receipt Header */}
+          <div style={{ background: '#2563eb', color: '#ffffff', padding: '1.5rem', textAlign: 'center' }}>
+             <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>KomuniTrade</h2>
              <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '2px' }}>Transaction Agreement</p>
           </div>
 

@@ -13,6 +13,7 @@ export default function ItemDetails() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
   
   useEffect(() => {
     async function fetchItem() {
@@ -71,7 +72,43 @@ export default function ItemDetails() {
         <button className="back-btn" onClick={() => navigate(-1)}>
           <ArrowLeft size={24} />
         </button>
-        <img src={item.imageUrl} alt={item.title} className="detail-img" />
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          <img src={selectedImage || item.imageUrl} alt={item.title} className="detail-img" />
+          
+          {item.imageUrls && item.imageUrls.length > 1 && (
+            <div style={{ 
+              display: 'flex', 
+              gap: '0.5rem', 
+              overflowX: 'auto', 
+              padding: '0.5rem', 
+              background: 'rgba(0,0,0,0.5)', 
+              backdropFilter: 'blur(4px)',
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 10
+            }}>
+              {item.imageUrls.map((url, index) => (
+                <div 
+                  key={index} 
+                  style={{ 
+                    width: '50px', 
+                    height: '50px', 
+                    borderRadius: '8px', 
+                    overflow: 'hidden',
+                    border: (selectedImage || item.imageUrl) === url ? '2px solid var(--primary)' : '1px solid rgba(255,255,255,0.3)',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                  onClick={() => setSelectedImage(url)}
+                >
+                  <img src={url} alt={`Thumb ${index}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
@@ -141,7 +178,6 @@ export default function ItemDetails() {
         maxWidth: '600px', 
         padding: '1rem',
         background: 'var(--bg-color)',
-        borderTop: '1px solid var(--border-color)',
         zIndex: 40
       }}>
         <button className="btn btn-primary" onClick={() => setIsChatOpen(true)}>
