@@ -1,0 +1,67 @@
+[debug] [2026-05-18T07:04:55.149Z] ----------------------------------------------------------------------
+[debug] [2026-05-18T07:04:55.150Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\MYPC\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-05-18T07:04:55.151Z] CLI Version:   15.17.0
+[debug] [2026-05-18T07:04:55.151Z] Platform:      win32
+[debug] [2026-05-18T07:04:55.151Z] Node Version:  v24.12.0
+[debug] [2026-05-18T07:04:55.151Z] Time:          Mon May 18 2026 15:04:55 GMT+0800 (Philippine Standard Time)
+[debug] [2026-05-18T07:04:55.151Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-05-18T07:04:55.152Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-05-18T07:04:56.859Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-18T07:04:56.859Z] > authorizing via signed-in user (anthonpnc@gmail.com)
+[debug] [2026-05-18T07:04:56.859Z] [iam] checking project komunitrade for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]
+[debug] [2026-05-18T07:04:56.859Z] Checked if tokens are valid: false, expires at: 1778720598021
+[debug] [2026-05-18T07:04:56.859Z] Checked if tokens are valid: false, expires at: 1778720598021
+[debug] [2026-05-18T07:04:56.860Z] > refreshing access token with scopes: []
+[debug] [2026-05-18T07:04:56.860Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-05-18T07:04:56.860Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-18T07:04:57.065Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-05-18T07:04:57.065Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-18T07:04:57.069Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/komunitrade:testIamPermissions [none]
+[debug] [2026-05-18T07:04:57.069Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/komunitrade:testIamPermissions  x-goog-user-project=komunitrade
+[debug] [2026-05-18T07:04:57.069Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/komunitrade:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2026-05-18T07:04:57.432Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-05-18T07:04:57.432Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-05-18T07:04:58.404Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/komunitrade:testIamPermissions 200
+[debug] [2026-05-18T07:04:58.405Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/komunitrade:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2026-05-18T07:04:58.405Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:04:58.405Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:04:58.405Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/komunitrade [none]
+[debug] [2026-05-18T07:04:59.806Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/komunitrade 200
+[debug] [2026-05-18T07:04:59.806Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/komunitrade {"projectId":"komunitrade","projectNumber":"635774409762","displayName":"KomuniTrade","name":"projects/komunitrade","resources":{"hostingSite":"komunitrade"},"state":"ACTIVE","etag":"1_5977ce20-8fa8-4074-a51f-9738cb4f9d95"}
+[info] 
+[info] === Deploying to 'komunitrade'...
+[info] 
+[info] i  deploying storage, firestore, hosting 
+[info] i  storage: ensuring required API firebasestorage.googleapis.com is enabled... 
+[debug] [2026-05-18T07:04:59.809Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:04:59.809Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:04:59.809Z] >>> [apiv2][query] GET https://firebasestorage.googleapis.com/v1alpha/projects/komunitrade/defaultBucket [none]
+[debug] [2026-05-18T07:05:00.459Z] <<< [apiv2][status] GET https://firebasestorage.googleapis.com/v1alpha/projects/komunitrade/defaultBucket 200
+[debug] [2026-05-18T07:05:00.459Z] <<< [apiv2][body] GET https://firebasestorage.googleapis.com/v1alpha/projects/komunitrade/defaultBucket {"name":"projects/komunitrade/defaultBucket","location":"ASIA-SOUTHEAST1","bucket":{"name":"projects/komunitrade/buckets/komunitrade.firebasestorage.app"},"storageClass":"REGIONAL"}
+[info] i  firebase.storage: checking storage.rules for compilation errors... 
+[debug] [2026-05-18T07:05:00.460Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:00.460Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:00.461Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/komunitrade:test [none]
+[debug] [2026-05-18T07:05:00.461Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/komunitrade:test [omitted]
+[debug] [2026-05-18T07:05:00.968Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/komunitrade:test 200
+[debug] [2026-05-18T07:05:00.968Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/komunitrade:test {}
+[info] +  firebase.storage: rules file storage.rules compiled successfully 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-05-18T07:05:00.970Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:00.970Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:00.970Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/komunitrade/databases/(default) [none]
+[debug] [2026-05-18T07:05:01.212Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/komunitrade/databases/(default) 200
+[debug] [2026-05-18T07:05:01.212Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/komunitrade/databases/(default) {"name":"projects/komunitrade/databases/(default)","uid":"ba4f91f6-9259-478f-8c24-0306b0236b98","createTime":"2026-05-04T16:22:57.112007Z","updateTime":"2026-05-04T16:22:57.112007Z","locationId":"asia-southeast1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-05-18T06:04:24.792480Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"zas","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"II2D0uGiwpQDMLG+rqi0t5QD"}
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-05-18T07:05:01.213Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:01.213Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:01.213Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/komunitrade:test [none]
+[debug] [2026-05-18T07:05:01.213Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/komunitrade:test [omitted]
+[debug] [2026-05-18T07:05:01.555Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/komunitrade:test 200
+[debug] [2026-05-18T07:05:01.555Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/komunitrade:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-05-18T07:05:01.556Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:01.556Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:01.556Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/komunitrade/sites/komunitrade [none]
