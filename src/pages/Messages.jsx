@@ -26,6 +26,16 @@ async function fetchUserPublicKey(uid) {
   return null;
 }
 
+const getPeerAlias = (chat, currentUserId) => {
+  if (!chat) return "Unknown User";
+  if (chat.sellerId === currentUserId) {
+    const bId = chat.buyerId || "";
+    return `Buyer_${bId.substring(0, 4).toUpperCase()}`;
+  } else {
+    return "Seller (Anonymous)";
+  }
+};
+
 export default function Messages() {
   const { lang, setLang, t } = useLanguage();
   const { currentUser } = useAuth();
@@ -171,15 +181,33 @@ export default function Messages() {
 
               {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2px' }}>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{chat.itemTitle || "Unknown Item"}</h3>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{chat.formattedDate}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px', gap: '1rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0 }}>
+                    {getPeerAlias(chat, currentUser.uid)}
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    {chat.formattedDate}
+                  </span>
                 </div>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Re: {chat.itemTitle || "Unknown Item"}
+                </div>
+                <p style={{ margin: '0 0 6px 0', fontSize: '0.9rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {chat.decryptedLastMessage}
                 </p>
-                <div style={{ fontSize: '0.75rem', color: 'var(--primary)', marginTop: '4px', fontWeight: 700 }}>
-                  {chat.sellerId === currentUser.uid ? "Selling" : "Buying"}
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <span style={{ 
+                    fontSize: '0.7rem', 
+                    color: chat.sellerId === currentUser.uid ? 'var(--primary)' : '#10b981', 
+                    fontWeight: 800,
+                    background: chat.sellerId === currentUser.uid ? 'var(--primary-light)' : 'rgba(16,185,129,0.1)',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    {chat.sellerId === currentUser.uid ? "Selling" : "Buying"}
+                  </span>
                 </div>
               </div>
 

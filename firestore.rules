@@ -21,7 +21,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null && request.auth.uid == userId
         && (!(request.resource.data.keys().hasAny(['isVerified', 'verified', 'verificationScore', 'verifiedAt'])) 
-            || request.resource.data.get('isVerified', false) == false);
+            || (request.resource.data.get('isVerified', false) == false && request.resource.data.get('verified', false) == false));
       allow update: if request.auth != null && request.auth.uid == userId
         && !(request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVerified', 'verified', 'verificationScore', 'verifiedAt']));
     }

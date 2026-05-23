@@ -137,12 +137,19 @@ export const createUserProfile = async (user, extraData = {}) => {
       ...extraData,
     });
   } else {
-    // If user profile exists but public key is missing, write it
+    // If user profile exists but public key is missing or different (e.g. new device), update it
     const data = snap.data();
-    if (!data.publicKeyJwk && publicKeyJwk) {
-      await updateDoc(userRef, {
-        publicKeyJwk: publicKeyJwk
-      });
+    if (publicKeyJwk) {
+      const isDiff = !data.publicKeyJwk || 
+        data.publicKeyJwk.x !== publicKeyJwk.x || 
+        data.publicKeyJwk.y !== publicKeyJwk.y ||
+        data.publicKeyJwk.kty !== publicKeyJwk.kty ||
+        data.publicKeyJwk.crv !== publicKeyJwk.crv;
+      if (isDiff) {
+        await updateDoc(userRef, {
+          publicKeyJwk: publicKeyJwk
+        });
+      }
     }
   }
 };

@@ -6,12 +6,14 @@ import { db, auth, storage, collection, addDoc, serverTimestamp } from '../fireb
 import { ref, uploadBytes, getDownloadURL } from '../firebase';
 import { encodeGeohash, resolveLocationCoords, findNearestBarangay } from '../utils/geo';
 import { useLanguage } from '../hooks/useLanguage.jsx';
+import { useAuth } from '../contexts/AuthContext';
 import GoogleMap from '../components/GoogleMap';
 import { analyzeImage } from '../services/imageAnalysisService';
 
 export default function PostItem() {
   const { lang, setLang, t } = useLanguage();
   const navigate = useNavigate();
+  const { currentUser, userProfile } = useAuth();
   const [previewUrls, setPreviewUrls] = useState([]);
   const [imageFiles, setImageFiles] = useState([]); // actual Files for Storage upload
   const [selectedImageForAI, setSelectedImageForAI] = useState(0); // Index of image to analyze
@@ -193,7 +195,6 @@ export default function PostItem() {
       return;
     }
 
-    const currentUser = auth.currentUser;
     if (!currentUser) return;
 
     const coords = timeMark
@@ -232,6 +233,7 @@ export default function PostItem() {
         geohash: encodeGeohash(coords.lat, coords.lng),
         timeMark: timeMark || null,
         sellerId: currentUser.uid,
+        verified: userProfile?.verified || userProfile?.isVerified || false,
         imageUrls: imageUrls,
         imageUrl: finalImageUrl,
         expiresAt: new Date(Date.now() + (7 * 24) * 60 * 60 * 1000).toISOString(),

@@ -141,17 +141,29 @@ export async function decryptMessage(payloadJson, peerPublicKeyJwk = null, chatI
       const { iv, ciphertext } = JSON.parse(payloadJson);
       
       let cryptoKey;
+      let decrypted = null;
+      
       if (peerPublicKeyJwk) {
-        cryptoKey = await deriveSharedKey(peerPublicKeyJwk);
-      } else {
-        cryptoKey = await deriveKeyFromChatId(chatId);
+        try {
+          cryptoKey = await deriveSharedKey(peerPublicKeyJwk);
+          decrypted = await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: base64ToBuffer(iv) },
+            cryptoKey,
+            base64ToBuffer(ciphertext)
+          );
+        } catch (ecdhError) {
+          console.warn("ECDH decryption failed, trying chatId-derived key fallback:", ecdhError);
+        }
       }
       
-      const decrypted = await window.crypto.subtle.decrypt(
-        { name: "AES-GCM", iv: base64ToBuffer(iv) },
-        cryptoKey,
-        base64ToBuffer(ciphertext)
-      );
+      if (!decrypted) {
+        cryptoKey = await deriveKeyFromChatId(chatId);
+        decrypted = await window.crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: base64ToBuffer(iv) },
+          cryptoKey,
+          base64ToBuffer(ciphertext)
+        );
+      }
       
       const decoder = new TextDecoder();
       return decoder.decode(decrypted);
@@ -173,6 +185,9 @@ export async function decryptMessage(payloadJson, peerPublicKeyJwk = null, chatI
     }
     return result;
   } catch (e) {
+    if (payloadJson.startsWith("{") && payloadJson.includes("ciphertext")) {
+      return "[Encrypted message - older device key]";
+    }
     return payloadJson;
   }
 }

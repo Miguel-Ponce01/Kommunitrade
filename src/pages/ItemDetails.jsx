@@ -200,9 +200,44 @@ export default function ItemDetails() {
             {trustLevel.label}
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontWeight: 900, color: 'var(--accent)', fontSize: '1.1rem' }}>⭐ {sellerRating.toFixed(1)}</div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{sellerReviewsCount} reviews</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '0.5rem' }}>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontWeight: 900, color: 'var(--accent)', fontSize: '1.1rem' }}>⭐ {sellerRating.toFixed(1)}</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{sellerReviewsCount} reviews</div>
+          </div>
+          <div style={{ width: '1px', height: '24px', background: 'var(--border-color)' }}></div>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent navigating to profile page
+              setIsChatOpen(true);
+            }}
+            title="Contact Seller"
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: 'var(--primary-light)',
+              color: 'var(--primary)',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.1)';
+              e.currentTarget.style.background = 'var(--primary)';
+              e.currentTarget.style.color = '#fff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.background = 'var(--primary-light)';
+              e.currentTarget.style.color = 'var(--primary)';
+            }}
+          >
+            <MessageCircle size={20} />
+          </button>
         </div>
       </div>
 
@@ -211,23 +246,6 @@ export default function ItemDetails() {
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
           {item.description}
         </p>
-      </div>
-
-      {/* Fixed bottom action area for details page */}
-      <div style={{ 
-        position: 'fixed', 
-        bottom: '70px', 
-        left: '50%', 
-        transform: 'translateX(-50%)', 
-        width: '100%', 
-        maxWidth: '600px', 
-        padding: '1rem',
-        background: 'var(--bg-color)',
-        zIndex: 40
-      }}>
-        <button className="btn btn-primary" onClick={() => setIsChatOpen(true)}>
-          <MessageCircle size={20} /> Contact Seller
-        </button>
       </div>
 
       <ChatModal 

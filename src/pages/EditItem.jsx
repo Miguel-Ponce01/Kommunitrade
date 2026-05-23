@@ -213,6 +213,10 @@ export default function EditItem() {
         addLog("Image uploaded successfully.", "success");
       }
 
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      const isVerified = userSnap.exists() ? (userSnap.data().verified || userSnap.data().isVerified || false) : false;
+
       const listingRef = doc(db, 'listings', id);
       
       const updateData = {
@@ -225,7 +229,8 @@ export default function EditItem() {
         barangay,
         lat: coords.lat,
         lng: coords.lng,
-        geohash: encodeGeohash(coords.lat, coords.lng)
+        geohash: encodeGeohash(coords.lat, coords.lng),
+        verified: isVerified
       };
 
       if (timeMark) {

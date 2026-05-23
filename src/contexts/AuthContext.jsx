@@ -27,14 +27,20 @@ export function AuthProvider({ children }) {
   // Track auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
       if (user) {
+        try {
+          // Verify profile exists and E2EE keys are synced
+          await createUserProfile(user);
+        } catch (e) {
+          console.error("Failed to sync/create profile on state change:", e);
+        }
         // Fetch Firestore profile
         const snap = await getDoc(doc(db, "users", user.uid));
         setUserProfile(snap.exists() ? snap.data() : null);
       } else {
         setUserProfile(null);
       }
+      setCurrentUser(user);
       setLoading(false);
     });
     return unsubscribe;

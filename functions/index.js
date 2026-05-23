@@ -257,6 +257,7 @@ exports.verifyUserIdentity = onCall({ cors: true }, async (request) => {
       const db = admin.firestore();
       const userRef = db.collection("users").doc(request.auth.uid);
       await userRef.update({
+        verified: true,
         isVerified: true,
         verificationScore: score,
         verifiedAt: admin.firestore.FieldValue.serverTimestamp()

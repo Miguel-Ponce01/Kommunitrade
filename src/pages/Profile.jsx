@@ -17,7 +17,8 @@ import {
   Languages,
   Briefcase,
   Star,
-  Shield
+  Shield,
+  MessageCircle
 } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
 import { db, auth, collection, query, where, onSnapshot, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from '../firebase';
@@ -54,6 +55,14 @@ export default function Profile() {
     meetupLocation: ''
   });
 
+  const queryParams = new URLSearchParams(location.search);
+  const uidParam = queryParams.get('uid');
+  const targetUid = uidParam || (currentUser ? currentUser.uid : null);
+  const isOwnProfile = !uidParam || (currentUser && uidParam === currentUser.uid);
+
+  const [profileData, setProfileData] = useState(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+
   // Local state for functional editing
   const [displayName, setDisplayName] = useState(
     localStorage.getItem('komuni_display_name') || 
@@ -76,12 +85,36 @@ export default function Profile() {
   const [isGeolocating, setIsGeolocating] = useState(false);
   const fileInputRef = React.useRef(null);
 
+  // Fetch target profile data from Firestore
   useEffect(() => {
-    if (!currentUser) return;
+    if (!targetUid) return;
+    setIsProfileLoading(true);
+    const userRef = doc(db, 'users', targetUid);
+    const unsubscribe = onSnapshot(userRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setProfileData(data);
+        setDisplayName(data.displayName || `Agent_${targetUid.substring(0, 6).toUpperCase()}`);
+        setUserLocation(data.barangay || "Davao City");
+        setUserBio(data.bio || "Passionate community member interested in sustainable trading.");
+        setCommunityStatus(data.communityStatus || "Active member of the Davao trading community. Focused on sustainable exchange and supporting local barangays.");
+        setProfileImage(data.photoURL || null);
+      }
+      setIsProfileLoading(false);
+    }, (err) => {
+      console.error("Failed to load profile:", err);
+      setIsProfileLoading(false);
+    });
+    return () => unsubscribe();
+  }, [targetUid]);
+
+  // Fetch listings for the target user
+  useEffect(() => {
+    if (!targetUid) return;
 
     const q = query(
       collection(db, 'listings'),
-      where('sellerId', '==', currentUser.uid)
+      where('sellerId', '==', targetUid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -96,20 +129,48 @@ export default function Profile() {
     });
 
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [targetUid]);
 
   const handleSave = async () => {
+    if (!isOwnProfile || !currentUser) return;
+
     localStorage.setItem('komuni_display_name', displayName);
     localStorage.setItem('komuni_user_location', userLocation);
     localStorage.setItem('komuni_user_bio', userBio);
     localStorage.setItem('komuni_comm_status', communityStatus);
     if (profileImage) localStorage.setItem('komuni_profile_image', profileImage);
+    
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        displayName,
+        barangay: userLocation,
+        bio: userBio,
+        communityStatus,
+        photoURL: profileImage
+      });
+    } catch (err) {
+      console.error("Failed to update profile in Firestore:", err);
+    }
+
     setIsEditing(false);
   };
 
-  const handleStatusSave = () => {
+  const handleStatusSave = async () => {
     setCommunityStatus(tempStatus);
     localStorage.setItem('komuni_comm_status', tempStatus);
+
+    if (isOwnProfile && currentUser) {
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        await updateDoc(userRef, {
+          communityStatus: tempStatus
+        });
+      } catch (err) {
+        console.error("Failed to update status in Firestore:", err);
+      }
+    }
+
     setIsEditingStatus(false);
   };
 
@@ -325,10 +386,17 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="verified-badge-pill">
-            <CheckCircle2 size={18} color="var(--primary)" />
-            Identity verified
-          </div>
+          {(profileData?.verified || profileData?.isVerified) ? (
+            <div className="verified-badge-pill">
+              <CheckCircle2 size={18} color="var(--primary)" />
+              Identity verified
+            </div>
+          ) : (
+            <div className="verified-badge-pill unverified" style={{ background: 'var(--border-color)', color: 'var(--text-muted)', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+              <Shield size={18} color="var(--text-muted)" />
+              Unverified Seller
+            </div>
+          )}
 
           <div className="info-grid" style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <div className="info-item" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
@@ -337,7 +405,7 @@ export default function Profile() {
             </div>
             <div className="info-item" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
               <MapPin className="info-icon" size={16} />
-              {isEditing ? (
+              {isEditing && isOwnProfile ? (
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', width: '100%' }}>
                   <input 
                     type="text" 
@@ -360,7 +428,7 @@ export default function Profile() {
           </div>
 
           <div className="community-status-box" style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--card-bg)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-             {isEditingStatus ? (
+             {isEditingStatus && isOwnProfile ? (
                <div className="status-editor">
                  <textarea 
                    value={tempStatus}
@@ -375,38 +443,59 @@ export default function Profile() {
                  </div>
                </div>
              ) : (
-               <div className="status-display" onClick={() => setIsEditingStatus(true)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+               <div className="status-display" onClick={() => isOwnProfile && setIsEditingStatus(true)} style={{ cursor: isOwnProfile ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <p className="bio-text" style={{ fontSize: '0.85rem', margin: 0 }}>{communityStatus}</p>
-                  <Edit3 size={14} className="status-edit-icon" style={{ color: 'var(--text-muted)' }} />
+                  {isOwnProfile && <Edit3 size={14} className="status-edit-icon" style={{ color: 'var(--text-muted)' }} />}
                </div>
              )}
           </div>
 
           <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <button 
-              className="btn-primary" 
-              onClick={isEditing ? handleSave : () => setIsEditing(true)}
-              style={{ width: '100%', borderRadius: '12px' }}
-            >
-              {isEditing ? 'SAVE CHANGES' : t('prof_edit')}
-            </button>
-            <button 
-              className="btn-secondary" 
-              onClick={handleShare}
-              style={{ width: '100%', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-            >
-              <Share2 size={18} /> SHARE
-            </button>
+            {isOwnProfile ? (
+              <>
+                <button 
+                  className="btn-primary" 
+                  onClick={isEditing ? handleSave : () => setIsEditing(true)}
+                  style={{ width: '100%', borderRadius: '12px' }}
+                >
+                  {isEditing ? 'SAVE CHANGES' : t('prof_edit')}
+                </button>
+                <button 
+                  className="btn-secondary" 
+                  onClick={handleShare}
+                  style={{ width: '100%', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  <Share2 size={18} /> SHARE
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  className="btn-primary" 
+                  onClick={() => {
+                    alert("To start a secure chat, please click on one of the seller's active listings below and click 'Contact Seller'.");
+                  }}
+                  style={{ width: '100%', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  <MessageCircle size={18} /> MESSAGE SELLER
+                </button>
+                <button 
+                  className="btn-secondary" 
+                  onClick={handleShare}
+                  style={{ width: '100%', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  <Share2 size={18} /> SHARE PROFILE
+                </button>
+              </>
+            )}
           </div>
         </div>
 
         {/* Right Column: About & Content */}
         <div className="profile-main-content">
           
-
-
           {/* Tabs for Inventory / Security */}
-          <div className="tab-nav" style={{ borderBottom: '1px solid var(--border-color)', marginBottom: '1rem', display: 'flex' }}>
+          <div className="tab-nav" style={{ borderBottom: '1px solid var(--border-color)', marginBottom: '1rem', display: isOwnProfile ? 'flex' : 'none' }}>
             <button 
               className={`tab-item ${activeTab === 'inventory' ? 'active' : ''}`} 
               onClick={() => setActiveTab('inventory')}
@@ -444,13 +533,15 @@ export default function Profile() {
             <div className="animate-fade-in">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{t('prof_active_listings')}</h2>
-                <button 
-                  className="btn-primary" 
-                  onClick={() => navigate('/app/post')}
-                  style={{ borderRadius: '12px', padding: '0.6rem 1.2rem', width: 'auto' }}
-                >
-                  <Plus size={20} /> {t('prof_list_new')}
-                </button>
+                {isOwnProfile && (
+                  <button 
+                    className="btn-primary" 
+                    onClick={() => navigate('/app/post')}
+                    style={{ borderRadius: '12px', padding: '0.6rem 1.2rem', width: 'auto' }}
+                  >
+                    <Plus size={20} /> {t('prof_list_new')}
+                  </button>
+                )}
               </div>
 
               {isLoading ? (
@@ -468,11 +559,13 @@ export default function Profile() {
                   {myListings.map(item => (
                     <div key={item.id} style={{ position: 'relative' }}>
                       <ItemCard item={item} onClick={() => navigate(`/app/item/${item.id}`)} />
-                      <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
-                        <button title="Mark as Sold" className="glass" onClick={(e) => handleMarkAsSold(e, item)} style={{ width: '36px', height: '36px', borderRadius: '10px', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle2 size={16} /></button>
-                        <button className="glass" onClick={(e) => { e.stopPropagation(); navigate(`/app/edit-item/${item.id}`); }} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Edit3 size={16} /></button>
-                        <button className="glass" onClick={(e) => handleDelete(e, item.id)} style={{ width: '36px', height: '36px', borderRadius: '10px', color: '#ef4444', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={16} /></button>
-                      </div>
+                      {isOwnProfile && (
+                        <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
+                          <button title="Mark as Sold" className="glass" onClick={(e) => handleMarkAsSold(e, item)} style={{ width: '36px', height: '36px', borderRadius: '10px', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle2 size={16} /></button>
+                          <button className="glass" onClick={(e) => { e.stopPropagation(); navigate(`/app/edit-item/${item.id}`); }} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Edit3 size={16} /></button>
+                          <button className="glass" onClick={(e) => handleDelete(e, item.id)} style={{ width: '36px', height: '36px', borderRadius: '10px', color: '#ef4444', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={16} /></button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

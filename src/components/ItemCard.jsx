@@ -2,6 +2,28 @@ import { useState, memo } from 'react';
 import { MapPin, Heart, CheckCircle2, Clock, Timer, Calendar } from 'lucide-react';
 import { getExpiryLabel } from '../utils/geo';
 
+const formatDate = (dateValue) => {
+  if (!dateValue) return "";
+  try {
+    const d = dateValue.toDate ? dateValue.toDate() : new Date(dateValue);
+    if (isNaN(d.getTime())) return String(dateValue);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch (e) {
+    return String(dateValue);
+  }
+};
+
+const formatTime = (dateValue) => {
+  if (!dateValue) return "12:00 PM";
+  try {
+    const d = dateValue.toDate ? dateValue.toDate() : new Date(dateValue);
+    if (isNaN(d.getTime())) return "12:00 PM";
+    return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    return "12:00 PM";
+  }
+};
+
 const ItemCard = memo(({ item, onClick }) => {
   const [isSaved, setIsSaved] = useState(false);
 
@@ -58,6 +80,20 @@ const ItemCard = memo(({ item, onClick }) => {
           )}
         </div>
 
+        {/* Expandable description on hover */}
+        {item.description && (
+          <p className="item-desc-reveal-premium">{item.description}</p>
+        )}
+
+        {/* Expandable tags on hover */}
+        {item.tags && item.tags.length > 0 && (
+          <div className="item-tags-reveal-premium">
+            {item.tags.slice(0, 3).map((tag, i) => (
+              <span key={i} className="item-tag-pill">#{tag}</span>
+            ))}
+          </div>
+        )}
+
         <div className="item-footer-premium">
           <div className="item-time-premium">
              {typeof item.createdAt === 'string' && item.createdAt.includes('now') ? (
@@ -68,14 +104,10 @@ const ItemCard = memo(({ item, onClick }) => {
              ) : (
                <>
                  <Calendar size={12} className="icon-primary" />
-                 <span>{
-                   item.createdAt && item.createdAt.toDate 
-                     ? item.createdAt.toDate().toLocaleDateString() 
-                     : (item.createdAt || new Date().toLocaleDateString())
-                 }</span>
+                 <span>{formatDate(item.createdAt)}</span>
                  <span className="dot-separator">•</span>
                  <Clock size={12} className="icon-primary" />
-                 <span>12:00 PM</span>
+                 <span>{formatTime(item.createdAt)}</span>
                </>
              )}
           </div>
