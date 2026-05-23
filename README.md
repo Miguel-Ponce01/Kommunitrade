@@ -52,15 +52,14 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 
 | # | Objective | Technology |
 |---|-----------|------------|
-| 1 | Automatically classify uploaded items and categorize products | CNN (EfficientNet/MobileNetV3) |
-| 2 | Extract text from images to auto-generate titles, tags, and descriptions | OCR (Tesseract/Google Vision API) |
+| 1 | Automatically classify uploaded items and categorize products | CNN (MobileNet v2 via TensorFlow.js) |
+| 2 | Extract text from images to auto-generate titles, tags, and descriptions | OCR (Tesseract.js / Google Vision API / DeepSeek via Cloud Function) |
 | 3 | Display relevant listings based on user proximity and search keywords | Geohash encoding + Inverted Index |
-| 4 | Assess seller legitimacy using behavioral and transaction data | ML confidence scoring algorithm |
-| 5 | Verify seller identity by comparing profile and ID images | Facial recognition (ArcFace/FaceNet) |
+| 4 | Assess seller legitimacy using behavioral and transaction data | Bayesian confidence scoring algorithm |
+| 5 | Verify seller identity by comparing government ID and selfie images | Google Gemini 1.5 Flash multimodal API (via Cloud Function) |
 | 6 | Provide authenticated access, listing management, and transaction tracking | Firebase Auth + Firestore |
-| 7 | Monitor platform activity and seller performance | Dashboard analytics module |
-| 8 | Evaluate model performance | Accuracy, Precision, Recall, F1-Score |
-| 9 | Evaluate system usability | UAT, SUS, ISO 25010 standards |
+| 7 | Evaluate model performance | Accuracy, Precision, Recall, F1-Score |
+| 8 | Evaluate system usability | UAT, SUS, ISO 25010 standards |
 
 ---
 
@@ -73,13 +72,14 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 | Frontend | React + Vite | User interface, fast development |
 | Backend | Firebase (serverless) | Authentication, database, hosting |
 | Database | Cloud Firestore | NoSQL, real-time updates |
-| AI/ML - CNN | TensorFlow / PyTorch + MobileNetV3 | Image classification (lightweight for web) |
+| AI/ML - CNN | TensorFlow.js + MobileNet v2 (CDN) | Image classification (lightweight for web) |
 | AI/ML - OCR | Tesseract.js / Google Vision API | Text extraction from images |
-| AI/ML - Facial | ArcFace / FaceNet | Facial similarity matching |
-| Geospatial | Geohash library | Location encoding and proximity filtering |
-| Search | Inverted Index | Keyword-based listing retrieval |
-| Expiration | TTL mechanism | Auto-archive listings after 30 days |
-| Hosting | Firebase Hosting / Vercel | Web deployment |
+| AI/ML - Facial | Google Gemini 1.5 Flash (Cloud Function) | Multimodal ID-to-selfie biometric comparison |
+| AI/ML - Listings | DeepSeek Chat API (Cloud Function proxy) | Smart title, category, tag, and price suggestions |
+| Geospatial | Custom Geohash (BASE32, 8-neighbor scan) | Location encoding and proximity filtering |
+| Search | Inverted Index (in-memory) | Keyword-based listing retrieval |
+| Expiration | TTL mechanism (Scheduled Cloud Function) | Auto-archive listings after 30 days |
+| Hosting | Firebase Hosting | Web deployment |
 
 ## 5.2 System Architecture Diagram
 
@@ -136,28 +136,26 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 |----------|---------|-------------|--------|
 | High | Image Upload System | Users can upload item photos | Completed |
 | High | User Registration & Login | Secure account creation and authentication | Completed |
-| High | CNN Item Classification | Auto-categorize items from images | Completed |
-| High | OCR Auto-Tagging | Extract text for titles/descriptions | Completed |
-| High | Geohash Location Filtering | Show only nearby listings and surrounding neighbor cells | Completed |
-| Medium | Inverted Index Search | Fast keyword search | Completed |
+| High | CNN Item Classification | Auto-categorize items from images (MobileNet v2) | Completed |
+| High | OCR Auto-Tagging | Extract text for titles/descriptions (Tesseract.js + Google Vision) | Completed |
+| High | Geohash Location Filtering | Show only nearby listings and surrounding 8 neighbor cells | Completed |
+| Medium | Inverted Index Search | Fast keyword search (in-memory inverted index with AND-intersection) | Completed |
 | Medium | Transaction History & Receipts | Track past purchases/sales with GCash-style receipts | Completed |
-| Medium | Feedback Forum | Community feedback with admin moderation | Completed |
 | Medium | Rules & Regulations | Davao-specific consumer guidelines | Completed |
-| Medium | Anonymous Chat System | Private buyer-seller communication | Completed |
-| Medium | TTL Auto-Archiving | Auto-expire listings after 30 days | Completed |
+| Medium | Anonymous Chat System | Private buyer-seller communication with E2EE (ECDH P-256 + AES-GCM) | Completed |
+| Medium | TTL Auto-Archiving | Auto-expire listings after 30 days via Scheduled Cloud Function | Completed |
 | Medium | Language Localization | Support for English (default), Tagalog, and Bisaya | Completed |
-| Medium | Davao Cultural Theme | Landing page with Davao map background and cultural assets | Completed |
+| Medium | Davao Cultural Theme | Landing page with Davao-inspired cultural assets and styling | Completed |
 
 ## 6.2 Extended Feature Set (Enhanced Objectives)
 
 | Feature | Technology | Description | Status |
 |---------|------------|-------------|--------|
-| AI Price Suggestion | ML regression | Suggest price based on similar listings | Completed |
-| Seller Credibility Score | ML confidence algorithm | Score based on history, ratings, verification | Completed |
-| Verification Badges | Rule-based + ML | Display trust indicators on seller profiles | Completed |
-| Facial Verification | ArcFace/FaceNet / Gemini API | Compare profile photo with ID document securely | Completed |
-| Rating & Feedback System | User input + ML | Buyers rate sellers post-transaction | Completed |
-| Dashboard Analytics | Data viz (Chart.js) | Admin monitoring of listings, sales, fraud | Completed |
+| AI Price Suggestion | DeepSeek Chat API (Cloud Function) | Suggest price based on item description and OCR text | Completed |
+| Seller Credibility Score | Bayesian confidence scoring | Score based on transaction history, ratings, and verification | Completed |
+| Verification Badges | Rule-based scoring (getTrustLevel) | Display trust indicators (Community Member, Verified, Trusted, Elite) | Completed |
+| Facial Verification | Google Gemini 1.5 Flash (Cloud Function) | Compare government ID photo with selfie securely server-side | Completed |
+| Rating & Feedback System | User input + Bayesian weighting | Buyers rate sellers post-transaction | Completed |
 
 ---
 
@@ -338,7 +336,7 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 |---------|-------------|
 | Actor | Seller |
 | Preconditions | Seller registered |
-| Flow | 1. Upload selfie → 2. Upload ID → 3. System compares faces → 4. Confidence score ≥85% grants badge |
+| Flow | 1. Upload selfie → 2. Upload ID → 3. Cloud Function sends both to Gemini 1.5 Flash → 4. Confidence score ≥65% grants badge |
 | Postconditions | Seller verified or rejected |
 | Exceptions | Low match confidence, poor image quality |
 
@@ -373,9 +371,10 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 
 | Component | Framework |
 |-----------|-----------|
-| CNN Training | TensorFlow / PyTorch |
-| OCR | Tesseract + Google Vision API |
-| Facial Recognition | ArcFace / FaceNet |
+| CNN Classification | TensorFlow.js + MobileNet v2 (browser-native, no training required) |
+| OCR | Tesseract.js (local) + Google Vision API (cloud) |
+| Facial Verification | Google Gemini 1.5 Flash multimodal API (via Cloud Function) |
+| Smart Listing Generation | DeepSeek Chat API (via Cloud Function proxy) |
 
 ---
 
@@ -524,8 +523,8 @@ Level 1: KomuniTrade System Development
 | Nationwide marketplace | Focus on hyperlocal community |
 | Integrated payment gateways | Technical complexity + scope |
 | Delivery logistics | Beyond marketplace functionality |
-| Government-level ID verification | Complex legal integration |
 | Native mobile app | Web-based only (React) |
+| Persistent/server-side search index | Inverted index is in-memory only; rebuilt on each session load |
 
 ---
 
@@ -577,8 +576,9 @@ Stores profile, reputation, identity verification, and settings data for registe
 | `notificationPrefs` | Map | Map containing boolean flags: `messages`, `priceDrops`, `reminders`, `sms` |
 | `exactLocation` | Boolean | Privacy preference toggle for sharing exact GPS coordinates |
 | `isVerified` | Boolean | Flag indicating completed facial biometric verification |
-| `verificationScore` | Float | Face API selfie-to-ID similarity confidence score |
-| `verifiedAt` | String | Biometric identity verification timestamp |
+| `verified` | Boolean | Alias field for `isVerified` (set simultaneously for compatibility) |
+| `verificationScore` | Float | Gemini API selfie-to-ID similarity confidence score (0–100) |
+| `verifiedAt` | Timestamp | Firestore server timestamp of biometric identity verification |
 
 ## 23.2 Listings Collection
 Stores hyperlocal items listed by community sellers with proof of presence and AI-generated metadata.
@@ -627,7 +627,7 @@ Stores real-time conversation text logs with local Double Ratchet E2EE verificat
 | `senderId` | String (FK) | Sender user UID |
 | `senderAlias` | String | Sender friendly alias displayed in chat bubble |
 | `timestamp` | Timestamp | Date and time message was sent |
-| `isEncrypted` | Boolean | True if message is encrypted using Signal Protocol cryptosystem |
+| `isEncrypted` | Boolean | True if message is encrypted using ECDH P-256 + AES-GCM 256-bit (Web Crypto API) |
 
 ## 23.5 Transactions Collection
 Stores transaction histories, meetup terms, and GCash-style receipt agreements generated upon listing purchases.
@@ -704,7 +704,8 @@ Stores transaction histories, meetup terms, and GCash-style receipt agreements g
 
 | Date | Time | Update |
 |---|---|---|
-| May 24, 2026 | 01:14 AM | **Post-Defense Hardening & Security Audit**: Migrated identity verification to server-side Cloud Function (`verifyUserIdentity`) using Google Gemini API to compare ID faces vs selfies and write to Firestore using Admin SDK. Sealed all API key leak vectors by proxying Google Vision and DeepSeek requests through server-side functions and deleting the client-side `deepseekService.js`. Implemented parallel geohash neighbor scanning to eliminate border boundary discovery misses. Configured advanced database and storage access rules. |
+| May 24, 2026 | 01:14 AM | **Post-Defense Hardening & Security Audit**: Migrated identity verification to server-side Cloud Function (`verifyUserIdentity`) using Google Gemini 1.5 Flash API to compare government ID faces vs selfies and write verification flags to Firestore using Admin SDK (threshold ≥65%). Sealed all API key leak vectors by proxying Google Vision and DeepSeek requests through server-side functions and deleting the client-side `deepseekService.js`. Implemented parallel 8-neighbor geohash scanning to eliminate border boundary discovery misses. Configured advanced Firestore and Storage security rules. Fixed E2EE multi-device key desync via `createUserProfile` key sync on auth state change. Added chatId-derived decryption fallback and key rotation user messaging. |
+| May 24, 2026 | 02:54 AM | **Documentation Audit**: Corrected all inaccurate README claims — replaced ArcFace/FaceNet with Gemini 1.5 Flash, MobileNetV3/PyTorch with MobileNet v2/TensorFlow.js, verification threshold from 85% to 65%, removed unimplemented Dashboard Analytics and Feedback Forum from feature lists, removed Government ID Verification from delimitations (it is implemented), fixed `verifiedAt` Firestore field type from String to Timestamp, added DeepSeek API to tech stack. |
 | May 17, 2026 | 06:29 PM | **Documentation**: Fully synchronized database schemas, E2EE message definitions, GCash receipt transactions, and 100% completion checklist milestones. |
 | May 13, 2026 | 06:51 AM | **Feature**: Implemented Edit Listing feature, completing Sprint 5 backend CRUD operations. Added `EditItem.jsx` linked from Profile. |
 | May 13, 2026 | 06:51 AM | **Settings**: Finalized Privacy & Security (Exact Location sharing) and Support & About settings sections. |
