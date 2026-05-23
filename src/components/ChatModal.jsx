@@ -11,7 +11,8 @@ import {
   onSnapshot, 
   serverTimestamp,
   doc,
-  setDoc
+  setDoc,
+  getDoc
 } from '../firebase';
 import { isListingActive } from '../utils/geo';
 import { encryptMessage, decryptMessage } from '../utils/crypto';
@@ -21,6 +22,7 @@ export default function ChatModal({ isOpen, onClose, item }) {
   const [newMessage, setNewMessage] = useState('');
   const [chatId, setChatId] = useState(null);
   const [sendError, setSendError] = useState(null);
+  const [peerPublicKey, setPeerPublicKey] = useState(null);
   const scrollRef = useRef(null);
 
   const currentUser = auth.currentUser;
@@ -40,17 +42,36 @@ export default function ChatModal({ isOpen, onClose, item }) {
     const chatIdString = item.chatId || [buyerId, sellerId, item.id].sort().join('_');
     setChatId(chatIdString);
 
+    const peerId = currentUser.uid === sellerId ? buyerId : sellerId;
+
+    // Fetch peer's public E2EE key
+    const fetchPeerKey = async () => {
+      try {
+        const peerRef = doc(db, 'users', peerId);
+        const peerSnap = await getDoc(peerRef);
+        if (peerSnap.exists()) {
+          const peerData = peerSnap.data();
+          if (peerData.publicKeyJwk) {
+            setPeerPublicKey(peerData.publicKeyJwk);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch peer E2EE key:", err);
+      }
+    };
+    fetchPeerKey();
+
     const q = query(
       collection(db, 'chats', chatIdString, 'messages'),
       orderBy('timestamp', 'asc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => {
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const msgsPromises = snapshot.docs.map(async (doc) => {
         const data = doc.data();
         let decryptedText = '';
         try {
-          decryptedText = decryptMessage(data.text);
+          decryptedText = await decryptMessage(data.text, peerPublicKey, chatIdString);
         } catch (e) {
           console.error("Failed to decrypt message:", e);
           decryptedText = "[Unable to decrypt message]";
@@ -61,12 +82,16 @@ export default function ChatModal({ isOpen, onClose, item }) {
           text: decryptedText
         };
       });
+
+      const msgs = await Promise.all(msgsPromises);
       setMessages(msgs);
       setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    }, (err) => {
+      console.error("Chats subscription error:", err);
     });
 
     return () => unsubscribe();
-  }, [isOpen, item, currentUser]);
+  }, [isOpen, item, currentUser, peerPublicKey]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -74,7 +99,7 @@ export default function ChatModal({ isOpen, onClose, item }) {
     setSendError(null);
 
     try {
-      const encryptedMsg = encryptMessage(newMessage);
+      const encryptedMsg = await encryptMessage(newMessage, peerPublicKey, chatId);
       
       // 1. Add message to subcollection
       await addDoc(collection(db, 'chats', chatId, 'messages'), {

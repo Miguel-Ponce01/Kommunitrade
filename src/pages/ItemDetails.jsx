@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessageCircle, MapPin, Clock, Loader2, AlertCircle } from 'lucide-react';
-import { db, doc, getDoc } from '../firebase';
+import { db, doc, getDoc, collection, getDocs } from '../firebase';
 import ChatModal from '../components/ChatModal';
 import GoogleMap from '../components/GoogleMap';
+import { calculateBayesianRating, getTrustLevel } from '../utils/reputation';
 
 export default function ItemDetails() {
   const { id } = useParams();
@@ -14,6 +15,9 @@ export default function ItemDetails() {
   const [error, setError] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [sellerRating, setSellerRating] = useState(5.0);
+  const [sellerReviewsCount, setSellerReviewsCount] = useState(0);
+  const [trustLevel, setTrustLevel] = useState({ label: "Community Member", color: "var(--text-muted)", badgeClass: "regular" });
   
   useEffect(() => {
     async function fetchItem() {
@@ -32,6 +36,18 @@ export default function ItemDetails() {
             const sellerSnap = await getDoc(sellerRef);
             if (sellerSnap.exists()) {
               setSeller(sellerSnap.data());
+            }
+
+            // Fetch seller's ratings & calculate Bayesian reputation score
+            try {
+              const reviewsSnap = await getDocs(collection(db, 'users', sellerId, 'reviews'));
+              const reviewsList = reviewsSnap.docs.map(d => d.data());
+              const calculated = calculateBayesianRating(reviewsList);
+              setSellerRating(calculated);
+              setSellerReviewsCount(reviewsList.length);
+              setTrustLevel(getTrustLevel(calculated));
+            } catch (revErr) {
+              console.error("Failed to fetch reviews:", revErr);
             }
           }
         } else {
@@ -147,17 +163,46 @@ export default function ItemDetails() {
       </div>
 
       {/* Seller Section */}
-      <div style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div 
+        onClick={() => {
+          const sellerId = seller?.uid || item.userId || item.sellerId;
+          if (sellerId) navigate(`/app/profile?uid=${sellerId}`);
+        }}
+        style={{ 
+          background: 'var(--card-bg)', 
+          padding: '1.25rem', 
+          borderRadius: '16px', 
+          border: '1px solid var(--border-color)', 
+          marginBottom: '1.5rem', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '1rem',
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          boxShadow: 'var(--shadow-sm)'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+      >
         <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', overflow: 'hidden' }}>
           {seller?.photoURL ? <img src={seller.photoURL} alt={seller.displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{seller?.displayName || "Anonymous Seller"}</div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Seller</div>
+          <div style={{ fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            {seller?.displayName || "Anonymous Seller"}
+            {seller?.verified && (
+              <span title="Verified Identity" style={{ color: 'var(--primary)', display: 'inline-flex' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: trustLevel.color }}>
+            {trustLevel.label}
+          </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontWeight: 700, color: 'var(--accent)' }}>⭐ 4.5</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Credibility Score</div>
+          <div style={{ fontWeight: 900, color: 'var(--accent)', fontSize: '1.1rem' }}>⭐ {sellerRating.toFixed(1)}</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{sellerReviewsCount} reviews</div>
         </div>
       </div>
 

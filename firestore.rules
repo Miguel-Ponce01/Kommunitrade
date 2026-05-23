@@ -3,10 +3,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Listings: Anyone can read, only authenticated users can post/delete
+    // Listings: Anyone can read, only listing owner can modify/delete
     match /listings/{listingId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
     }
     
     // Transactions
@@ -15,10 +16,14 @@ service cloud.firestore {
       allow create: if request.auth != null;
     }
     
-    // Users: Anyone can read profiles, only owner can write
+    // Users: Anyone can read profiles, owner can write basic fields but not verification info
     match /users/{userId} {
       allow read: if true;
-      allow create, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId
+        && (!(request.resource.data.keys().hasAny(['isVerified', 'verified', 'verificationScore', 'verifiedAt'])) 
+            || request.resource.data.get('isVerified', false) == false);
+      allow update: if request.auth != null && request.auth.uid == userId
+        && !(request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVerified', 'verified', 'verificationScore', 'verifiedAt']));
     }
     
     // Chats: Only participants can read/write to their specific chat threads

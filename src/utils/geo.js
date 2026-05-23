@@ -78,7 +78,51 @@ export function decodeGeohash(geohash) {
   return {
     lat: (latMin + latMax) / 2,
     lng: (lngMin + lngMax) / 2,
+    latMin,
+    latMax,
+    lngMin,
+    lngMax
   };
+}
+
+/**
+ * Calculates the geohashes of the 8 surrounding neighbor cells of a given geohash.
+ * @param {string} geohash - Center geohash cell
+ * @returns {string[]} Array of 8 neighboring geohash strings
+ */
+export function getGeohashNeighbors(geohash) {
+  if (!geohash) return [];
+  const { lat, lng, latMin, latMax, lngMin, lngMax } = decodeGeohash(geohash);
+  
+  const latHeight = latMax - latMin;
+  const lngWidth = lngMax - lngMin;
+  const precision = geohash.length;
+
+  const offsets = [
+    [1, 0],   // North
+    [-1, 0],  // South
+    [0, 1],   // East
+    [0, -1],  // West
+    [1, 1],   // North-East
+    [1, -1],  // North-West
+    [-1, 1],  // South-East
+    [-1, -1]  // South-West
+  ];
+
+  return offsets.map(([latOffset, lngOffset]) => {
+    let nLat = lat + latOffset * latHeight;
+    let nLng = lng + lngOffset * lngWidth;
+    
+    // Normalize latitude
+    if (nLat > 90) nLat = 90;
+    if (nLat < -90) nLat = -90;
+    
+    // Normalize longitude
+    if (nLng > 180) nLng -= 360;
+    if (nLng < -180) nLng += 360;
+    
+    return encodeGeohash(nLat, nLng, precision);
+  });
 }
 
 /**

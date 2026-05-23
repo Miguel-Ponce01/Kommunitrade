@@ -2,9 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { MessageCircle, Search, Clock, ChevronRight, Loader2 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import { useAuth } from '../contexts/AuthContext';
-import { db, collection, query, where, onSnapshot } from '../firebase';
+import { db, collection, query, where, onSnapshot, doc, getDoc } from '../firebase';
 import { decryptMessage } from '../utils/crypto';
 import ChatModal from '../components/ChatModal';
+
+const peerKeyCache = {};
+
+async function fetchUserPublicKey(uid) {
+  if (peerKeyCache[uid] !== undefined) {
+    return peerKeyCache[uid];
+  }
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (snap.exists()) {
+      const pKey = snap.data().publicKeyJwk || null;
+      peerKeyCache[uid] = pKey;
+      return pKey;
+    }
+  } catch (e) {
+    console.error(`Failed to fetch public key for ${uid}:`, e);
+  }
+  peerKeyCache[uid] = null;
+  return null;
+}
 
 export default function Messages() {
   const { lang, setLang, t } = useLanguage();
@@ -24,25 +44,35 @@ export default function Messages() {
       where('participants', 'array-contains', currentUser.uid)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const chatList = snapshot.docs.map(doc => {
-        const data = doc.data();
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const chatListPromises = snapshot.docs.map(async (docObj) => {
+        const data = docObj.data();
         let lastMsg = 'No messages';
+        
         try {
-          lastMsg = data.lastMessage ? decryptMessage(data.lastMessage) : 'No messages';
+          if (data.lastMessage) {
+            const peerId = data.participants.find(p => p !== currentUser.uid);
+            let peerKey = null;
+            if (peerId) {
+              peerKey = await fetchUserPublicKey(peerId);
+            }
+            lastMsg = await decryptMessage(data.lastMessage, peerKey, docObj.id);
+          }
         } catch (e) {
           console.error("Failed to decrypt message:", e);
           lastMsg = "[Encrypted Message]";
         }
 
         return {
-          id: doc.id,
+          id: docObj.id,
           ...data,
           decryptedLastMessage: lastMsg,
           // Format date
           formattedDate: data.lastTimestamp?.toDate ? data.lastTimestamp.toDate().toLocaleString() : ''
         };
       });
+
+      const chatList = await Promise.all(chatListPromises);
 
       // Sort by timestamp descending
       chatList.sort((a, b) => {
@@ -53,6 +83,8 @@ export default function Messages() {
 
       setChats(chatList);
       setIsLoading(false);
+    }, (err) => {
+      console.error("Inbox query failed:", err);
     });
 
     return () => unsubscribe();

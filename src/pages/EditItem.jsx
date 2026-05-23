@@ -8,6 +8,7 @@ import { encodeGeohash, resolveLocationCoords, findNearestBarangay } from '../ut
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import GoogleMap from '../components/GoogleMap';
 import { extractText } from '../services/imageAnalysisService';
+import { analyzeListingWithDeepSeek } from '../services/deepseekService';
 
 export default function EditItem() {
   const { id } = useParams();
@@ -117,15 +118,38 @@ export default function EditItem() {
       if (extractedText) {
         addLog(`Extracted text: ${extractedText.substring(0, 30)}...`, "primary");
         
-        // Auto-fill title with the first line of OCR text if title is empty
+        if (!description) {
+          setDescription(extractedText);
+        }
+      }
+      
+      // Call DeepSeek Smart Advisor to optimize listing parameters
+      addLog("Contacting DeepSeek Smart Advisor...", "primary");
+      setAnalysisProgress("Contacting DeepSeek Smart Advisor...");
+      
+      const deepseekResult = await analyzeListingWithDeepSeek({
+        title: title || (extractedText ? extractedText.split('\n')[0].trim().substring(0, 60) : ''),
+        description: description || extractedText || '',
+        ocrText: extractedText || ''
+      });
+
+      if (deepseekResult.success) {
+        addLog("DeepSeek Smart Advisor recommendation loaded!", "success");
+        const ds = deepseekResult.data;
+        
+        // Auto-fill fields with AI optimized results
+        setTitle(ds.title);
+        setCategory(ds.category);
+        setTags(ds.tags);
+        if (ds.suggestedPrice > 0) {
+          setPrice(ds.suggestedPrice.toString());
+          addLog(`Suggested Price: ₱${ds.suggestedPrice}`, "success");
+        }
+      } else {
+        addLog("DeepSeek Advisor failed. Falling back to default OCR...", "error");
         const lines = extractedText.split('\n').filter(l => l.trim().length > 0);
         if (lines.length > 0 && !title) {
           setTitle(lines[0].trim().substring(0, 60));
-        }
-        
-        // Auto-fill description with the rest of the text if description is empty
-        if (!description) {
-          setDescription(extractedText);
         }
       }
       

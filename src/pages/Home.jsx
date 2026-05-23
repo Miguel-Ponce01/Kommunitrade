@@ -4,7 +4,7 @@ import { Search, MapPin, Shield, Loader2 } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
 import LocationModal from '../components/LocationModal';
 import { CATEGORIES } from '../data/mockData';
-import { haversineDistance, isListingActive, resolveLocationCoords, encodeGeohash, getGeohashPrecisionForRadius } from '../utils/geo';
+import { haversineDistance, isListingActive, resolveLocationCoords, encodeGeohash, getGeohashPrecisionForRadius, getGeohashNeighbors } from '../utils/geo';
 import { initializeSearchIndex, performSearch } from '../utils/searchIndex';
 import { db, collection, onSnapshot, query, orderBy, startAt, endAt } from '../firebase';
 import { useLanguage } from '../hooks/useLanguage.jsx';
@@ -33,41 +33,62 @@ export default function Home() {
     setIsLoading(true);
     const precision = getGeohashPrecisionForRadius(radius);
     const userGeohash = encodeGeohash(userLat, userLng, precision);
-    
-    // Query listings where geohash starts with userGeohash
-    const q = query(
-      collection(db, 'listings'),
-      orderBy('geohash'),
-      startAt(userGeohash),
-      endAt(userGeohash + '\uf8ff')
-    );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const liveListings = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        // Save raw date for sorting
-        rawDate: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt || Date.now())
-      }));
-      
-      // Sort by date in memory
-      liveListings.sort((a, b) => b.rawDate - a.rawDate);
-      
-      // Map to display format
-      const displayListings = liveListings.map(item => ({
-        ...item,
-        createdAt: item.createdAt?.toDate ? "Just now" : item.createdAt
-      }));
-      
-      setListings(displayListings);
-      initializeSearchIndex(displayListings);
-      setIsLoading(false);
-    }, (error) => {
-      console.error("Firestore Query Error:", error);
-      setIsLoading(false);
+    const neighbors = getGeohashNeighbors(userGeohash);
+    const targetGeohashes = [userGeohash, ...neighbors];
+
+    const resultsMap = {};
+    const unsubscribes = [];
+
+    targetGeohashes.forEach((gh) => {
+      const q = query(
+        collection(db, 'listings'),
+        orderBy('geohash'),
+        startAt(gh),
+        endAt(gh + '\uf8ff')
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        resultsMap[gh] = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          rawDate: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt || Date.now())
+        }));
+
+        // Merge all listings from all target geohash cells
+        const mergedListings = [];
+        const seenIds = new Set();
+
+        Object.values(resultsMap).forEach(listingsList => {
+          listingsList.forEach(item => {
+            if (!seenIds.has(item.id)) {
+              seenIds.add(item.id);
+              mergedListings.push(item);
+            }
+          });
+        });
+
+        // Sort by date in memory
+        mergedListings.sort((a, b) => b.rawDate - a.rawDate);
+
+        // Map to display format
+        const displayListings = mergedListings.map(item => ({
+          ...item,
+          createdAt: item.createdAt?.toDate ? "Just now" : item.createdAt
+        }));
+
+        setListings(displayListings);
+        initializeSearchIndex(displayListings);
+        setIsLoading(false);
+      }, (error) => {
+        console.error(`Firestore Geohash Query Error for cell ${gh}:`, error);
+      });
+
+      unsubscribes.push(unsubscribe);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+    };
   }, [userLat, userLng, radius]);
 
 
@@ -87,11 +108,13 @@ export default function Home() {
       // 1. Geohash prefix filter (Primary check)
       const reqPrecision = getGeohashPrecisionForRadius(radius);
       const userGeohash = encodeGeohash(userLat, userLng, reqPrecision);
+      const neighbors = getGeohashNeighbors(userGeohash);
+      const targetGeohashes = [userGeohash, ...neighbors];
       const itemGeohash = item.geohash || encodeGeohash(item.lat, item.lng, reqPrecision);
       
-      // Strict prefix matching for hyper-local performance
-      if (!itemGeohash.startsWith(userGeohash)) {
-        // If it doesn't match the same bounding box at this precision, exclude it.
+      // Check if item falls in center geohash or any neighbor cell
+      const inGeohashGrid = targetGeohashes.some(gh => itemGeohash.startsWith(gh));
+      if (!inGeohashGrid) {
         return false;
       }
 

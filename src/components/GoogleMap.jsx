@@ -67,7 +67,7 @@ export default function GoogleMap({
     // Add main marker
     markerRef.current = new window.google.maps.Marker({
       position: center,
-      map: map,
+      map: radius > 0 ? null : map, // Hide pin when privacy circle is active to preserve anonymity
       draggable: !!onLocationSelect,
       animation: window.google.maps.Animation.DROP
     });

@@ -32,6 +32,7 @@ import {
   endAt,
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getOrCreateUserKeys } from "./utils/crypto";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBElwEUo-IJ02SEooL4lNmnZvJ1cu1B4TE",
@@ -109,6 +110,11 @@ export const createUserProfile = async (user, extraData = {}) => {
   if (!user) return;
   const userRef = doc(db, "users", user.uid);
   const snap = await getDoc(userRef);
+  
+  // Retrieve or generate browser-local E2EE keys
+  const keys = await getOrCreateUserKeys();
+  const publicKeyJwk = keys ? keys.publicKeyJwk : null;
+
   if (!snap.exists()) {
     await setDoc(userRef, {
       uid: user.uid,
@@ -119,9 +125,18 @@ export const createUserProfile = async (user, extraData = {}) => {
       barangay: "",
       trustScore: 100,
       verified: false,
+      publicKeyJwk: publicKeyJwk, // register public key for E2EE
       createdAt: serverTimestamp(),
       ...extraData,
     });
+  } else {
+    // If user profile exists but public key is missing, write it
+    const data = snap.data();
+    if (!data.publicKeyJwk && publicKeyJwk) {
+      await updateDoc(userRef, {
+        publicKeyJwk: publicKeyJwk
+      });
+    }
   }
 };
 
