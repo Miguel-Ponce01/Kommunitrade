@@ -65,3 +65,19 @@
 [debug] [2026-05-18T07:05:01.556Z] Checked if tokens are valid: true, expires at: 1779091496065
 [debug] [2026-05-18T07:05:01.556Z] Checked if tokens are valid: true, expires at: 1779091496065
 [debug] [2026-05-18T07:05:01.556Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/komunitrade/sites/komunitrade [none]
+[debug] [2026-05-18T07:05:02.456Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/komunitrade/sites/komunitrade 200
+[debug] [2026-05-18T07:05:02.457Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/komunitrade/sites/komunitrade {"name":"projects/komunitrade/sites/komunitrade","defaultUrl":"https://komunitrade.web.app","appId":"1:635774409762:web:3783f42ba945255e9efe7b","type":"DEFAULT_SITE"}
+[debug] [2026-05-18T07:05:02.458Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:02.458Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:02.458Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/komunitrade/versions [none]
+[debug] [2026-05-18T07:05:02.458Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/komunitrade/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2026-05-18T07:05:04.189Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/komunitrade/versions 200
+[debug] [2026-05-18T07:05:04.189Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/komunitrade/versions {"name":"projects/635774409762/sites/komunitrade/versions/4e1e52be6b72b7f4","status":"CREATED","config":{},"labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2026-05-18T07:05:04.189Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:04.190Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:04.190Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/komunitrade/releases pageSize=10&pageToken=
+[debug] [2026-05-18T07:05:05.512Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/komunitrade/releases 200
+[debug] [2026-05-18T07:05:05.512Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/komunitrade/releases {"releases":[{"name":"projects/komunitrade/releases/cloud.firestore","rulesetName":"projects/komunitrade/rulesets/4b511450-5941-4c14-8043-6cfd4e5d4bd2","createTime":"2026-05-04T16:23:02.107786Z","updateTime":"2026-05-14T00:03:00.938746Z"},{"name":"projects/komunitrade/releases/firebase.storage/komunitrade.firebasestorage.app","rulesetName":"projects/komunitrade/rulesets/ea6fbcce-5adb-42c6-9881-49fed17a4d16","createTime":"2026-05-04T23:21:15.523298Z","updateTime":"2026-05-14T00:02:59.588258Z"}]}
+[debug] [2026-05-18T07:05:05.519Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:05.519Z] Checked if tokens are valid: true, expires at: 1779091496065
+[debug] [2026-05-18T07:05:05.519Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/komunitrade/rulesets/ea6fbcce-5adb-42c6-9881-49fed17a4d16 [none]
