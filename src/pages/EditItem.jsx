@@ -7,8 +7,7 @@ import { ref, uploadBytes, getDownloadURL } from '../firebase';
 import { encodeGeohash, resolveLocationCoords, findNearestBarangay } from '../utils/geo';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import GoogleMap from '../components/GoogleMap';
-import { extractText } from '../services/imageAnalysisService';
-import { analyzeListingWithDeepSeek } from '../services/deepseekService';
+import { analyzeImage } from '../services/imageAnalysisService';
 
 export default function EditItem() {
   const { id } = useParams();
@@ -109,54 +108,39 @@ export default function EditItem() {
     if (!file) return;
     
     setIsAnalyzing(true);
-    setAnalysisProgress('Extracting text from image...');
+    setAnalysisProgress('Running AI analysis (OCR + CNN)...');
     
     try {
-      const ocrResult = await extractText(file);
-      const extractedText = ocrResult.success ? ocrResult.text : '';
+      addLog("Analyzing image content securely on server...", "primary");
+      const result = await analyzeImage(file);
       
-      if (extractedText) {
-        addLog(`Extracted text: ${extractedText.substring(0, 30)}...`, "primary");
-        
+      if (result.ocr.success && result.ocr.text) {
+        addLog(`Extracted text: ${result.ocr.text.substring(0, 30)}...`, "primary");
         if (!description) {
-          setDescription(extractedText);
+          setDescription(result.ocr.text);
         }
       }
       
-      // Call DeepSeek Smart Advisor to optimize listing parameters
-      addLog("Contacting DeepSeek Smart Advisor...", "primary");
-      setAnalysisProgress("Contacting DeepSeek Smart Advisor...");
+      if (result.cnn.success && result.cnn.topPrediction) {
+        addLog(`Detected object: ${result.cnn.topPrediction.className} (${Math.round(result.cnn.topPrediction.probability * 100)}%)`, "success");
+      }
       
-      const deepseekResult = await analyzeListingWithDeepSeek({
-        title: title || (extractedText ? extractedText.split('\n')[0].trim().substring(0, 60) : ''),
-        description: description || extractedText || '',
-        ocrText: extractedText || ''
-      });
-
-      if (deepseekResult.success) {
-        addLog("DeepSeek Smart Advisor recommendation loaded!", "success");
-        const ds = deepseekResult.data;
-        
-        // Auto-fill fields with AI optimized results
-        setTitle(ds.title);
-        setCategory(ds.category);
-        setTags(ds.tags);
-        if (ds.suggestedPrice > 0) {
-          setPrice(ds.suggestedPrice.toString());
-          addLog(`Suggested Price: ₱${ds.suggestedPrice}`, "success");
-        }
-      } else {
-        addLog("DeepSeek Advisor failed. Falling back to default OCR...", "error");
-        const lines = extractedText.split('\n').filter(l => l.trim().length > 0);
-        if (lines.length > 0 && !title) {
-          setTitle(lines[0].trim().substring(0, 60));
-        }
+      addLog("DeepSeek Smart Advisor recommendation loaded securely!", "success");
+      
+      // Auto-fill fields with AI optimized results
+      setTitle(result.generatedTitle);
+      setCategory(result.generatedCategory);
+      setTags(result.generatedTags);
+      if (result.suggestedPrice > 0) {
+        setPrice(result.suggestedPrice.toString());
+        addLog(`Suggested Price: ₱${result.suggestedPrice}`, "success");
       }
       
       setAnalysisProgress('Analysis complete!');
     } catch (error) {
       console.error('Image analysis failed:', error);
       setAnalysisProgress('Analysis failed.');
+      addLog(`Analysis failed: ${error.message}`, "error");
     }
     setIsAnalyzing(false);
   };

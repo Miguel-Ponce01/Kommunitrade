@@ -32,6 +32,7 @@ import {
   endAt,
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 import { getOrCreateUserKeys } from "./utils/crypto";
 
 const firebaseConfig = {
@@ -60,6 +61,12 @@ const appCheck = initializeAppCheck(app, {
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+export const functions = getFunctions(app);
+
+// Connect to Functions emulator in local development mode
+if (import.meta.env.DEV) {
+  connectFunctionsEmulator(functions, "localhost", 5001);
+}
 
 // Auth providers
 export const googleProvider = new GoogleAuthProvider();

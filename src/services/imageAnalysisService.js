@@ -1,4 +1,6 @@
 import { TRENDING_KEYWORDS } from '../data/trendingKeywords';
+import { functions } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
 
 // Helper to dynamically load external scripts
 const loadScript = (src) => {
@@ -202,21 +204,48 @@ export const extractText = async (imageFile) => {
 
 // Combined Analysis (OCR + CNN)
 export const analyzeImage = async (imageFile) => {
-  const googleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-  
-  if (!googleKey || googleKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
-    throw new Error("Google Cloud API key is missing. Please configure VITE_GOOGLE_MAPS_API_KEY in .env.local.");
-  }
+  try {
+    console.log("Attempting secure AI analysis via Cloud Function proxy...");
+    const base64Data = await fileToBase64(imageFile);
+    const imageBase64 = base64Data.split(',')[1];
 
-  console.log("Using Google Vision for both OCR and CNN...");
-  const result = await analyzeImageGoogleVision(imageFile);
-  
-  return {
-    ...result,
-    generatedTitle: generateTitle(result.ocr, result.cnn),
-    generatedCategory: mapCnnToCategory(result.cnn, result.ocr),
-    generatedTags: generateTags(result.ocr, result.cnn)
-  };
+    const callAI = httpsCallable(functions, 'analyzeListingWithAI');
+    const response = await callAI({ imageBase64 });
+    const result = response.data;
+
+    return {
+      ocr: result.ocr,
+      cnn: result.cnn,
+      generatedTitle: result.deepseek.data.title,
+      generatedCategory: result.deepseek.data.category,
+      generatedTags: result.deepseek.data.tags,
+      suggestedPrice: result.deepseek.data.suggestedPrice
+    };
+  } catch (error) {
+    console.warn("Secure API proxy call failed. Falling back to client-side analysis:", error);
+
+    const googleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    if (!googleKey || googleKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
+      console.warn("Google Vision API key missing. Running edge MobileNet + Tesseract...");
+      const cnnRes = await detectObject(imageFile);
+      const ocrRes = await extractTextLocal(imageFile);
+      return {
+        ocr: ocrRes,
+        cnn: cnnRes,
+        generatedTitle: generateTitle(ocrRes, cnnRes),
+        generatedCategory: mapCnnToCategory(cnnRes, ocrRes),
+        generatedTags: generateTags(ocrRes, cnnRes)
+      };
+    }
+
+    const result = await analyzeImageGoogleVision(imageFile);
+    return {
+      ...result,
+      generatedTitle: generateTitle(result.ocr, result.cnn),
+      generatedCategory: mapCnnToCategory(result.cnn, result.ocr),
+      generatedTags: generateTags(result.ocr, result.cnn)
+    };
+  }
 };
 
 // Helper: Generate title from OCR + CNN

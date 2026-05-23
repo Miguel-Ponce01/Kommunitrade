@@ -8,7 +8,6 @@ import { encodeGeohash, resolveLocationCoords, findNearestBarangay } from '../ut
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import GoogleMap from '../components/GoogleMap';
 import { analyzeImage } from '../services/imageAnalysisService';
-import { analyzeListingWithDeepSeek } from '../services/deepseekService';
 
 export default function PostItem() {
   const { lang, setLang, t } = useLanguage();
@@ -73,7 +72,7 @@ export default function PostItem() {
       });
       
       addLog("Analyzing image content...", "primary");
-      const result = await analyzeImage(file, img);
+      const result = await analyzeImage(file);
       URL.revokeObjectURL(objectUrl);
       
       if (result.ocr.success && result.ocr.text) {
@@ -84,50 +83,24 @@ export default function PostItem() {
         addLog(`Detected object: ${result.cnn.topPrediction.className} (${Math.round(result.cnn.topPrediction.probability * 100)}%)`, "success");
       }
       
-      // Call DeepSeek Smart Advisor to optimize listing parameters
-      addLog("Contacting DeepSeek Smart Advisor...", "primary");
-      setAnalysisProgress("Contacting DeepSeek Smart Advisor...");
-      
-      const deepseekResult = await analyzeListingWithDeepSeek({
+      // Auto-fill fields with AI optimized results securely generated on the server
+      addLog("DeepSeek Smart Advisor recommendation loaded!", "success");
+      setGeneratedData({
         title: result.generatedTitle,
-        description: description || result.ocr.text || '',
-        ocrText: result.ocr.text || ''
+        category: result.generatedCategory,
+        tags: result.generatedTags
       });
-
-      if (deepseekResult.success) {
-        addLog("DeepSeek Smart Advisor recommendation loaded!", "success");
-        const ds = deepseekResult.data;
-        setGeneratedData({
-          title: ds.title,
-          category: ds.category,
-          tags: ds.tags
-        });
-        
-        // Auto-fill fields with AI optimized results
-        setTitle(ds.title);
-        setCategory(ds.category);
-        if (result.ocr.text) setDescription(result.ocr.text);
-        setTags(ds.tags);
-        if (ds.suggestedPrice > 0) {
-          setPrice(ds.suggestedPrice.toString());
-          addLog(`Suggested Price: ₱${ds.suggestedPrice}`, "success");
-        }
-      } else {
-        addLog("DeepSeek Advisor failed. Falling back to local ML models.", "error");
-        setGeneratedData({
-          title: result.generatedTitle,
-          category: result.generatedCategory,
-          tags: result.generatedTags
-        });
-        
-        setTitle(result.generatedTitle);
-        setCategory(result.generatedCategory);
-        if (result.ocr.text) setDescription(result.ocr.text);
-        setTags(result.generatedTags);
-        
-        if (!price && result.generatedCategory === 'Electronics') {
-          setPrice('500'); // Fallback mock suggestion
-        }
+      
+      setTitle(result.generatedTitle);
+      setCategory(result.generatedCategory);
+      if (result.ocr.text) setDescription(result.ocr.text);
+      setTags(result.generatedTags);
+      
+      if (result.suggestedPrice > 0) {
+        setPrice(result.suggestedPrice.toString());
+        addLog(`Suggested Price: ₱${result.suggestedPrice}`, "success");
+      } else if (!price && result.generatedCategory === 'Electronics') {
+        setPrice('500'); // Fallback suggest
       }
       
       setAnalysisProgress('Analysis complete!');

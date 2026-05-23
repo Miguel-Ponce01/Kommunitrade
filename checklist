@@ -487,6 +487,25 @@
 
 ---
 
+# PRODUCTION TRANSITION & SECURITY HARDENING (Post-Defense)
+
+## Task Category: Security, E2EE, and Scalability
+
+| # | Task | Status |
+|---|------|--------|
+| 9.1 | Restrict user verification fields write-access via firestore.rules | [x] |
+| 9.2 | Restrict listing updates/deletions to listing owners in firestore.rules | [x] |
+| 9.3 | Restrict Firebase Storage uploads to UID-specific directories in storage.rules | [x] |
+| 9.4 | Implement browser-native ECDH P-256 key pair generation and public JWK registration | [x] |
+| 9.5 | Implement browser-native AES-GCM 256-bit chat encryption and decryption | [x] |
+| 9.6 | Implement secure Cloud Function proxy verifyUserIdentity using Gemini API | [x] |
+| 9.7 | Implement secure Cloud Function proxy analyzeListingWithAI for Vision + DeepSeek | [x] |
+| 9.8 | Expand geohash queries to scan center grid and all 8 cardinal neighbor cells in parallel | [x] |
+| 9.9 | Implement scheduled server-side TTL batch purge cron function | [x] |
+| 9.10| Eliminate client-side credential leak vectors by deleting deepseekService.js | [x] |
+
+---
+
 # SUMMARY CHECKLIST (Roll-up View)
 
 ## Phase Completion Tracker
@@ -501,7 +520,8 @@
 | Sprint 6: AI Model Integration (Week 6-7) | 44 | 44 | 100.0% |
 | Sprint 7: Testing & Optimization (Week 8-9) | 52 | 52 | 100.0% |
 | Sprint 8: Final Deployment (Week 10-12) | 34 | 34 | 100.0% |
-| **TOTAL** | **261** | **261** | **100.0%** |
+| Sprint 9: Production Transition & Hardening | 10 | 10 | 100.0% |
+| **TOTAL** | **271** | **271** | **100.0%** |
 
 ---
 
@@ -527,5 +547,6 @@
 
 ---
 
-**Last Updated:** 2026-05-17  
-**Updated By:** Anthon Miguel Ponce 
+**Last Updated:** 2026-05-24  
+**Updated By:** Anthon Miguel Ponce & Antigravity AI
+

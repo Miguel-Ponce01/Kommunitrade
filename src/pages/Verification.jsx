@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Upload, CheckCircle, XCircle, Loader2, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { db, doc, updateDoc } from '../firebase';
+import { functions } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
 
 export default function Verification() {
   const navigate = useNavigate();
@@ -14,38 +15,13 @@ export default function Verification() {
   const [selfiePreview, setSelfiePreview] = useState(null);
   
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isModelLoaded, setIsModelLoaded] = useState(false);
+  const [isModelLoaded] = useState(true);
   const [verificationResult, setVerificationResult] = useState(null); // 'success', 'fail', null
   const [score, setScore] = useState(0);
   const [error, setError] = useState(null);
 
   const idRef = useRef();
   const selfieRef = useRef();
-
-  useEffect(() => {
-    // Load face-api models from CDN
-    const loadModels = async () => {
-      try {
-        if (!window.faceapi) {
-          setError("Face API library not loaded yet. Please refresh.");
-          return;
-        }
-        
-        const MODEL_URL = 'https://vladmandic.github.io/face-api/model/';
-        
-        await window.faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-        await window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-        await window.faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-        
-        setIsModelLoaded(true);
-      } catch (err) {
-        console.error("Failed to load models:", err);
-        setError("Failed to load AI models. Please check your internet connection.");
-      }
-    };
-
-    loadModels();
-  }, []);
 
   const handleFileChange = (e, type) => {
     const file = e.target.files[0];
@@ -75,63 +51,26 @@ export default function Verification() {
     setVerificationResult(null);
 
     try {
-      // 1. Create HTML Image elements from previews
-      const idImg = await window.faceapi.fetchImage(idPreview);
-      const selfieImg = await window.faceapi.fetchImage(selfiePreview);
+      // Invoke the secure Cloud Function proxy to perform face comparison on the server
+      const verifyFn = httpsCallable(functions, 'verifyUserIdentity');
+      const response = await verifyFn({
+        idImage: idPreview,
+        selfieImage: selfiePreview
+      });
 
-      // 2. Detect faces and compute descriptors
-      const idResult = await window.faceapi
-        .detectSingleFace(idImg)
-        .withFaceLandmarks()
-        .withFaceDescriptor();
-
-      const selfieResult = await window.faceapi
-        .detectSingleFace(selfieImg)
-        .withFaceLandmarks()
-        .withFaceDescriptor();
-
-      if (!idResult) {
-        setError("No face detected in the ID image. Please ensure your face is clearly visible.");
-        setIsProcessing(false);
-        return;
-      }
-
-      if (!selfieResult) {
-        setError("No face detected in the Selfie. Please ensure your face is clearly visible.");
-        setIsProcessing(false);
-        return;
-      }
-
-      // 3. Compare descriptors (Euclidean distance)
-      const distance = window.faceapi.euclideanDistance(idResult.descriptor, selfieResult.descriptor);
-      
-      // Distance < 0.6 is usually considered a match. 
-      // Let's convert it to a similarity score percentage.
-      // Score = (1 - distance) * 100
-      const similarityScore = Math.max(0, (1 - distance) * 100);
+      const { success, score: similarityScore, reason } = response.data;
       setScore(similarityScore);
 
-      const THRESHOLD = 65; // Relaxed threshold for prototype, usually 60-70 is good for FaceNet
-      
-      if (similarityScore >= THRESHOLD) {
+      if (success) {
         setVerificationResult('success');
-        
-        // Update user status in Firebase
-        if (currentUser) {
-          const userRef = doc(db, 'users', currentUser.uid);
-          await updateDoc(userRef, {
-            isVerified: true,
-            verificationScore: similarityScore,
-            verifiedAt: new Date()
-          });
-        }
       } else {
         setVerificationResult('fail');
+        setError(reason || "Face verification failed. Faces did not match.");
       }
 
     } catch (err) {
       console.error("Verification Error:", err);
-      setError("An error occurred during processing. Please try again.");
+      setError(err.message || "An error occurred during processing. Please try again.");
     } finally {
       setIsProcessing(false);
     }

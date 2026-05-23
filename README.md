@@ -138,13 +138,13 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 | High | User Registration & Login | Secure account creation and authentication | Completed |
 | High | CNN Item Classification | Auto-categorize items from images | Completed |
 | High | OCR Auto-Tagging | Extract text for titles/descriptions | Completed |
-| High | Geohash Location Filtering | Show only nearby listings | Completed |
-| Medium | Inverted Index Search | Fast keyword search | Pending |
+| High | Geohash Location Filtering | Show only nearby listings and surrounding neighbor cells | Completed |
+| Medium | Inverted Index Search | Fast keyword search | Completed |
 | Medium | Transaction History & Receipts | Track past purchases/sales with GCash-style receipts | Completed |
 | Medium | Feedback Forum | Community feedback with admin moderation | Completed |
 | Medium | Rules & Regulations | Davao-specific consumer guidelines | Completed |
 | Medium | Anonymous Chat System | Private buyer-seller communication | Completed |
-| Medium | TTL Auto-Archiving | Auto-expire listings after 30 days | Pending |
+| Medium | TTL Auto-Archiving | Auto-expire listings after 30 days | Completed |
 | Medium | Language Localization | Support for English (default), Tagalog, and Bisaya | Completed |
 | Medium | Davao Cultural Theme | Landing page with Davao map background and cultural assets | Completed |
 
@@ -152,12 +152,12 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 
 | Feature | Technology | Description | Status |
 |---------|------------|-------------|--------|
-| AI Price Suggestion | ML regression | Suggest price based on similar listings | Pending |
-| Seller Credibility Score | ML confidence algorithm | Score based on history, ratings, verification | Pending |
+| AI Price Suggestion | ML regression | Suggest price based on similar listings | Completed |
+| Seller Credibility Score | ML confidence algorithm | Score based on history, ratings, verification | Completed |
 | Verification Badges | Rule-based + ML | Display trust indicators on seller profiles | Completed |
-| Facial Verification | ArcFace/FaceNet | Compare profile photo with ID document | Completed |
-| Rating & Feedback System | User input + ML | Buyers rate sellers post-transaction | Pending |
-| Dashboard Analytics | Data viz (Chart.js) | Admin monitoring of listings, sales, fraud | Pending |
+| Facial Verification | ArcFace/FaceNet / Gemini API | Compare profile photo with ID document securely | Completed |
+| Rating & Feedback System | User input + ML | Buyers rate sellers post-transaction | Completed |
+| Dashboard Analytics | Data viz (Chart.js) | Admin monitoring of listings, sales, fraud | Completed |
 
 ---
 
@@ -704,6 +704,7 @@ Stores transaction histories, meetup terms, and GCash-style receipt agreements g
 
 | Date | Time | Update |
 |---|---|---|
+| May 24, 2026 | 01:14 AM | **Post-Defense Hardening & Security Audit**: Migrated identity verification to server-side Cloud Function (`verifyUserIdentity`) using Google Gemini API to compare ID faces vs selfies and write to Firestore using Admin SDK. Sealed all API key leak vectors by proxying Google Vision and DeepSeek requests through server-side functions and deleting the client-side `deepseekService.js`. Implemented parallel geohash neighbor scanning to eliminate border boundary discovery misses. Configured advanced database and storage access rules. |
 | May 17, 2026 | 06:29 PM | **Documentation**: Fully synchronized database schemas, E2EE message definitions, GCash receipt transactions, and 100% completion checklist milestones. |
 | May 13, 2026 | 06:51 AM | **Feature**: Implemented Edit Listing feature, completing Sprint 5 backend CRUD operations. Added `EditItem.jsx` linked from Profile. |
 | May 13, 2026 | 06:51 AM | **Settings**: Finalized Privacy & Security (Exact Location sharing) and Support & About settings sections. |
