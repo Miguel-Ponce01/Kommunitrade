@@ -21,6 +21,7 @@ import { useLanguage } from '../hooks/useLanguage.jsx';
 export default function Layout() {
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [theme, setTheme] = useTheme();
   const { lang, setLang, t } = useLanguage();
   const { currentUser, logout } = useAuth();
@@ -34,11 +35,8 @@ export default function Layout() {
     setLang(lang === 'en' ? 'tl' : 'en');
   };
 
-  const handleLogout = async () => {
-    if (window.confirm(t('set_signout_confirm') || 'Are you sure you want to log out?')) {
-      await logout();
-      navigate('/');
-    }
+  const handleLogout = () => {
+    setShowLogoutModal(true);
   };
 
   const handleHelp = () => {
@@ -168,6 +166,45 @@ export default function Layout() {
           <Settings />
         </NavLink>
       </nav>
+
+      {/* Modern Premium Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="auth-modal-overlay" onClick={() => setShowLogoutModal(false)} style={{ zIndex: 3000 }}>
+          <div className="auth-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center', padding: '2.5rem 2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ background: '#FEE2E2', color: '#EF4444', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <LogOut size={32} />
+              </div>
+            </div>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '0.5rem', fontFamily: "'Outfit', sans-serif" }}>
+              {t('sett_sign_out')}
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+              {t('sett_signout_confirm') || 'Are you sure you want to log out?'}
+            </p>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button 
+                onClick={() => setShowLogoutModal(false)} 
+                className="btn-secondary" 
+                style={{ flex: 1, padding: '0.85rem 1.5rem', borderRadius: '14px', fontWeight: 700, fontSize: '0.95rem' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={async () => {
+                  setShowLogoutModal(false);
+                  await logout();
+                  navigate('/');
+                }} 
+                className="btn-primary" 
+                style={{ flex: 1, padding: '0.85rem 1.5rem', borderRadius: '14px', background: '#EF4444', color: '#fff', boxShadow: '0 10px 20px -5px rgba(239, 68, 68, 0.3)', border: 'none', fontWeight: 700, fontSize: '0.95rem' }}
+              >
+                {t('sett_sign_out')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

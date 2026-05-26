@@ -24,6 +24,12 @@ service cloud.firestore {
             || (request.resource.data.get('isVerified', false) == false && request.resource.data.get('verified', false) == false));
       allow update: if request.auth != null && request.auth.uid == userId
         && !(request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVerified', 'verified', 'verificationScore', 'verifiedAt']));
+
+      // Reviews subcollection
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow write: if request.auth != null;
+      }
     }
     
     // Chats: Only participants can read/write to their specific chat threads

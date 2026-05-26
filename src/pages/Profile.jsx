@@ -287,7 +287,13 @@ export default function Profile() {
   return (
     <div className="animate-fade-in profile-premium-bg" style={{ paddingBottom: '100px', minHeight: '100vh' }}>
       
-      <div className="profile-container-redesign">
+      {/* Premium Cover Banner */}
+      <div className="profile-cover-banner">
+        <div className="profile-cover-gradient"></div>
+        <div className="profile-cover-pattern"></div>
+      </div>
+
+      <div className="profile-container-redesign animate-slide-up">
         
         {/* Left Column: Profile Card */}
         <div className="profile-sidebar-card">
@@ -304,7 +310,8 @@ export default function Profile() {
                  style={{
                    position: 'absolute',
                    inset: 0,
-                   background: 'rgba(0,0,0,0.5)',
+                   background: 'rgba(0,0,0,0.65)',
+                   backdropFilter: 'blur(4px)',
                    display: 'flex',
                    flexDirection: 'column',
                    alignItems: 'center',
@@ -360,51 +367,60 @@ export default function Profile() {
             </div>
           ) : (
             <>
-              <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 0.5rem' }}>{displayName}</h2>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 0.5rem', fontFamily: "'Outfit', sans-serif" }}>
+                {displayName}
+              </h2>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
                 {userBio}
               </p>
             </>
           )}
-          
-          <p style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.4rem', marginBottom: '1rem' }}>
-             <Shield size={14} color="var(--primary)" /> {t('trust_badge')}
-          </p>
 
-          <div className="profile-stats-row">
-            <div className="profile-stat-item">
-              <span className="stat-num">{myListings.length}</span>
-              <span className="stat-label-small">Listings</span>
+          {/* Premium Stats Grid */}
+          <div className="profile-stats-grid">
+            <div className="profile-stat-box">
+              <div className="profile-stat-icon-wrapper">
+                <Package size={16} />
+              </div>
+              <span className="profile-stat-num">{myListings.length}</span>
+              <span className="profile-stat-lbl">Listings</span>
             </div>
-            <div className="profile-stat-item">
-              <span className="stat-num">4.9</span>
-              <span className="stat-label-small">Rating</span>
+            <div className="profile-stat-box">
+              <div className="profile-stat-icon-wrapper">
+                <Star size={16} />
+              </div>
+              <span className="profile-stat-num">4.9</span>
+              <span className="profile-stat-lbl">Rating</span>
             </div>
-            <div className="profile-stat-item">
-              <span className="stat-num">1</span>
-              <span className="stat-label-small">Year</span>
+            <div className="profile-stat-box">
+              <div className="profile-stat-icon-wrapper">
+                <History size={16} />
+              </div>
+              <span className="profile-stat-num">1</span>
+              <span className="profile-stat-lbl">Year</span>
             </div>
           </div>
 
           {(profileData?.verified || profileData?.isVerified) ? (
             <div className="verified-badge-pill">
-              <CheckCircle2 size={18} color="var(--primary)" />
+              <CheckCircle2 size={16} color="#10B981" />
               Identity verified
             </div>
           ) : (
-            <div className="verified-badge-pill unverified" style={{ background: 'var(--border-color)', color: 'var(--text-muted)', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-              <Shield size={18} color="var(--text-muted)" />
+            <div className="verified-badge-pill unverified">
+              <Shield size={16} />
               Unverified Seller
             </div>
           )}
 
-          <div className="info-grid" style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <div className="info-item" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
-              <Languages className="info-icon" size={16} />
+          {/* Meta Details List */}
+          <div className="profile-meta-list">
+            <div className="profile-meta-row-item">
+              <Languages className="profile-meta-icon" size={16} />
               <span>Speaks English and Tagalog</span>
             </div>
-            <div className="info-item" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
-              <MapPin className="info-icon" size={16} />
+            <div className="profile-meta-row-item">
+              <MapPin className="profile-meta-icon" size={16} />
               {isEditing && isOwnProfile ? (
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', width: '100%' }}>
                   <input 
@@ -412,11 +428,13 @@ export default function Profile() {
                     value={userLocation}
                     onChange={(e) => setUserLocation(e.target.value)}
                     className="premium-input-small"
+                    style={{ flex: 1, padding: '4px 8px', fontSize: '0.8rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-main)' }}
                   />
                   <button 
                     onClick={detectLocation}
                     disabled={isGeolocating}
                     className="detect-loc-btn"
+                    style={{ background: 'var(--primary-light)', border: 'none', color: 'var(--primary)', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                   >
                     {isGeolocating ? <Loader2 className="animate-spin" size={14} /> : <MapPin size={14} />}
                   </button>
@@ -427,29 +445,35 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="community-status-box" style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--card-bg)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-             {isEditingStatus && isOwnProfile ? (
-               <div className="status-editor">
-                 <textarea 
-                   value={tempStatus}
-                   onChange={(e) => setTempStatus(e.target.value)}
-                   className="premium-textarea"
-                   style={{ width: '100%', height: '60px', resize: 'none', background: 'transparent', border: 'none', color: 'var(--text-main)' }}
-                   placeholder="Share your community involvement..."
-                 />
-                 <div className="status-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
-                   <button onClick={handleStatusSave} className="btn-save-small" style={{ fontSize: '0.7rem' }}>CONFIRM</button>
-                   <button onClick={handleStatusCancel} className="btn-cancel-small" style={{ fontSize: '0.7rem' }}>CANCEL</button>
-                 </div>
-               </div>
-             ) : (
-               <div className="status-display" onClick={() => isOwnProfile && setIsEditingStatus(true)} style={{ cursor: isOwnProfile ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <p className="bio-text" style={{ fontSize: '0.85rem', margin: 0 }}>{communityStatus}</p>
-                  {isOwnProfile && <Edit3 size={14} className="status-edit-icon" style={{ color: 'var(--text-muted)' }} />}
-               </div>
-             )}
+          {/* Community Contribution Box */}
+          <div className="community-contribution-card">
+            <div className="contribution-header">
+              <span>Community Contribution</span>
+              <Shield size={12} color="var(--primary)" />
+            </div>
+            {isEditingStatus && isOwnProfile ? (
+              <div className="status-editor">
+                <textarea 
+                  value={tempStatus}
+                  onChange={(e) => setTempStatus(e.target.value)}
+                  className="premium-textarea"
+                  style={{ width: '100%', height: '60px', resize: 'none', background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none' }}
+                  placeholder="Share your community involvement..."
+                />
+                <div className="status-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <button onClick={handleStatusSave} className="btn-save-small" style={{ fontSize: '0.7rem', padding: '4px 8px', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>CONFIRM</button>
+                  <button onClick={handleStatusCancel} className="btn-cancel-small" style={{ fontSize: '0.7rem', padding: '4px 8px', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}>CANCEL</button>
+                </div>
+              </div>
+            ) : (
+              <div className="status-display" onClick={() => isOwnProfile && setIsEditingStatus(true)} style={{ cursor: isOwnProfile ? 'pointer' : 'default', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
+                 <p className="contribution-quote">{communityStatus}</p>
+                 {isOwnProfile && <Edit3 size={14} className="status-edit-icon" style={{ color: 'var(--text-muted)', flexShrink: 0, marginTop: '2px' }} />}
+              </div>
+            )}
           </div>
 
+          {/* Action Buttons */}
           <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {isOwnProfile ? (
               <>
@@ -492,7 +516,7 @@ export default function Profile() {
         </div>
 
         {/* Right Column: About & Content */}
-        <div className="profile-main-content">
+        <div className="profile-main-content" style={{ paddingTop: '1.5rem' }}>
           
           {/* Tabs for Inventory / Security */}
           <div className="tab-nav" style={{ borderBottom: '1px solid var(--border-color)', marginBottom: '1rem', display: isOwnProfile ? 'flex' : 'none' }}>
@@ -549,10 +573,21 @@ export default function Profile() {
                   <Loader2 className="animate-spin" size={40} color="var(--primary)" />
                 </div>
               ) : myListings.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem 2rem', background: 'var(--card-bg)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                  <Package size={60} style={{ opacity: 0.2, marginBottom: '1rem' }} />
-                  <h3>{t('prof_no_listings')}</h3>
-                  <p>{t('prof_no_listings_desc')}</p>
+                <div className="premium-empty-state">
+                  <div className="empty-state-glowing-icon">
+                    <Package size={36} />
+                  </div>
+                  <h3 className="empty-state-title">{t('prof_no_listings')}</h3>
+                  <p className="empty-state-desc">{t('prof_no_listings_desc')}</p>
+                  {isOwnProfile && (
+                    <button 
+                      className="btn-primary" 
+                      onClick={() => navigate('/app/post')}
+                      style={{ width: 'auto', padding: '0.85rem 2rem', borderRadius: '14px', fontSize: '0.95rem' }}
+                    >
+                      <Plus size={20} /> {t('prof_list_new')}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="listing-grid-profile">
