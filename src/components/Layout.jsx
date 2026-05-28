@@ -24,7 +24,7 @@ export default function Layout() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [theme, setTheme] = useTheme();
   const { lang, setLang, t } = useLanguage();
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, userProfile } = useAuth();
   const displayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || currentUser?.phoneNumber || 'User';
 
   const toggleTheme = () => {
@@ -116,6 +116,17 @@ export default function Layout() {
             </NavLink>
           </div>
 
+          {/* Group 4: ADMINISTRATION */}
+          {userProfile?.role === 'admin' && (
+            <div className="sidebar-group">
+              <div className="sidebar-group-label">Administration</div>
+              <NavLink to="/app/admin" className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
+                <ShieldCheck className="nav-icon" style={{ color: '#EF4444' }} />
+                <span className="nav-label" style={{ color: '#EF4444', fontWeight: 800 }}>Admin Panel</span>
+              </NavLink>
+            </div>
+          )}
+
         </div>
 
         {/* Footer Actions */}
@@ -156,9 +167,15 @@ export default function Layout() {
         <NavLink to="/app/messages" className={({isActive}) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
           <MessageCircle />
         </NavLink>
-        <NavLink to="/app/profile" className={({isActive}) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
-          <User />
-        </NavLink>
+        {userProfile?.role === 'admin' ? (
+          <NavLink to="/app/admin" className={({isActive}) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+            <ShieldCheck style={{ color: '#EF4444' }} />
+          </NavLink>
+        ) : (
+          <NavLink to="/app/profile" className={({isActive}) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+            <User />
+          </NavLink>
+        )}
         <NavLink to="/app/transactions" className={({isActive}) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
           <History />
         </NavLink>

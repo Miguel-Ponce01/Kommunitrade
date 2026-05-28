@@ -14,18 +14,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     
+    <!-- Preload Hero Image for LCP -->
+    <link rel="preload" href="/durian_fruit.webp" as="image" type="image/webp" fetchpriority="high" />
+
     <style>
       body { margin: 0; font-family: 'Inter', sans-serif; background: #0F172A; }
     </style>
     <!-- Google Maps loaded dynamically by GoogleMap.jsx when a valid API key is set -->
-    <script type="module" crossorigin src="/assets/index-lHQL2eGK.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BdFN-Iks.css">
+    <script type="module" crossorigin src="/assets/index-C71y03Bb.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-CAKqjfqv.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-44sg0pqf.js">
+    <link rel="modulepreload" crossorigin href="/assets/firebase-vendor-CpycjPmF.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-C1YO-UMk.css">
   </head>
   <body>
-    <!-- Receipt Generator Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- Face API for ID Verification -->
-    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
     <div id="root"></div>
     <script>
       // Clear out any stale service workers from other projects running on localhost

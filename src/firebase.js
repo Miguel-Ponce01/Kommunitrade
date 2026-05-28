@@ -122,23 +122,33 @@ export const createUserProfile = async (user, extraData = {}) => {
   const keys = await getOrCreateUserKeys();
   const publicKeyJwk = keys ? keys.publicKeyJwk : null;
 
+  const isAdminAccount = user.email === "admin@komunitrade.com";
+
   if (!snap.exists()) {
     await setDoc(userRef, {
       uid: user.uid,
-      displayName: user.displayName || extraData.displayName || "KomuniTrade User",
+      displayName: user.displayName || extraData.displayName || (isAdminAccount ? "System Admin" : "KomuniTrade User"),
       email: user.email || null,
       phoneNumber: user.phoneNumber || null,
       photoURL: user.photoURL || null,
-      barangay: "",
+      barangay: isAdminAccount ? "Central Office" : "",
       trustScore: 100,
-      verified: false,
+      verified: isAdminAccount ? true : false,
       publicKeyJwk: publicKeyJwk, // register public key for E2EE
       createdAt: serverTimestamp(),
+      role: isAdminAccount ? "admin" : "user",
       ...extraData,
     });
   } else {
     // If user profile exists but public key is missing or different (e.g. new device), update it
     const data = snap.data();
+    const updates = {};
+    
+    if (isAdminAccount && data.role !== "admin") {
+      updates.role = "admin";
+      updates.verified = true;
+    }
+    
     if (publicKeyJwk) {
       const isDiff = !data.publicKeyJwk || 
         data.publicKeyJwk.x !== publicKeyJwk.x || 
@@ -146,10 +156,12 @@ export const createUserProfile = async (user, extraData = {}) => {
         data.publicKeyJwk.kty !== publicKeyJwk.kty ||
         data.publicKeyJwk.crv !== publicKeyJwk.crv;
       if (isDiff) {
-        await updateDoc(userRef, {
-          publicKeyJwk: publicKeyJwk
-        });
+        updates.publicKeyJwk = publicKeyJwk;
       }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await updateDoc(userRef, updates);
     }
   }
 };

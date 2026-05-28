@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Shield, Languages, X, MapPin, Star } from 'lucide-react';
+import { ArrowRight, Shield, Languages, X, MapPin, Star, Settings } from 'lucide-react';
 import Auth from './Login';
 import { useLanguage } from '../hooks/useLanguage.jsx';
+import { db, collection, addDoc, getDocs } from '../firebase';
 import '../index.css';
 
 export default function Landing() {
@@ -10,16 +11,36 @@ export default function Landing() {
   const { lang, setLang, t } = useLanguage();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [feedback, setFeedback] = useState([
-    { id: 1, name: 'Juan Dela Cruz', message: 'Great platform! Very easy to use.', date: '2026-05-10' },
-    { id: 2, name: 'Maria Santos', message: 'I found a great deal on a laptop here.', date: '2026-05-11' }
-  ]);
-  const [adminMode, setAdminMode] = useState(false);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [adminUsername, setAdminUsername] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
+  const [feedback, setFeedback] = useState([]);
   const [newFeedbackName, setNewFeedbackName] = useState('');
   const [newFeedbackMessage, setNewFeedbackMessage] = useState('');
+
+  // Fetch Feedback from Firestore
+  useEffect(() => {
+    const fetchFeedback = async () => {
+      try {
+        const snap = await getDocs(collection(db, "feedback"));
+        const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (list.length > 0) {
+          list.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+          setFeedback(list);
+        } else {
+          // Seed database if empty
+          const initial = [
+            { name: 'Juan Dela Cruz', message: 'Great platform! Very easy to use.', date: '2026-05-10' },
+            { name: 'Maria Santos', message: 'I found a great deal on a laptop here.', date: '2026-05-11' }
+          ];
+          for (let item of initial) {
+            await addDoc(collection(db, "feedback"), item);
+          }
+          setFeedback(initial);
+        }
+      } catch (e) {
+        console.error("Failed to load feedback from Firestore:", e);
+      }
+    };
+    fetchFeedback();
+  }, []);
 
   useEffect(() => {
     const container = document.querySelector('.editorial-landing');
@@ -37,12 +58,12 @@ export default function Landing() {
   };
 
   const CATEGORIES_DATA = [
-    { key: 'durian', img: '/fresh.png' },
-    { key: 'ukay', img: '/thrift.png' },
-    { key: 'gadgets', img: '/gadgets.png' },
-    { key: 'services', img: '/Services.png' },
-    { key: 'Furniture', img: '/sofa.png' },
-    { key: 'students', img: '/student_esse.png' },
+    { key: 'durian', img: '/fresh.webp' },
+    { key: 'ukay', img: '/thrift.webp' },
+    { key: 'gadgets', img: '/gadgets.webp' },
+    { key: 'services', img: '/Services.webp' },
+    { key: 'Furniture', img: '/sofa.webp' },
+    { key: 'students', img: '/student_esse.webp' },
   ];
 
   return (
@@ -92,7 +113,7 @@ export default function Landing() {
         {/* Floating hero image */}
         <div className="kt-hero-image-wrap">
           <img
-            src="/durian_fruit.png"
+            src="/durian_fruit.webp"
             alt="Fresh Davao products"
             className="kt-hero-img"
           />
@@ -170,7 +191,7 @@ export default function Landing() {
             </div>
             <div style={{ position: 'relative' }}>
               <div style={{ borderRadius: '32px', overflow: 'hidden', boxShadow: 'var(--shadow-premium)', background: 'var(--bg-color)', padding: '2rem', textAlign: 'center' }}>
-                <img src="/davao_map_clean.png" alt="Davao coverage map" style={{ width: '100%', borderRadius: '16px', objectFit: 'cover' }} />
+                <img src="/davao_map_clean.webp" alt="Davao coverage map" style={{ width: '100%', borderRadius: '16px', objectFit: 'cover' }} />
               </div>
               <div style={{ position: 'absolute', bottom: '-1rem', left: '-1rem', background: 'var(--primary)', color: 'white', borderRadius: '20px', padding: '1rem 1.5rem', boxShadow: '0 20px 40px rgba(255,71,87,0.4)' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.8 }}>VERIFICATION SPEED</div>
@@ -222,11 +243,6 @@ export default function Landing() {
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.date}</div>
                   </div>
                   <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>{item.message}</p>
-                  {adminMode && (
-                    <button onClick={() => setFeedback(feedback.filter(f => f.id !== item.id))} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 700 }}>
-                      Delete
-                    </button>
-                  )}
                 </div>
               ))}
             </div>
@@ -236,31 +252,42 @@ export default function Landing() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <input type="text" placeholder="Your Name" value={newFeedbackName} onChange={(e) => setNewFeedbackName(e.target.value)} style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)' }} />
                 <textarea placeholder="Your Feedback" value={newFeedbackMessage} onChange={(e) => setNewFeedbackMessage(e.target.value)} style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', minHeight: '100px' }} />
-                <button onClick={() => { if (newFeedbackName && newFeedbackMessage) { setFeedback([...feedback, { id: Date.now(), name: newFeedbackName, message: newFeedbackMessage, date: new Date().toISOString().split('T')[0] }]); setNewFeedbackName(''); setNewFeedbackMessage(''); } }} className="btn-primary" style={{ padding: '0.75rem', borderRadius: '8px' }}>
+                <button 
+                  onClick={async () => { 
+                    if (newFeedbackName && newFeedbackMessage) { 
+                      const newFB = {
+                        name: newFeedbackName,
+                        message: newFeedbackMessage,
+                        date: new Date().toISOString().split('T')[0]
+                      };
+                      try {
+                        const docRef = await addDoc(collection(db, "feedback"), newFB);
+                        setFeedback([{ id: docRef.id, ...newFB }, ...feedback]);
+                        setNewFeedbackName('');
+                        setNewFeedbackMessage('');
+                      } catch (e) {
+                        alert("Failed to submit feedback: " + e.message);
+                      }
+                    } 
+                  }} 
+                  className="btn-primary" 
+                  style={{ padding: '0.75rem', borderRadius: '8px' }}
+                >
                   Submit Feedback
                 </button>
               </div>
             </div>
 
             <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-              {!adminMode ? (
-                <button onClick={() => setShowAdminLogin(!showAdminLogin)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.5 }} onMouseEnter={e => e.currentTarget.style.opacity = '1'} onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}>
-                  Admin Switch
-                </button>
-              ) : (
-                <button onClick={() => setAdminMode(false)} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>
-                  Exit Admin Mode
-                </button>
-              )}
-              {showAdminLogin && !adminMode && (
-                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center' }}>
-                  <input type="text" placeholder="User" value={adminUsername} onChange={(e) => setAdminUsername(e.target.value)} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', width: '100px' }} />
-                  <input type="password" placeholder="Pass" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', width: '100px' }} />
-                  <button onClick={() => { if (adminUsername === 'admin' && adminPassword === 'admin123') { setAdminMode(true); setShowAdminLogin(false); setAdminUsername(''); setAdminPassword(''); } else { alert('Invalid credentials'); } }} style={{ padding: '0.5rem', borderRadius: '4px', background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer' }}>
-                    Login
-                  </button>
-                </div>
-              )}
+              <button 
+                onClick={() => navigate("/admin-login")} 
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.15, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} 
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.8'} 
+                onMouseLeave={e => e.currentTarget.style.opacity = '0.15'}
+                title="Developer Options"
+              >
+                <Settings size={12} /> Developer Options
+              </button>
             </div>
           </div>
         </div>

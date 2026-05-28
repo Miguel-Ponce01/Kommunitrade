@@ -9,10 +9,18 @@ export default function TransactionReceipt({ transaction, onClose }) {
   const handleDownload = async () => {
     if (!receiptRef.current) return;
     try {
-      const html2canvas = window.html2canvas;
+      let html2canvas = window.html2canvas;
       if (!html2canvas) {
-        alert("Receipt generator library is still loading. Please try again in a moment.");
-        return;
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+          script.onload = () => {
+            html2canvas = window.html2canvas;
+            resolve();
+          };
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
       }
       
       const canvas = await html2canvas(receiptRef.current, {

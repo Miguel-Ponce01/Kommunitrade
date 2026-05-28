@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://komunitrade.web.app/sitemap.xml

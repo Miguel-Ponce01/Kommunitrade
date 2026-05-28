@@ -14,6 +14,8 @@ import Settings from './pages/Settings';
 import Messages from './pages/Messages';
 import TransactionHistory from './pages/TransactionHistory';
 import Verification from './pages/Verification';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -24,6 +26,7 @@ function App() {
             {/* Public routes */}
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/admin-login" element={<AdminLogin />} />
 
             {/* Protected app routes */}
             <Route
@@ -43,6 +46,7 @@ function App() {
               <Route path="messages" element={<Messages />} />
               <Route path="transactions" element={<TransactionHistory />} />
               <Route path="verification" element={<Verification />} />
+              <Route path="admin" element={<AdminDashboard />} />
             </Route>
 
             {/* Fallback */}
