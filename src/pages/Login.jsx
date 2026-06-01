@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ShoppingBag, Mail, Phone, Eye, EyeOff, ArrowRight, ArrowLeft, RotateCcw, CheckCircle } from "lucide-react";
+import { ShoppingBag, Mail, Phone, Eye, EyeOff, ArrowRight, ArrowLeft, RotateCcw, CheckCircle, Sparkles } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 // ─── Google Icon SVG ───────────────────────────────────────────────────────
@@ -88,13 +88,15 @@ export default function Auth() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // If already logged in, go to app
   useEffect(() => {
+    if (showSuccess) return;
     if (currentUser && currentUser.emailVerified) navigate("/app");
     if (currentUser && currentUser.phoneNumber) navigate("/app");
     if (currentUser && currentUser.providerData?.[0]?.providerId === "google.com") navigate("/app");
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, showSuccess]);
 
   // Resend cooldown timer
   useEffect(() => {
@@ -133,7 +135,10 @@ export default function Auth() {
     setError(""); setLoading(true);
     try {
       await signInWithGoogle();
-      navigate("/app");
+      setShowSuccess(true);
+      setTimeout(() => {
+        navigate("/app");
+      }, 1800);
     } catch (e) {
       setError(friendlyError(e.code));
     } finally {
@@ -163,7 +168,10 @@ export default function Auth() {
           setStep(2);
           setInfo("Your email is not verified yet. Check your inbox for the verification link.");
         } else {
-          navigate("/app");
+          setShowSuccess(true);
+          setTimeout(() => {
+            navigate("/app");
+          }, 1800);
         }
       }
     } catch (e) {
@@ -209,7 +217,10 @@ export default function Auth() {
     setError(""); setLoading(true);
     try {
       await verifyPhoneOTP(otp.trim());
-      navigate("/app");
+      setShowSuccess(true);
+      setTimeout(() => {
+        navigate("/app");
+      }, 1800);
     } catch (e) {
       setError(friendlyError(e.code));
     } finally {
@@ -430,6 +441,29 @@ export default function Auth() {
           </p>
         </div>
       </div>
+
+      {/* Success Popup */}
+      {showSuccess && (
+        <div className="login-success-overlay">
+          <div className="login-success-card">
+            <div className="success-icon-wrap">
+              <CheckCircle size={48} strokeWidth={2} />
+              <div className="success-icon-badge">
+                <Sparkles size={12} fill="white" />
+              </div>
+            </div>
+            <h3 className="success-title">Login Successful!</h3>
+            <p className="success-message">
+              Welcome back, <strong>{currentUser?.displayName || currentUser?.email?.split('@')[0] || "neighbor"}</strong>!
+              <br />
+              Connecting you to the marketplace...
+            </p>
+            <div className="success-loader">
+              <div className="success-loader-bar"></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

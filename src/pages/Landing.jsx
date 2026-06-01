@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Shield, Languages, X, MapPin, Star, Settings } from 'lucide-react';
+import { ArrowRight, Shield, Lock, CheckCircle, Languages, X, MapPin, Star, Settings } from 'lucide-react';
 import Auth from './Login';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import { db, collection, addDoc, getDocs } from '../firebase';
@@ -74,7 +74,7 @@ export default function Landing() {
         <div className="kt-nav-inner">
           {/* Brand */}
           <div className="kt-nav-brand">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+            <svg className="kt-nav-logo" width="36" height="36" viewBox="0 0 24 24" fill="none">
               <path d="M6 10H18L17 19C17 20.1046 16.1046 21 15 21H9C7.89543 21 7 20.1046 7 19L6 10Z" fill="#FF4757" fillOpacity="0.15" stroke="#FF4757" strokeWidth="2" />
               <path d="M9 10V6C9 4.34315 10.3431 3 12 3C13.6569 3 15 4.34315 15 6V10" stroke="#FF4757" strokeWidth="2" strokeLinecap="round" />
               <path d="M12 2L9 5H15L12 2Z" fill="#FF4757" />
@@ -176,15 +176,15 @@ export default function Landing() {
                 {t('trust_desc')}
               </p>
               {[
-                ['🔒', t('trust_feat1_title'), t('trust_feat1_desc')],
-                ['✅', t('trust_feat2_title'), t('trust_feat2_desc')],
-                ['🛡️', t('trust_feat3_title'), t('trust_feat3_desc')],
+                [<Lock size={20} />, t('trust_feat1_title'), t('trust_feat1_desc')],
+                [<CheckCircle size={20} />, t('trust_feat2_title'), t('trust_feat2_desc')],
+                [<Shield size={20} />, t('trust_feat3_title'), t('trust_feat3_desc')],
               ].map(([icon, title, desc]) => (
-                <div key={title} style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem' }}>
-                  <span style={{ fontSize: '1.5rem', flexShrink: 0 }}>{icon}</span>
+                <div key={title} style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div style={{ color: 'var(--primary)', flexShrink: 0, marginTop: '0.2rem' }}>{icon}</div>
                   <div>
-                    <div style={{ fontWeight: 700, marginBottom: '0.2rem', color: 'var(--text-main)' }}>{title}</div>
-                    <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{desc}</div>
+                    <div style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '0.25rem', color: 'var(--text-main)', fontFamily: "'Outfit', sans-serif" }}>{title}</div>
+                    <div style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{desc}</div>
                   </div>
                 </div>
               ))}

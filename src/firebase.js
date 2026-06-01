@@ -48,15 +48,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize App Check
-if (import.meta.env.DEV) {
-  // This enables the debug provider and prints a debug token in the console
-  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-}
+let appCheck = null;
+const disableAppCheck = import.meta.env.VITE_DISABLE_APP_CHECK === "true";
 
-const appCheck = initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY),
-  isTokenAutoRefreshEnabled: true
-});
+if (!disableAppCheck) {
+  if (import.meta.env.DEV) {
+    // Use a persistent debug token in dev mode to avoid a new random UUID on every refresh
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN || "3222d5e6-1006-4a94-9523-e51fc4f1c2c4";
+  }
+
+  try {
+    appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY),
+      isTokenAutoRefreshEnabled: true
+    });
+  } catch (err) {
+    console.warn("App Check failed to initialize:", err);
+  }
+}
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShieldAlert, KeyRound, ArrowLeft, Loader2, Eye, EyeOff } from "lucide-react";
+import { ShieldAlert, KeyRound, ArrowLeft, Loader2, Eye, EyeOff, CheckCircle, Sparkles } from "lucide-react";
 import { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, createUserProfile } from "../firebase";
 import adminCreds from "../config/admin.json";
 import "../index.css";
@@ -12,6 +12,7 @@ export default function AdminLogin() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleAdminSubmit = async (e) => {
     e.preventDefault();
@@ -48,7 +49,10 @@ export default function AdminLogin() {
       await createUserProfile(user, { displayName: adminCreds.displayName });
 
       // Navigate to admin panel
-      navigate("/app/admin");
+      setShowSuccess(true);
+      setTimeout(() => {
+        navigate("/app/admin");
+      }, 1800);
     } catch (e) {
       console.error("Admin login process failed:", e);
       setError(e.message || "An authentication error occurred. Please try again.");
@@ -161,6 +165,29 @@ export default function AdminLogin() {
           </p>
         </div>
       </div>
+
+      {/* Success Popup */}
+      {showSuccess && (
+        <div className="login-success-overlay">
+          <div className="login-success-card" style={{ background: "var(--card-bg)", color: "var(--text-main)" }}>
+            <div className="success-icon-wrap">
+              <CheckCircle size={48} strokeWidth={2} />
+              <div className="success-icon-badge">
+                <Sparkles size={12} fill="white" />
+              </div>
+            </div>
+            <h3 className="success-title">Developer Access Granted</h3>
+            <p className="success-message">
+              Session authorized for <strong>System Administrator</strong>!
+              <br />
+              Redirecting to secure console...
+            </p>
+            <div className="success-loader">
+              <div className="success-loader-bar"></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

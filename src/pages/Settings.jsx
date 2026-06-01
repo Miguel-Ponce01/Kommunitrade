@@ -8,28 +8,20 @@ import {
   Globe, 
   Shield, 
   AlertTriangle, 
-  Clock, 
-  Database, 
-  Trash2, 
   Smartphone, 
   Check, 
-  RefreshCw,
   FileText,
-  Lock,
   LogOut,
   User,
   Heart,
   MapPin,
   X,
   Loader2,
-  Bell,
-  Zap
+  Bell
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../contexts/AuthContext';
-import { db, auth, doc, setDoc, collection, getDocs, deleteDoc, getDoc, updateDoc } from '../firebase';
-import { MOCK_LISTINGS } from '../data/mockData';
-import { isListingActive } from '../utils/geo';
+import { db, auth, doc, getDoc, updateDoc } from '../firebase';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 
 const Switch = ({ active, onClick }) => (
@@ -43,10 +35,6 @@ export default function Settings() {
   const [theme, setTheme] = useTheme();
   const { lang, setLang, t } = useLanguage();
   const { currentUser, logout } = useAuth();
-  const [isSeeding, setIsSeeding] = useState(false);
-  const [isPurging, setIsPurging] = useState(false);
-  const [seedSuccess, setSeedSuccess] = useState(false);
-  const [purgeCount, setPurgeCount] = useState(0);
   const [showRules, setShowRules] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState(localStorage.getItem('komuni_user_phone') || "");
   const [isSavingPhone, setIsSavingPhone] = useState(false);
@@ -58,7 +46,6 @@ export default function Settings() {
   const [notifySMS, setNotifySMS] = useState(false);
   const [exactLocation, setExactLocation] = useState(false);
   const [isSavingPrivacy, setIsSavingPrivacy] = useState(false);
-  const [isDeletingSample, setIsDeletingSample] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
@@ -163,74 +150,7 @@ export default function Settings() {
     }
   };
 
-  const seedDatabase = async () => {
-    setIsSeeding(true);
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      alert("Please wait for authentication to complete.");
-      setIsSeeding(false);
-      return;
-    }
 
-    try {
-      for (const item of MOCK_LISTINGS) {
-        await setDoc(doc(db, 'listings', item.id), {
-          ...item,
-          sellerId: currentUser.uid, 
-          createdAt: new Date().toISOString(),
-        });
-      }
-      setSeedSuccess(true);
-      setTimeout(() => setSeedSuccess(false), 3000);
-    } catch (error) {
-      console.error("Seeding Error:", error);
-      alert("Failed to seed. Check console or Firestore rules.");
-    } finally {
-      setIsSeeding(false);
-    }
-  };
-
-  const purgeExpired = async () => {
-    setIsPurging(true);
-    try {
-      const querySnapshot = await getDocs(collection(db, 'listings'));
-      let deleted = 0;
-      for (const listingDoc of querySnapshot.docs) {
-        const data = listingDoc.data();
-        if (!isListingActive(data.expiresAt)) {
-          await deleteDoc(doc(db, 'listings', listingDoc.id));
-          deleted++;
-        }
-      }
-      setPurgeCount(deleted);
-      setTimeout(() => setPurgeCount(0), 4000);
-    } catch (error) {
-      console.error("Purge Error:", error);
-    } finally {
-      setIsPurging(false);
-    }
-  };
-
-  const deleteSampleListings = async () => {
-    setIsDeletingSample(true);
-    try {
-      let deleted = 0;
-      for (let i = 1; i <= 12; i++) {
-        const docRef = doc(db, 'listings', i.toString());
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          await deleteDoc(docRef);
-          deleted++;
-        }
-      }
-      alert(`Deleted ${deleted} sample listings!`);
-    } catch (error) {
-      console.error("Delete Error:", error);
-      alert("Failed to delete sample listings.");
-    } finally {
-      setIsDeletingSample(false);
-    }
-  };
 
   return (
     <div className="settings-container-redesign animate-fade-in">
@@ -296,18 +216,7 @@ export default function Settings() {
             </div>
           </div>
 
-          <div className="settings-item-row" onClick={() => alert("Verification system coming soon!")} style={{ cursor: 'pointer' }}>
-            <div className="settings-item-left">
-              <div className="settings-icon-box" style={{ background: '#D1FAE5', color: '#059669' }}>
-                <Shield size={20} />
-              </div>
-              <div className="settings-label-wrap">
-                <span className="settings-label-main">Apply for Verification</span>
-                <span className="settings-label-sub">Get badge for manuscript trust claims</span>
-              </div>
-            </div>
-            <ChevronLeft size={20} style={{ transform: 'rotate(180deg)', color: 'var(--text-muted)' }} />
-          </div>
+
 
         </div>
       </div>
@@ -533,18 +442,6 @@ export default function Settings() {
             <Switch active={exactLocation} onClick={() => setExactLocation(!exactLocation)} />
           </div>
 
-          <div className="settings-item-row" onClick={() => navigate('/app/verification')} style={{ cursor: 'pointer' }}>
-            <div className="settings-item-left">
-              <div className="settings-icon-box" style={{ background: '#E0F2FE', color: '#0369A1' }}>
-                <Shield size={20} />
-              </div>
-              <div className="settings-label-wrap">
-                <span className="settings-label-main">ID Verification</span>
-                <span className="settings-label-sub">Verify your ID with AI facial recognition</span>
-              </div>
-            </div>
-            <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
-          </div>
 
           {/* Save Button for this section */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem' }}>
@@ -658,60 +555,7 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Developer Tools Group */}
-      <div className="settings-section">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', paddingLeft: '0.5rem' }}>
-           <Zap size={14} color="var(--primary)" fill="var(--primary)" />
-           <h2 style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            {t('sett_dev_tools')}
-          </h2>
-        </div>
-        <div className="settings-card-group">
-          
-          <div className="settings-item-row">
-            <div className="settings-item-left">
-              <div className="settings-icon-box" style={{ background: '#F5F3FF', color: '#7C3AED' }}>
-                <Database size={20} />
-              </div>
-              <div className="settings-label-wrap">
-                <span className="settings-label-main">{t('sett_seed_db')}</span>
-                <span className="settings-label-sub">{t('sett_seed_desc')}</span>
-              </div>
-            </div>
-            <button 
-              onClick={seedDatabase}
-              disabled={isSeeding || seedSuccess}
-              className="btn-primary"
-              style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', width: 'auto' }}
-            >
-              {isSeeding ? <Loader2 className="animate-spin" size={14} /> : (seedSuccess ? <Check size={14} /> : t('sett_seed_now'))}
-            </button>
-          </div>
 
-          <div className="settings-item-row">
-            <div className="settings-item-left">
-              <div className="settings-icon-box" style={{ background: '#FEF2F2', color: '#EF4444' }}>
-                <Trash2 size={20} />
-              </div>
-              <div className="settings-label-wrap">
-                <span className="settings-label-main">{t('sett_purge_exp')}</span>
-                <span className="settings-label-sub">{t('sett_purge_desc')}</span>
-              </div>
-            </div>
-            <button 
-              onClick={purgeExpired}
-              disabled={isPurging}
-              className="btn-secondary"
-              style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', color: '#EF4444', borderColor: '#EF4444', width: 'auto' }}
-            >
-              {isPurging ? <Loader2 className="animate-spin" size={14} /> : (purgeCount > 0 ? `Deleted ${purgeCount}` : t('sett_purge_now'))}
-            </button>
-          </div>
-
-
-
-        </div>
-      </div>
 
       {/* Policies Group */}
       <div className="settings-section">
@@ -778,88 +622,92 @@ export default function Settings() {
 
       {/* Rules Modal */}
       {showRules && (
-        <div className="location-modal-overlay" onClick={() => setShowRules(false)} style={{ zIndex: 3000 }}>
-          <div className="location-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto' }}>
-            <div className="location-modal-header" style={{ position: 'sticky', top: 0, background: 'var(--card-bg)', zIndex: 10, paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)', marginBottom: '1rem' }}>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900 }}>Rules & Regulations</h2>
-              <button className="location-modal-close" onClick={() => setShowRules(false)}>
-                <X size={20} />
+        <div className="rules-modal-overlay" onClick={() => setShowRules(false)}>
+          <div className="rules-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="rules-modal-header">
+              <h2 className="rules-modal-title">Rules & Regulations</h2>
+              <button className="rules-modal-close" onClick={() => setShowRules(false)}>
+                <X size={18} />
               </button>
             </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              
+            <div className="rules-document-body">
+              <p className="rules-intro-text">
+                Welcome to KomuniTrade. To maintain a safe, trusted, and respectful hyperlocal marketplace for the Davao City community, all members are required to abide by the following guidelines:
+              </p>
+
               {/* Rule 1 */}
-              <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem', display: 'flex', gap: '1rem' }}>
-                <div style={{ background: '#FFE4E6', color: '#E11D48', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <MapPin size={20} />
+              <div className="rule-section">
+                <div className="rule-icon-container" style={{ background: '#FFE4E6', color: '#E11D48' }}>
+                  <MapPin size={18} />
                 </div>
-                <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>1. Safe Meetup Guidelines (Davao City)</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>For your safety, all meetups must be conducted in public, well-lit areas with high foot traffic and CCTV coverage. Recommended locations include: SM City Davao (Ecoland), SM Lanang Premier, Abreeza Mall, Gaisano Mall of Davao, or inside branded coffee shops.</p>
+                <div className="rule-text-content">
+                  <h3 className="rule-title">1. Safe Meetup Guidelines (Davao City)</h3>
+                  <p className="rule-desc">For your safety, all meetups must be conducted in public, well-lit areas with high foot traffic and CCTV coverage. Recommended locations include: SM City Davao (Ecoland), SM Lanang Premier, Abreeza Mall, Gaisano Mall of Davao, or inside branded coffee shops.</p>
                 </div>
               </div>
 
               {/* Rule 2 */}
-              <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem', display: 'flex', gap: '1rem' }}>
-                <div style={{ background: '#D1FAE5', color: '#059669', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Shield size={20} />
+              <div className="rule-section">
+                <div className="rule-icon-container" style={{ background: '#D1FAE5', color: '#059669' }}>
+                  <Shield size={18} />
                 </div>
-                <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>2. Item Verification</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>Buyers are required to thoroughly inspect the item at the meetup location BEFORE finalizing the payment or completing the barter. KomuniTrade acts as a platform for connection but does not provide warranties for physical goods exchanged.</p>
+                <div className="rule-text-content">
+                  <h3 className="rule-title">2. Item Verification</h3>
+                  <p className="rule-desc">Buyers are required to thoroughly inspect the item at the meetup location BEFORE finalizing the payment or completing the barter. KomuniTrade acts as a platform for connection but does not provide warranties for physical goods exchanged.</p>
                 </div>
               </div>
 
               {/* Rule 3 */}
-              <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem', display: 'flex', gap: '1rem' }}>
-                <div style={{ background: '#FEE2E2', color: '#DC2626', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <AlertTriangle size={20} />
+              <div className="rule-section">
+                <div className="rule-icon-container" style={{ background: '#FEE2E2', color: '#DC2626' }}>
+                  <AlertTriangle size={18} />
                 </div>
-                <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>3. Prohibited Items</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>The exchange of illegal drugs, unregistered firearms, stolen goods, counterfeit items, and items restricted by the Local Government Unit of Davao City and Philippine Law is strictly prohibited. Violators will be banned and reported.</p>
+                <div className="rule-text-content">
+                  <h3 className="rule-title">3. Prohibited Items</h3>
+                  <p className="rule-desc">The exchange of illegal drugs, unregistered firearms, stolen goods, counterfeit items, and items restricted by the Local Government Unit of Davao City and Philippine Law is strictly prohibited. Violators will be banned and reported.</p>
                 </div>
               </div>
 
               {/* Rule 4 */}
-              <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem', display: 'flex', gap: '1rem' }}>
-                <div style={{ background: '#FEF3C7', color: '#D97706', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Smartphone size={20} />
+              <div className="rule-section">
+                <div className="rule-icon-container" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                  <Smartphone size={18} />
                 </div>
-                <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>4. Payment Protocol</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>For cash transactions, verify the authenticity of the bills. For digital payments (GCash, Maya, Bank Transfer), ensure the amount reflects in your account BEFORE handing over the item. Do not rely solely on screenshot proofs.</p>
+                <div className="rule-text-content">
+                  <h3 className="rule-title">4. Payment Protocol</h3>
+                  <p className="rule-desc">For cash transactions, verify the authenticity of the bills. For digital payments (GCash, Maya, Bank Transfer), ensure the amount reflects in your account BEFORE handing over the item. Do not rely solely on screenshot proofs.</p>
                 </div>
               </div>
 
               {/* Rule 5 */}
-              <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem', display: 'flex', gap: '1rem' }}>
-                <div style={{ background: '#FFE4E6', color: '#E11D48', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Heart size={20} />
+              <div className="rule-section">
+                <div className="rule-icon-container" style={{ background: '#FFE4E6', color: '#E11D48' }}>
+                  <Heart size={18} />
                 </div>
-                <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>5. Respect and Anti-Haggle Policy</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>Respect the agreed-upon price. "Joy reserving" and extreme lowballing at the meetup location are highly discouraged. Users reported multiple times for such behavior will have their accounts suspended.</p>
+                <div className="rule-text-content">
+                  <h3 className="rule-title">5. Respect and Anti-Haggle Policy</h3>
+                  <p className="rule-desc">Respect the agreed-upon price. "Joy reserving" and extreme lowballing at the meetup location are highly discouraged. Users reported multiple times for such behavior will have their accounts suspended.</p>
                 </div>
               </div>
 
               {/* Rule 6 */}
-              <div style={{ background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem', display: 'flex', gap: '1rem' }}>
-                <div style={{ background: '#E0F2FE', color: '#0369A1', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <FileText size={20} />
+              <div className="rule-section">
+                <div className="rule-icon-container" style={{ background: '#E0F2FE', color: '#0369A1' }}>
+                  <FileText size={18} />
                 </div>
-                <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>6. Transaction Agreement Receipts</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>Utilize the built-in Transaction Agreement feature to lock in logistics and price. This digital receipt serves as your proof of agreement and helps in dispute resolution.</p>
+                <div className="rule-text-content">
+                  <h3 className="rule-title">6. Transaction Agreement Receipts</h3>
+                  <p className="rule-desc">Utilize the built-in Transaction Agreement feature to lock in logistics and price. This digital receipt serves as your proof of agreement and helps in dispute resolution.</p>
                 </div>
               </div>
-
             </div>
-            
-            <button className="btn-primary" onClick={() => setShowRules(false)} style={{ marginTop: '2rem', width: '100%' }}>
-              I Understand & Agree
-            </button>
+
+            <div className="rules-modal-footer">
+              <button className="rules-agree-btn" onClick={() => setShowRules(false)}>
+                I Understand & Agree
+              </button>
+            </div>
           </div>
         </div>
       )}

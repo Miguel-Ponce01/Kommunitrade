@@ -74,6 +74,7 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 | Database | Cloud Firestore | NoSQL, real-time updates |
 | AI/ML - CNN | TensorFlow.js + MobileNet v2 (CDN) | Image classification (lightweight for web) |
 | AI/ML - OCR | Tesseract.js / Google Vision API | Text extraction from images |
+| AI/ML - Category | Roboflow Serverless Workflows API | Custom product category detector model |
 | AI/ML - Facial | Google Gemini 1.5 Flash (Cloud Function) | Multimodal ID-to-selfie biometric comparison |
 | AI/ML - Listings | DeepSeek Chat API (Cloud Function proxy) | Smart title, category, tag, and price suggestions |
 | Geospatial | Custom Geohash (BASE32, 8-neighbor scan) | Location encoding and proximity filtering |
@@ -373,6 +374,7 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 |-----------|-----------|
 | CNN Classification | TensorFlow.js + MobileNet v2 (browser-native, no training required) |
 | OCR | Tesseract.js (local) + Google Vision API (cloud) |
+| Category Detection | Roboflow Serverless Workflows API (custom categories model) |
 | Facial Verification | Google Gemini 1.5 Flash multimodal API (via Cloud Function) |
 | Smart Listing Generation | DeepSeek Chat API (via Cloud Function proxy) |
 
@@ -704,7 +706,8 @@ Stores transaction histories, meetup terms, and GCash-style receipt agreements g
 
 | Date | Time | Update |
 |---|---|---|
-| May 24, 2026 | 01:14 AM | **Post-Defense Hardening & Security Audit**: Migrated identity verification to server-side Cloud Function (`verifyUserIdentity`) using Google Gemini 1.5 Flash API to compare government ID faces vs selfies and write verification flags to Firestore using Admin SDK (threshold ≥65%). Sealed all API key leak vectors by proxying Google Vision and DeepSeek requests through server-side functions and deleting the client-side `deepseekService.js`. Implemented parallel 8-neighbor geohash scanning to eliminate border boundary discovery misses. Configured advanced Firestore and Storage security rules. Fixed E2EE multi-device key desync via `createUserProfile` key sync on auth state change. Added chatId-derived decryption fallback and key rotation user messaging. |
+| June 1, 2026 | 02:40 PM | **Roboflow Category Detection Integration**: Integrated client-side Roboflow Serverless Workflows API (`kommunitrade-product-category-detector`) to detect and map listing item categories when online. Mapped predictions to KomuniTrade category IDs to auto-populate form inputs. Configured form resetting logic to automatically clear all fields, tags, smart suggestions, and GPS time marks on listing image deletion. |
+| May 24, 2026 | 01:14 AM | **Post-Defense Hardening & Security Audit**: Migrated identity verification to server-side Cloud Function (`verifyUserIdentity`) using Google Gemini 1.5 Flash API to compare government ID faces vs selfies and write verification flags to Firestore using Admin SDK (threshold ≥65%). Seals all API key leak vectors by proxying Google Vision and DeepSeek requests through server-side functions and deleting the client-side `deepseekService.js`. Implements parallel 8-neighbor geohash scanning to eliminate border boundary discovery misses. Configures advanced Firestore and Storage security rules. Fixes E2EE multi-device key desync via `createUserProfile` key sync on auth state change. Adds chatId-derived decryption fallback and key rotation user messaging. |
 | May 24, 2026 | 02:54 AM | **Documentation Audit**: Corrected all inaccurate README claims — replaced ArcFace/FaceNet with Gemini 1.5 Flash, MobileNetV3/PyTorch with MobileNet v2/TensorFlow.js, verification threshold from 85% to 65%, removed unimplemented Dashboard Analytics and Feedback Forum from feature lists, removed Government ID Verification from delimitations (it is implemented), fixed `verifiedAt` Firestore field type from String to Timestamp, added DeepSeek API to tech stack. |
 | May 17, 2026 | 06:29 PM | **Documentation**: Fully synchronized database schemas, E2EE message definitions, GCash receipt transactions, and 100% completion checklist milestones. |
 | May 13, 2026 | 06:51 AM | **Feature**: Implemented Edit Listing feature, completing Sprint 5 backend CRUD operations. Added `EditItem.jsx` linked from Profile. |

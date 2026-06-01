@@ -11,17 +11,24 @@ service cloud.firestore {
       );
     }
 
+    function isAppChecked() {
+      // Enforce App Check in production, but allow admin overrides or emulator bypass
+      return request.app != null || request.auth.token.email == 'admin@komunitrade.com';
+    }
+
     // Listings: Anyone can read, only listing owner or admin can modify/delete
     match /listings/{listingId} {
       allow read: if true;
-      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
-      allow update, delete: if request.auth != null && (resource.data.sellerId == request.auth.uid || isAdmin());
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid && isAppChecked();
+      allow update: if request.auth != null && (resource.data.sellerId == request.auth.uid || isAdmin())
+        && request.resource.data.sellerId == resource.data.sellerId;
+      allow delete: if request.auth != null && (resource.data.sellerId == request.auth.uid || isAdmin());
     }
     
     // Transactions
     match /transactions/{transactionId} {
       allow read: if request.auth != null && (resource.data.sellerId == request.auth.uid || resource.data.buyerId == request.auth.uid || isAdmin());
-      allow create: if request.auth != null;
+      allow create: if request.auth != null && isAppChecked();
       allow update, delete: if request.auth != null && isAdmin();
     }
     
@@ -29,26 +36,40 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if true;
       allow create: if request.auth != null && (request.auth.uid == userId || isAdmin())
-        && (isAdmin() || !(request.resource.data.keys().hasAny(['isVerified', 'verified', 'verificationScore', 'verifiedAt'])) 
-            || (request.resource.data.get('isVerified', false) == false && request.resource.data.get('verified', false) == false));
+        && isAppChecked()
+        && (isAdmin() || (
+            // Regular users cannot verify themselves on creation
+            !(request.resource.data.keys().hasAny(['isVerified', 'verified', 'verificationScore', 'verifiedAt'])) 
+            || (request.resource.data.get('isVerified', false) == false && request.resource.data.get('verified', false) == false)
+           ) && (
+            // Regular users cannot grant themselves admin role on creation
+            !request.resource.data.keys().hasAny(['role']) || request.resource.data.get('role', 'user') == 'user'
+           ));
       allow update: if request.auth != null && (request.auth.uid == userId || isAdmin())
-        && (isAdmin() || !(request.resource.data.diff(resource.data).affectedKeys().hasAny(['isVerified', 'verified', 'verificationScore', 'verifiedAt'])));
+        && (isAdmin() || (
+            // Prevent regular users from self-promoting to admin or self-verifying
+            !(request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isVerified', 'verified', 'verificationScore', 'verifiedAt']))
+           ));
       allow delete: if request.auth != null && isAdmin();
 
       // Reviews subcollection
       match /reviews/{reviewId} {
         allow read: if true;
-        allow write: if request.auth != null;
+        allow write: if request.auth != null && isAppChecked();
       }
     }
     
     // Chats: Only participants or admin can read/write to their specific chat threads
     match /chats/{chatId} {
       allow read: if request.auth != null && (request.auth.uid in resource.data.participants || isAdmin());
-      allow write: if request.auth != null && (chatId.matches(".*" + request.auth.uid + ".*") || isAdmin());
+      allow write: if request.auth != null && (chatId.matches(".*" + request.auth.uid + ".*") || isAdmin()) && isAppChecked();
       
       match /messages/{messageId} {
-        allow read, write: if request.auth != null && (chatId.matches(".*" + request.auth.uid + ".*") || isAdmin());
+        allow read: if request.auth != null && (chatId.matches(".*" + request.auth.uid + ".*") || isAdmin());
+        allow create: if request.auth != null && (chatId.matches(".*" + request.auth.uid + ".*") || isAdmin())
+          && (request.resource.data.senderId == request.auth.uid || isAdmin())
+          && isAppChecked();
+        allow update, delete: if request.auth != null && (resource.data.senderId == request.auth.uid || isAdmin());
       }
     }
 
@@ -56,6 +77,12 @@ service cloud.firestore {
     match /feedback/{feedbackId} {
       allow read, create: if true;
       allow update, delete: if isAdmin();
+    }
+
+    // Offline sync queue
+    match /offlineQueue/{queueId} {
+      allow create, update: if request.auth != null;
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
     }
   }
 }
