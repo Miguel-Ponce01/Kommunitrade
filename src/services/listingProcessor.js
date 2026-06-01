@@ -94,7 +94,7 @@ async function callRoboflowCategoryDetector(base64Image) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        api_key: '0iF62YZkgTJUA9R0k8NP',
+        api_key: import.meta.env.VITE_ROBOFLOW_API_KEY,
         inputs: {
           "image": {
             "type": "base64",
