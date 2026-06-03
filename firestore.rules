@@ -29,7 +29,8 @@ service cloud.firestore {
     match /transactions/{transactionId} {
       allow read: if request.auth != null && (resource.data.sellerId == request.auth.uid || resource.data.buyerId == request.auth.uid || isAdmin());
       allow create: if request.auth != null && isAppChecked();
-      allow update, delete: if request.auth != null && isAdmin();
+      allow update: if request.auth != null && (resource.data.sellerId == request.auth.uid || resource.data.buyerId == request.auth.uid || isAdmin());
+      allow delete: if request.auth != null && isAdmin();
     }
     
     // Users: Anyone can read profiles, owner or admin can write
