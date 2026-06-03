@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShieldAlert, KeyRound, ArrowLeft, Loader2, Eye, EyeOff, CheckCircle, Sparkles } from "lucide-react";
 import { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, createUserProfile } from "../firebase";
-import adminCreds from "../config/admin.json";
+import { useAuth } from "../contexts/AuthContext";
 import "../index.css";
+
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || "admin@komunitrade.com";
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "admin123";
+const ADMIN_DISPLAY_NAME = import.meta.env.VITE_ADMIN_DISPLAY_NAME || "System Admin";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -13,14 +17,21 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
+  const { userProfile, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && userProfile && userProfile.role === "admin") {
+      navigate("/admin/dashboard");
+    }
+  }, [authLoading, userProfile, navigate]);
 
   const handleAdminSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    // Initial check against local credentials file
-    if (email.trim().toLowerCase() !== adminCreds.email.toLowerCase() || password !== adminCreds.password) {
+    // Initial check against environment credentials
+    if (email.trim().toLowerCase() !== ADMIN_EMAIL.toLowerCase() || password !== ADMIN_PASSWORD) {
       setError("Unauthorized access. Invalid developer/admin credentials.");
       setLoading(false);
       return;
@@ -29,29 +40,32 @@ export default function AdminLogin() {
     try {
       let user;
       try {
-        // Attempt login
+        // Attempt login first
         const result = await signInWithEmailAndPassword(auth, email, password);
         user = result.user;
       } catch (authError) {
-        // If account does not exist in Firebase Auth yet, provision it automatically
-        if (authError.code === "auth/user-not-found" || authError.code === "auth/invalid-credential") {
-          console.log("Admin account not found in Auth. Auto-provisioning admin user...");
+        // Only auto-provision if the account truly doesn't exist yet
+        if (authError.code === "auth/user-not-found") {
+          console.log("Admin account not found. Auto-provisioning...");
           const result = await createUserWithEmailAndPassword(auth, email, password);
           user = result.user;
-          // Sync profile to Firestore
-          await createUserProfile(user, { displayName: adminCreds.displayName });
+          await createUserProfile(user, { displayName: ADMIN_DISPLAY_NAME });
+        } else if (authError.code === "auth/invalid-credential" || authError.code === "auth/wrong-password") {
+          setError("Incorrect access passkey. Please check your credentials.");
+          setLoading(false);
+          return;
         } else {
           throw authError;
         }
       }
 
       // Sync/validate profile structure in Firestore
-      await createUserProfile(user, { displayName: adminCreds.displayName });
+      await createUserProfile(user, { displayName: ADMIN_DISPLAY_NAME });
 
       // Navigate to admin panel
       setShowSuccess(true);
       setTimeout(() => {
-        navigate("/app/admin");
+        navigate("/admin/dashboard");
       }, 1800);
     } catch (e) {
       console.error("Admin login process failed:", e);
@@ -70,13 +84,10 @@ export default function AdminLogin() {
           <ArrowLeft size={14} /> Back to Landing Page
         </button>
 
-        {/* Logo / Header */}
+        {/* Header - No Icon */}
         <div className="auth-header" style={{ marginTop: "1rem" }}>
-          <div style={{ display: "inline-flex", background: "rgba(239, 68, 68, 0.1)", color: "#EF4444", padding: "1rem", borderRadius: "50%", marginBottom: "1rem" }}>
-            <ShieldAlert size={36} />
-          </div>
           <h2 style={{ color: "#FFF", fontSize: "1.75rem", fontWeight: 900, letterSpacing: "-0.02em", fontFamily: "'Outfit', sans-serif" }}>
-            Developer Options
+            Admin Access
           </h2>
           <p className="auth-subtitle" style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
             Restricted System Administration Console
@@ -107,7 +118,7 @@ export default function AdminLogin() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="admin-password" style={{ color: "rgba(255,255,255,0.7)" }}>Secret Access Key</label>
+            <label htmlFor="admin-password" style={{ color: "rgba(255,255,255,0.7)" }}>Access Passkey</label>
             <div className="input-icon-wrap">
               <input
                 id="admin-password"
@@ -152,7 +163,7 @@ export default function AdminLogin() {
               </span>
             ) : (
               <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                <KeyRound size={16} /> Authenticate Admin Console
+                <KeyRound size={16} /> Admin Access
               </span>
             )}
           </button>

@@ -1,11 +1,52 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Shield, Lock, CheckCircle, Languages, X, MapPin, Star, Settings } from 'lucide-react';
+import { ArrowRight, Shield, Lock, CheckCircle, Languages, X, MapPin, Star, Settings, Camera, ShieldCheck, Handshake, Download, Wifi, Zap, Smartphone } from 'lucide-react';
 import Auth from './Login';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import { db, collection, addDoc, getDocs } from '../firebase';
 import GoogleMap from '../components/GoogleMap';
 import '../index.css';
+
+/* ─── Count-up hook ──────────────────────────────────────────────── */
+function useCountUp(target, duration = 2000, startCounting = false) {
+  const [count, setCount] = useState(0);
+  const hasRun = useRef(false);
+
+  useEffect(() => {
+    if (!startCounting || hasRun.current) return;
+    hasRun.current = true;
+
+    let start = 0;
+    const step = Math.ceil(target / (duration / 16));
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) {
+        setCount(target);
+        clearInterval(timer);
+      } else {
+        setCount(start);
+      }
+    }, 16);
+    return () => clearInterval(timer);
+  }, [target, duration, startCounting]);
+
+  return count;
+}
+
+/* ─── Particle data (memoized) ───────────────────────────────────── */
+function generateParticles(n = 14) {
+  return Array.from({ length: n }, (_, i) => ({
+    id: i,
+    size: 4 + Math.random() * 10,
+    top: `${10 + Math.random() * 80}%`,
+    left: `${5 + Math.random() * 90}%`,
+    dx: `${-80 + Math.random() * 160}px`,
+    dy: `${-140 + Math.random() * 80}px`,
+    scaleEnd: 0.3 + Math.random() * 0.7,
+    dur: `${8 + Math.random() * 14}s`,
+    delay: `${-Math.random() * 12}s`,
+  }));
+}
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -15,6 +56,16 @@ export default function Landing() {
   const [feedback, setFeedback] = useState([]);
   const [newFeedbackName, setNewFeedbackName] = useState('');
   const [newFeedbackMessage, setNewFeedbackMessage] = useState('');
+
+  // PWA install prompt
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  // Stats count-up trigger
+  const statsRef = useRef(null);
+  const [statsVisible, setStatsVisible] = useState(false);
+
+  // Particles
+  const particles = useMemo(() => generateParticles(14), []);
 
   // Fetch Feedback from Firestore
   useEffect(() => {
@@ -43,12 +94,56 @@ export default function Landing() {
     fetchFeedback();
   }, []);
 
+  // Scroll detection for navbar
   useEffect(() => {
     const container = document.querySelector('.editorial-landing');
     const handleScroll = () => setScrolled(container?.scrollTop > 20);
     container?.addEventListener('scroll', handleScroll);
     return () => container?.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // ── Scroll-Reveal Intersection Observer ──
+  useEffect(() => {
+    const els = document.querySelectorAll('.kt-reveal, .kt-reveal-group');
+    if (!els.length) return;
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('kt-visible');
+        }
+      });
+    }, { threshold: 0.15 });
+    els.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, [feedback]); // re-run after feedback loads to catch testimonial section
+
+  // ── Stats counter Intersection Observer ──
+  useEffect(() => {
+    if (!statsRef.current) return;
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        setStatsVisible(true);
+        obs.disconnect();
+      }
+    }, { threshold: 0.3 });
+    obs.observe(statsRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  // ── PWA beforeinstallprompt ──
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handlePWAInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      setDeferredPrompt(null);
+    }
+  };
 
   const openAuth = () => setShowAuthModal(true);
 
@@ -66,6 +161,19 @@ export default function Landing() {
     { key: 'Furniture', img: '/sofa.webp' },
     { key: 'students', img: '/student_esse.webp' },
   ];
+
+  // Count-up values
+  const listingsCount = useCountUp(2000, 2200, statsVisible);
+  const sellersCount = useCountUp(500, 2000, statsVisible);
+  const satisfactionCount = useCountUp(98, 1800, statsVisible);
+
+  // Duplicate feedback for seamless carousel loop
+  const carouselItems = useMemo(() => {
+    if (feedback.length === 0) return [];
+    // Ensure enough items for smooth infinite scroll
+    const base = feedback.length < 6 ? [...feedback, ...feedback, ...feedback] : feedback;
+    return [...base, ...base]; // duplicate for seamless loop
+  }, [feedback]);
 
   return (
     <div className="editorial-landing animate-fade-in">
@@ -105,6 +213,20 @@ export default function Landing() {
 
       {/* ── HERO SECTION ────────────────────────────── */}
       <section className="kt-hero">
+
+        {/* Floating particles */}
+        {particles.map(p => (
+          <span
+            key={p.id}
+            className="kt-particle"
+            style={{
+              width: p.size, height: p.size,
+              top: p.top, left: p.left,
+              '--dx': p.dx, '--dy': p.dy, '--scale-end': p.scaleEnd,
+              animationDuration: p.dur, animationDelay: p.delay,
+            }}
+          />
+        ))}
 
         {/* Giant decorative background text */}
         <div className="kt-hero-deco-text" aria-hidden="true">
@@ -162,8 +284,35 @@ export default function Landing() {
 
       </section>
 
+      {/* ── STATS COUNTER SECTION ──────────────────── */}
+      <section className="kt-stats-section" ref={statsRef}>
+        <div className="apple-grid">
+          <div className="kt-stats-header kt-reveal">
+            <h2>{t('stats_counter_title')}</h2>
+            <p>{t('stats_counter_subtitle')}</p>
+          </div>
+          <div className="kt-stats-grid kt-reveal-group kt-reveal">
+            <div className="kt-stat-card kt-reveal-child">
+              <div className="kt-stat-icon listings"><ShieldCheck size={22} /></div>
+              <div className="kt-stat-number">{listingsCount.toLocaleString()}+</div>
+              <div className="kt-stat-label">{t('stats_listings_label')}</div>
+            </div>
+            <div className="kt-stat-card kt-reveal-child">
+              <div className="kt-stat-icon sellers"><CheckCircle size={22} /></div>
+              <div className="kt-stat-number">{sellersCount.toLocaleString()}+</div>
+              <div className="kt-stat-label">{t('stats_sellers_label')}</div>
+            </div>
+            <div className="kt-stat-card kt-reveal-child">
+              <div className="kt-stat-icon rating"><Star size={22} /></div>
+              <div className="kt-stat-number">{satisfactionCount}%</div>
+              <div className="kt-stat-label">{t('stats_satisfaction_label')}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── TRUST SECTION ───────────────────────────── */}
-      <section id="trust" style={{ background: 'var(--card-bg)', padding: '8rem 0', position: 'relative' }}>
+      <section id="trust" className="kt-reveal" style={{ background: 'var(--card-bg)', padding: '8rem 0', position: 'relative' }}>
         <div className="apple-grid" style={{ position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5rem', alignItems: 'center' }}>
             <div>
@@ -213,8 +362,37 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── HOW IT WORKS ───────────────────────────── */}
+      <section className="kt-how-section">
+        <div className="apple-grid">
+          <div className="kt-how-header kt-reveal">
+            <h2>{t('hiw_title')}</h2>
+            <p>{t('hiw_subtitle')}</p>
+          </div>
+          <div className="kt-how-steps kt-reveal-group kt-reveal">
+            <div className="kt-step kt-reveal-child">
+              <div className="kt-step-num">1</div>
+              <div className="kt-step-title">{t('hiw_step1_title')}</div>
+              <div className="kt-step-desc">{t('hiw_step1_desc')}</div>
+              <div className="kt-connector" />
+            </div>
+            <div className="kt-step kt-reveal-child">
+              <div className="kt-step-num">2</div>
+              <div className="kt-step-title">{t('hiw_step2_title')}</div>
+              <div className="kt-step-desc">{t('hiw_step2_desc')}</div>
+              <div className="kt-connector" />
+            </div>
+            <div className="kt-step kt-reveal-child">
+              <div className="kt-step-num">3</div>
+              <div className="kt-step-title">{t('hiw_step3_title')}</div>
+              <div className="kt-step-desc">{t('hiw_step3_desc')}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── CATEGORIES ──────────────────────────────── */}
-      <section id="categories" style={{ padding: '0 0 var(--section-gap)' }}>
+      <section id="categories" className="kt-reveal" style={{ padding: '0 0 var(--section-gap)' }}>
         <div className="apple-grid">
           <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
             <h2 className="section-title" style={{ fontSize: '3.5rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", marginBottom: '1rem' }} dangerouslySetInnerHTML={{ __html: t('cat_title') }} />
@@ -237,28 +415,44 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── FEEDBACK SECTION ────────────────────────── */}
+      {/* ── FEEDBACK / TESTIMONIALS SECTION ──────────── */}
       <section id="feedback-section" className="editorial-faq-section" style={{ padding: '0 0 8rem' }}>
         <div className="apple-grid">
           <div className="faq-section-inner">
-            <div className="faq-header">
+            <div className="faq-header kt-reveal">
               <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '0.5rem' }}>Community Feedback</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>Hear from our users or share your experience.</p>
             </div>
 
-            <div className="faq-list">
-              {feedback.map((item) => (
-                <div key={item.id} className="faq-item" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem', background: 'var(--card-bg)', borderRadius: '12px', marginBottom: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{item.name}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.date}</div>
+            {/* Auto-scrolling testimonial carousel */}
+            {carouselItems.length > 0 && (
+              <div className="kt-testimonial-section kt-reveal" style={{ marginBottom: '2.5rem' }}>
+                <div className="kt-testimonial-track-wrapper">
+                  <div className="kt-testimonial-track">
+                    {carouselItems.map((item, idx) => (
+                      <div key={`${item.id || item.name}-${idx}`} className="kt-testimonial-card">
+                        <div className="kt-testimonial-top">
+                          <div className="kt-testimonial-avatar">
+                            {(item.name || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="kt-testimonial-meta">
+                            <div className="kt-testimonial-name">{item.name}</div>
+                            <div className="kt-testimonial-date">{item.date}</div>
+                          </div>
+                        </div>
+                        <div className="kt-testimonial-stars">
+                          {[1,2,3,4,5].map(s => <Star key={s} size={14} fill="#FACC15" stroke="#FACC15" />)}
+                        </div>
+                        <div className="kt-testimonial-msg">{item.message}</div>
+                      </div>
+                    ))}
                   </div>
-                  <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>{item.message}</p>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
 
-            <div style={{ marginTop: '3rem', background: 'var(--card-bg)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
+            {/* Feedback form */}
+            <div className="kt-reveal" style={{ marginTop: '1rem', background: 'var(--card-bg)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
               <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontFamily: "'Outfit', sans-serif" }}>Leave a Feedback</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <input type="text" placeholder="Your Name" value={newFeedbackName} onChange={(e) => setNewFeedbackName(e.target.value)} style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)' }} />
@@ -289,16 +483,44 @@ export default function Landing() {
               </div>
             </div>
 
-            <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-              <button 
-                onClick={() => navigate("/admin-login")} 
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.15, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} 
-                onMouseEnter={e => e.currentTarget.style.opacity = '0.8'} 
-                onMouseLeave={e => e.currentTarget.style.opacity = '0.15'}
-                title="Developer Options"
-              >
-                <Settings size={12} /> Developer Options
+          </div>
+        </div>
+      </section>
+
+      {/* ── PWA INSTALL SECTION ────────────────────── */}
+      <section className="kt-pwa-section kt-reveal">
+        <div className="apple-grid">
+          <div className="kt-pwa-grid">
+            <div className="kt-pwa-text">
+              <h2>{t('pwa_title')}</h2>
+              <p>{t('pwa_desc')}</p>
+              <button className="kt-pwa-install-btn" onClick={handlePWAInstall}>
+                <Download size={18} />
+                <span>{t('pwa_cta')}</span>
               </button>
+            </div>
+            <div className="kt-pwa-features kt-reveal-group kt-reveal">
+              <div className="kt-pwa-feat kt-reveal-child">
+                <div className="kt-pwa-feat-icon"><Wifi size={18} /></div>
+                <div className="kt-pwa-feat-text">
+                  {t('pwa_feat1')}
+                  <span>Browse even without internet</span>
+                </div>
+              </div>
+              <div className="kt-pwa-feat kt-reveal-child">
+                <div className="kt-pwa-feat-icon"><Zap size={18} /></div>
+                <div className="kt-pwa-feat-text">
+                  {t('pwa_feat2')}
+                  <span>Cached assets for instant pages</span>
+                </div>
+              </div>
+              <div className="kt-pwa-feat kt-reveal-child">
+                <div className="kt-pwa-feat-icon"><Smartphone size={18} /></div>
+                <div className="kt-pwa-feat-text">
+                  {t('pwa_feat3')}
+                  <span>No app store download required</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Loader2, Save, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, Check, TrendingUp, Plus, PlusCircle } from 'lucide-react';
+import { Camera, Loader2, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, Check, TrendingUp, PlusCircle } from 'lucide-react';
 import { MOCK_BARANGAYS, CATEGORIES } from '../data/mockData';
 import { db, auth, storage, collection, addDoc, serverTimestamp } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from '../firebase';
@@ -21,13 +21,16 @@ export default function PostItem() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [debugLog, setDebugLog] = useState([]);
   const [currentStep, setCurrentStep] = useState(1);
-  
+
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
   const [barangay, setBarangay] = useState('');
   const [description, setDescription] = useState('');
   const [condition, setCondition] = useState('New');
+  const [isNegotiable, setIsNegotiable] = useState(false);
+  const [deliveryOption, setDeliveryOption] = useState('Meetup');
+  const [sellingReason, setSellingReason] = useState('');
   const [showDebug, setShowDebug] = useState(false);
   const [timeMark, setTimeMark] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -79,53 +82,53 @@ export default function PostItem() {
 
   const handleImageAnalysis = async (file) => {
     if (!file) return;
-    
+
     setIsAnalyzing(true);
     setAnalysisProgress('Running AI analysis (OCR + Object Detection)...');
-    
-    try {
-      addLog("Compressing image client-side...", "primary");
-      const { compressImage } = await import('../utils/imageCompression');
-      const compressedFile = await compressImage(file);
 
+    try {
       addLog("Analyzing image content...", "primary");
       const listingId = `${currentUser.uid}_${Date.now()}`;
-      const result = await processListingImage(compressedFile, listingId, category || null);
-      
-      if (result.ocr.success && result.ocr.text) {
+      // Use 'file' directly as it is already compressed from handleFileChange
+      const result = await processListingImage(file, listingId, category || null);
+
+      if (result?.ocr?.success && result.ocr.text) {
         addLog(`Extracted text: ${result.ocr.text.substring(0, 30)}...`, "primary");
       }
-      
-      if (result.cnn.success && result.cnn.topPrediction) {
+
+      if (result?.cnn?.success && result.cnn.topPrediction) {
         const topLabelName = result.cnn.topPrediction.label || result.cnn.topPrediction.className || "object";
         const topConf = result.cnn.topPrediction.confidence || result.cnn.topPrediction.probability || 0;
         addLog(`Detected object: ${topLabelName} (${Math.round(topConf * 100)}%)`, "success");
       }
-      
-      // Auto-fill fields with AI optimized results securely generated
-      addLog("DeepSeek Smart Advisor recommendation loaded!", "success");
-      setGeneratedData({
-        title: result.deepseek.data.title,
-        category: result.deepseek.data.category,
-        tags: result.deepseek.data.tags
-      });
-      
-      setTitle(result.deepseek.data.title);
-      setCategory(result.deepseek.data.category);
-      if (result.ocr.text) setDescription(result.ocr.text);
-      setTags(result.deepseek.data.tags);
-      
-      if (result.deepseek.data.suggestedPrice > 0) {
-        setPrice(result.deepseek.data.suggestedPrice.toString());
-        addLog(`Suggested Price: ₱${result.deepseek.data.suggestedPrice}`, "success");
-      } else if (!price && result.deepseek.data.category === 'Electronics') {
-        setPrice('500'); // Fallback suggest
+
+      if (result?.deepseek?.data) {
+        // Auto-fill fields with AI optimized results securely generated
+        addLog("DeepSeek Smart Advisor recommendation loaded!", "success");
+        setGeneratedData({
+          title: result.deepseek.data.title || '',
+          category: result.deepseek.data.category || '',
+          tags: result.deepseek.data.tags || []
+        });
+
+        setTitle(prev => prev || result.deepseek.data.title || '');
+        setCategory(prev => prev || result.deepseek.data.category || '');
+        setTags(prev => prev.length ? prev : (result.deepseek.data.tags || []));
+
+        if (result.deepseek.data.suggestedPrice > 0) {
+          if (!price) setPrice(result.deepseek.data.suggestedPrice.toString());
+          addLog(`Suggested Price: ₱${result.deepseek.data.suggestedPrice}`, "success");
+        } else if (!price && result.deepseek.data.category === 'Electronics') {
+          setPrice('500'); // Fallback suggest
+        }
       }
       
-      if (result.processedOffline) {
+      if (result?.ocr?.text && !description) setDescription(result.ocr.text);
+
+      if (result?.processedOffline) {
         addLog("Offline mode active: Listing queued locally.", "success");
       }
-      
+
       setAnalysisProgress('Analysis complete!');
     } catch (error) {
       console.error('Image analysis failed:', error);
@@ -147,7 +150,7 @@ export default function PostItem() {
 
     addLog(`Compressing ${files.length} image(s) client-side...`, "primary");
     const { compressImage } = await import('../utils/imageCompression');
-    
+
     const compressedFiles = await Promise.all(
       files.map(async (file) => {
         try {
@@ -160,7 +163,7 @@ export default function PostItem() {
     );
 
     const newPreviewUrls = compressedFiles.map(file => URL.createObjectURL(file));
-    
+
     // We don't revoke here because we want to keep all previews visible!
     // But we should clean them up when the component unmounts or when images are removed.
 
@@ -172,13 +175,13 @@ export default function PostItem() {
     addLog(`${files.length} compressed visual signal(s) received. Activating GPS verification...`, "primary");
 
     captureTimeMark();
-    
+
     // Run AI analysis on the first image if no images were present before
     if (imageFiles.length === 0) {
       handleImageAnalysis(compressedFiles[0]);
       setSelectedImageForAI(0);
     }
-    
+
     e.target.value = ''; // Reset to allow selecting same file again
   };
 
@@ -196,7 +199,7 @@ export default function PostItem() {
         const { latitude, longitude } = pos.coords;
         const nearest = findNearestBarangay(latitude, longitude);
         const timestamp = new Date();
-        
+
         setTimeMark({
           lat: latitude.toFixed(4),
           lng: longitude.toFixed(4),
@@ -258,6 +261,9 @@ export default function PostItem() {
       await addDoc(collection(db, 'listings'), {
         title,
         price: parseFloat(price),
+        isNegotiable,
+        deliveryOption,
+        sellingReason,
         description,
         category,
         condition,
@@ -296,20 +302,20 @@ export default function PostItem() {
             <h2 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 900, fontSize: '2.25rem', fontFamily: "'Outfit', sans-serif" }}>{t('post_title')}</h2>
             <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>{t('post_subtitle')}</p>
           </div>
-          <button 
-            type="button" 
-            onClick={() => setShowDebug(!showDebug)} 
-            className="btn-secondary" 
-            style={{ 
-              width: 'auto', 
-              padding: '0.6rem 1.5rem', 
-              borderRadius: '100px', 
-              fontSize: '0.9rem', 
-              fontWeight: 600, 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              background: 'var(--card-bg)', 
+          <button
+            type="button"
+            onClick={() => setShowDebug(!showDebug)}
+            className="btn-secondary"
+            style={{
+              width: 'auto',
+              padding: '0.6rem 1.5rem',
+              borderRadius: '100px',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: 'var(--card-bg)',
               border: '1px solid var(--border-color)',
               color: 'var(--text-main)',
               height: '44px',
@@ -321,41 +327,41 @@ export default function PostItem() {
         </div>
 
         {/* Wizard Step Progress Tracker */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          background: 'var(--card-bg)', 
-          border: '1px solid var(--border-color)', 
-          padding: '1rem 2rem', 
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          background: 'var(--card-bg)',
+          border: '1px solid var(--border-color)',
+          padding: '1rem 2rem',
           borderRadius: '20px',
           boxShadow: 'var(--shadow-sm)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', opacity: currentStep === 1 ? 1 : 0.6 }}>
-            <span style={{ 
-              width: '28px', height: '28px', borderRadius: '50%', 
-              background: currentStep >= 1 ? 'var(--primary)' : 'var(--border-color)', 
-              color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            <span style={{
+              width: '28px', height: '28px', borderRadius: '50%',
+              background: currentStep >= 1 ? 'var(--primary)' : 'var(--border-color)',
+              color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 700, fontSize: '0.85rem'
             }}>1</span>
             <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>Upload Media</span>
           </div>
           <div style={{ flex: 1, height: '2px', background: currentStep > 1 ? 'var(--primary)' : 'var(--border-color)', margin: '0 1.5rem' }}></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', opacity: currentStep === 2 ? 1 : 0.6 }}>
-            <span style={{ 
-              width: '28px', height: '28px', borderRadius: '50%', 
-              background: currentStep >= 2 ? 'var(--primary)' : 'var(--border-color)', 
-              color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            <span style={{
+              width: '28px', height: '28px', borderRadius: '50%',
+              background: currentStep >= 2 ? 'var(--primary)' : 'var(--border-color)',
+              color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 700, fontSize: '0.85rem'
             }}>2</span>
             <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>Details & AI Advice</span>
           </div>
           <div style={{ flex: 1, height: '2px', background: currentStep > 2 ? 'var(--primary)' : 'var(--border-color)', margin: '0 1.5rem' }}></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', opacity: currentStep === 3 ? 1 : 0.6 }}>
-            <span style={{ 
-              width: '28px', height: '28px', borderRadius: '50%', 
-              background: currentStep >= 3 ? 'var(--primary)' : 'var(--border-color)', 
-              color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            <span style={{
+              width: '28px', height: '28px', borderRadius: '50%',
+              background: currentStep >= 3 ? 'var(--primary)' : 'var(--border-color)',
+              color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 700, fontSize: '0.85rem'
             }}>3</span>
             <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>Location Proof</span>
@@ -376,8 +382,8 @@ export default function PostItem() {
             {debugLog.map((log, i) => (
               <div key={i} style={{ fontSize: '0.85rem', fontFamily: 'monospace', display: 'flex', gap: '1rem' }}>
                 <span style={{ color: '#475569', minWidth: '70px' }}>[{log.time}]</span>
-                <span style={{ 
-                  color: log.type === 'error' ? '#ef4444' : log.type === 'success' ? 'var(--primary)' : log.type === 'primary' ? '#38bdf8' : '#94a3b8' 
+                <span style={{
+                  color: log.type === 'error' ? '#ef4444' : log.type === 'success' ? 'var(--primary)' : log.type === 'primary' ? '#38bdf8' : '#94a3b8'
                 }}>
                   {log.type === 'error' ? '✖ ' : log.type === 'success' ? '✔ ' : '› '}
                   {log.message}
@@ -387,11 +393,11 @@ export default function PostItem() {
           </div>
         </div>
       )}
-      
+
       <div className="admin-layout" style={{ gap: '2rem' }}>
         {/* Left Column - Wizard Step Switcher */}
         <div className="admin-col-main" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          
+
           {/* STEP 1: UPLOAD MEDIA */}
           {currentStep === 1 && (
             <div className="panel animate-fade-in" style={{ padding: '2rem', textAlign: 'center' }}>
@@ -454,10 +460,43 @@ export default function PostItem() {
                   </div>
                 </div>
 
-                {/* Grid: Price */}
-                <div className="form-group">
-                  <label>{t('post_price')}</label>
-                  <input type="number" className="premium-input" placeholder="0.00" required value={price} onChange={(e) => setPrice(e.target.value)} />
+                {/* Grid: Price and Negotiability */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', alignItems: 'end' }}>
+                  <div className="form-group">
+                    <label>{t('post_price')}</label>
+                    <input type="number" className="premium-input" placeholder="0.00" required value={price} onChange={(e) => setPrice(e.target.value)} />
+                  </div>
+                  <div className="form-group" style={{ paddingBottom: '0.75rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={isNegotiable} onChange={(e) => setIsNegotiable(e.target.checked)} style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>Open to Negotiation</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Grid: Delivery Option and Reason */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                  <div className="form-group">
+                    <label>Delivery Method</label>
+                    <select className="premium-input premium-select" value={deliveryOption} onChange={(e) => setDeliveryOption(e.target.value)}>
+                      <option value="Meetup">Meetup Only</option>
+                      <option value="Pickup">Pickup Only</option>
+                      <option value="Delivery">Delivery / Shipping</option>
+                      <option value="Flexible">Flexible (Meetup/Delivery)</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Reason for Selling (Optional)</label>
+                    <select className="premium-input premium-select" value={sellingReason} onChange={(e) => setSellingReason(e.target.value)}>
+                      <option value="">Select a reason...</option>
+                      <option value="Upgrading">Upgrading</option>
+                      <option value="Decluttering">Decluttering / Moving</option>
+                      <option value="Wrong Size/Item">Wrong Size / Item</option>
+                      <option value="Never Used">Never Used</option>
+                      <option value="Need Cash">Need Cash</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Description */}
@@ -471,12 +510,12 @@ export default function PostItem() {
                   <label>Tags (Auto-generated or custom)</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
                     {tags.map((tag, index) => (
-                      <span key={index} style={{ 
-                        background: 'var(--primary-light)', 
-                        color: 'var(--primary)', 
-                        padding: '0.25rem 0.75rem', 
-                        borderRadius: '12px', 
-                        fontSize: '0.8rem', 
+                      <span key={index} style={{
+                        background: 'var(--primary-light)',
+                        color: 'var(--primary)',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '12px',
+                        fontSize: '0.8rem',
                         fontWeight: 700,
                         display: 'flex',
                         alignItems: 'center',
@@ -487,10 +526,10 @@ export default function PostItem() {
                       </span>
                     ))}
                   </div>
-                  <input 
-                    type="text" 
-                    className="premium-input" 
-                    placeholder="Add a tag and press Enter" 
+                  <input
+                    type="text"
+                    className="premium-input"
+                    placeholder="Add a tag and press Enter"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -506,8 +545,8 @@ export default function PostItem() {
               </div>
 
               {/* Smart Advisor Panel (Real-time Feedback) */}
-              <div style={{ 
-                marginTop: '2rem', padding: '1.5rem', background: 'var(--bg-color)', 
+              <div style={{
+                marginTop: '2rem', padding: '1.5rem', background: 'var(--bg-color)',
                 borderRadius: '24px', border: '1px solid var(--border-color)',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
               }}>
@@ -536,30 +575,30 @@ export default function PostItem() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {/* Title Check */}
                   <div className={`premium-advisor-card ${title.length > 5 ? 'advisor-card-success' : 'advisor-card-warning'}`}>
-                     {title.length > 5 ? <Check size={16} color="var(--primary)" /> : <Info size={16} color="#F59E0B" />}
-                     <div>
-                       <strong className="premium-advisor-title">
-                         {title.length > 5 ? t('post_keyword_detected') : t('post_keyword_guidance')}
-                       </strong>
-                       <p className="premium-advisor-desc">
-                         {title.length > 5 ? t('post_keyword_success') : t('post_keyword_hint')}
-                       </p>
-                     </div>
+                    {title.length > 5 ? <Check size={16} color="var(--primary)" /> : <Info size={16} color="#F59E0B" />}
+                    <div>
+                      <strong className="premium-advisor-title">
+                        {title.length > 5 ? t('post_keyword_detected') : t('post_keyword_guidance')}
+                      </strong>
+                      <p className="premium-advisor-desc">
+                        {title.length > 5 ? t('post_keyword_success') : t('post_keyword_hint')}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Pricing Advisor */}
                   <div className={`premium-advisor-card ${parseFloat(price) > 0 ? 'advisor-card-success' : 'advisor-card-info'}`}>
-                     {parseFloat(price) > 0 ? <TrendingUp size={16} color="var(--primary)" /> : <Info size={16} color="#3B82F6" />}
-                     <div>
-                       <strong className="premium-advisor-title">
-                         {parseFloat(price) > 0 ? t('post_price_check') : t('post_price_assessment')}
-                       </strong>
-                       <p className="premium-advisor-desc">
-                         {parseFloat(price) > 0 
-                           ? t('post_price_success', { price, barangay: barangay || 'current' }) 
-                           : t('post_price_hint')}
-                       </p>
-                     </div>
+                    {parseFloat(price) > 0 ? <TrendingUp size={16} color="var(--primary)" /> : <Info size={16} color="#3B82F6" />}
+                    <div>
+                      <strong className="premium-advisor-title">
+                        {parseFloat(price) > 0 ? t('post_price_check') : t('post_price_assessment')}
+                      </strong>
+                      <p className="premium-advisor-desc">
+                        {parseFloat(price) > 0
+                          ? t('post_price_success', { price, barangay: barangay || 'current' })
+                          : t('post_price_hint')}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -592,18 +631,18 @@ export default function PostItem() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)' }}>
                     <ShieldCheck size={18} color="var(--primary)" /> Secure GPS Verification & Time Mark
                   </div>
-                  
+
                   <div style={{ height: '220px', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                    <GoogleMap 
+                    <GoogleMap
                       center={{ lat: parseFloat(timeMark.lat), lng: parseFloat(timeMark.lng) }}
                       zoom={15}
                     />
                   </div>
 
-                  <div style={{ 
-                    background: 'var(--card-bg)', 
-                    border: '1px solid var(--border-color)', 
-                    borderRadius: '16px', 
+                  <div style={{
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '16px',
                     padding: '1rem',
                     display: 'flex',
                     flexDirection: 'column',
@@ -650,18 +689,36 @@ export default function PostItem() {
           )}
 
           {/* Wizard Footer Controls */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
-            <button 
-              type="button" 
-              onClick={() => setCurrentStep(currentStep - 1)} 
+          <div className="panel" style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: '0.5rem',
+            padding: '1.25rem 2rem',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '24px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+          }}>
+            <button
+              type="button"
+              onClick={() => setCurrentStep(currentStep - 1)}
               disabled={currentStep === 1}
               className="btn-secondary"
-              style={{ width: 'auto', padding: '0.75rem 2rem', borderRadius: '100px', display: currentStep === 1 ? 'none' : 'block' }}
+              style={{
+                width: 'auto',
+                padding: '0.75rem 2rem',
+                borderRadius: '100px',
+                opacity: currentStep === 1 ? 0 : 1,
+                pointerEvents: currentStep === 1 ? 'none' : 'auto',
+                transition: 'opacity 0.2s'
+              }}
             >
               Back
             </button>
-            <button 
-              type="button" 
+
+            <button
+              type="button"
               onClick={() => {
                 if (currentStep === 1 && previewUrls.length === 0) {
                   alert('Please upload at least one image.');
@@ -672,21 +729,41 @@ export default function PostItem() {
                   return;
                 }
                 setCurrentStep(currentStep + 1);
-              }} 
+              }}
               className="btn-primary"
-              style={{ width: 'auto', padding: '0.75rem 2.5rem', borderRadius: '100px', display: currentStep === 3 ? 'none' : 'block' }}
+              style={{
+                width: 'auto',
+                padding: '0.75rem 2.5rem',
+                borderRadius: '100px',
+                display: currentStep === 3 ? 'none' : 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontWeight: 700
+              }}
             >
               Next Step
             </button>
+
             {currentStep === 3 && (
-              <button 
-                type="button" 
-                onClick={handleSubmit} 
-                disabled={isPublishing} 
-                className="btn-primary" 
-                style={{ width: 'auto', padding: '0.75rem 3rem', borderRadius: '100px', background: 'var(--primary)', color: 'white', border: 'none' }}
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isPublishing}
+                className="btn-primary"
+                style={{
+                  width: 'auto',
+                  padding: '0.75rem 3rem',
+                  borderRadius: '100px',
+                  background: 'var(--primary)',
+                  color: 'white',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontWeight: 800
+                }}
               >
-                {isPublishing ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />} 
+                {isPublishing ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
                 {isPublishing ? t('post_publishing') : t('post_publish')}
               </button>
             )}
@@ -697,58 +774,29 @@ export default function PostItem() {
         {/* Right Column - Premium Previews */}
         <div className="admin-col-side" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} multiple />
-          
-          {/* Preview Header */}
-          <div style={{ fontSize: '0.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
-            Item Card Preview
-          </div>
-
-          {/* Premium Product Preview Card */}
-          <div className="preview-product-card" style={{ marginBottom: 0 }}>
-            <div className="preview-image-area" onClick={triggerFileInput} style={{ cursor: 'pointer' }} title="Click to upload images">
-              {previewUrls.length > 0 ? (
-                <img 
-                  src={previewUrls[selectedImageForAI]} 
-                  alt="Main Preview" 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                />
-              ) : (
-                <svg className="bottle-svg" viewBox="0 0 120 200" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '160px', height: 'auto' }}>
-                  <rect x="30" y="50" width="60" height="130" rx="10" fill="var(--preview-bottle-bg)" stroke="var(--preview-bottle-stroke)" strokeWidth="1.2"/>
-                  <rect x="42" y="35" width="36" height="18" rx="4" fill="var(--preview-bottle-neck)" stroke="var(--preview-bottle-stroke)" strokeWidth="1"/>
-                  <rect x="38" y="18" width="44" height="19" rx="6" fill="var(--preview-bottle-cap)"/>
-                  <rect x="38" y="80" width="44" height="60" rx="4" fill="var(--preview-bottle-label)" opacity="0.9"/>
-                </svg>
-              )}
-
-              {previewUrls.length > 0 && (
-                <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(16, 185, 129, 0.9)', color: 'white', padding: '0.25rem 0.5rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, zIndex: 12 }}>
-                  ✨ Selected for AI
-                </div>
-              )}
-            </div>
-
-            <div className="preview-content">
-              <div className="preview-your-brand">KOMUNITRADE</div>
-              <div className="preview-brand-name">{title || "BRUDY"}</div>
-              <div className="preview-audience">{condition || "Gentlemen's & Women's"}</div>
-              <div className="preview-product-type">{category ? (CATEGORIES.find(c => c.id === category)?.label || category) : "Cleanser & Toner"}</div>
-              <div className="preview-plus-section">
-                <div className="preview-plus-sign">{price ? `₱${price}` : "+"}</div>
-              </div>
-            </div>
-          </div>
 
           {/* Thumbnails Row */}
-          <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', padding: '0.25rem 0', width: '100%', alignItems: 'center' }}>
+          <div className="panel" style={{
+            display: 'flex',
+            gap: '1rem',
+            overflowX: 'auto',
+            padding: '1.25rem',
+            width: '100%',
+            alignItems: 'center',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '24px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+            marginTop: '0.5rem'
+          }}>
             {previewUrls.map((url, index) => (
-              <div 
-                key={index} 
-                style={{ 
-                  position: 'relative', 
-                  width: '76px', 
-                  height: '76px', 
-                  borderRadius: '16px', 
+              <div
+                key={index}
+                style={{
+                  position: 'relative',
+                  width: '76px',
+                  height: '76px',
+                  borderRadius: '16px',
                   overflow: 'hidden',
                   border: selectedImageForAI === index ? '2.5px solid var(--primary)' : '1px solid var(--border-color)',
                   cursor: 'pointer',
@@ -763,13 +811,13 @@ export default function PostItem() {
                 }}
               >
                 <img src={url} alt={`Preview ${index}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }} />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     const newUrls = previewUrls.filter((_, i) => i !== index);
                     const newFiles = imageFiles.filter((_, i) => i !== index);
-                    
+
                     if (previewUrls[index] && previewUrls[index].startsWith('blob:')) {
                       URL.revokeObjectURL(previewUrls[index]);
                     }
@@ -787,39 +835,44 @@ export default function PostItem() {
                       setTimeMark(null);
                     } else if (selectedImageForAI === index) {
                       setSelectedImageForAI(0);
-                      handleImageAnalysis(newFiles[0]);
+                      // Only run analysis on delete if the user hasn't heavily modified fields
+                      if (!title) handleImageAnalysis(newFiles[0]);
                     } else if (selectedImageForAI > index) {
                       setSelectedImageForAI(selectedImageForAI - 1);
                     }
                   }}
-                  style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', cursor: 'pointer', zIndex: 10 }}
+                  style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', cursor: 'pointer', zIndex: 10, transition: 'background 0.2s' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.9)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.6)'}
                 >
                   ×
                 </button>
               </div>
             ))}
             {previewUrls.length < 4 && (
-              <div 
+              <div
                 onClick={(e) => {
                   e.stopPropagation();
                   triggerFileInput();
                 }}
-                style={{ 
+                style={{
                   width: '76px',
-                  height: '76px', 
-                  borderRadius: '16px', 
-                  border: '1.5px dashed var(--border-color)',
+                  height: '76px',
+                  borderRadius: '16px',
+                  border: '2px dashed var(--border-color)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
                   color: 'var(--text-muted)',
                   flexShrink: 0,
-                  background: 'var(--card-bg)',
-                  transition: 'var(--transition)'
+                  background: 'rgba(16, 185, 129, 0.02)',
+                  transition: 'all 0.2s ease',
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
               >
-                <PlusCircle size={22} />
+                <PlusCircle size={24} />
               </div>
             )}
           </div>

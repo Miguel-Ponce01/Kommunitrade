@@ -424,12 +424,14 @@ Level 1: KomuniTrade System Development
 │   ├── Level 3: User Interface Design
 │   ├── Level 3: Listing Page
 │   ├── Level 3: Landing Page
-│   └── Level 3: Chat Interface
+│   ├── Level 3: Chat Interface
+│   └── Level 3: Administration Panel & Portal
 │
 ├── Level 2: Backend
 │   ├── Level 3: API Development
 │   ├── Level 3: Authentication Handling
-│   └── Level 3: Data Processing
+│   ├── Level 3: Data Processing
+│   └── Level 3: Admin Setup and Security Provisioning
 │
 ├── Level 2: AI Module
 │   ├── Level 3: Dataset Collection
@@ -654,6 +656,19 @@ Stores transaction histories, meetup terms, and GCash-style receipt agreements g
 | `status` | String | Transaction state: `Pending Agreement`, `Confirmed`, `Completed`, `Cancelled` |
 | `created_at` | Timestamp | Date and time the transaction agreement was initiated |
 
+## 23.6 Reports Collection
+Stores reports submitted by users to flag bad actors during a chat.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | String (PK) | Unique report document ID (Auto-generated) |
+| `reporterId` | String (FK) | UID of the user filing the report |
+| `reportedUserId` | String (FK) | UID of the user being reported |
+| `chatId` | String (FK) | Deterministic Chat ID where the incident occurred |
+| `reason` | String | Selected reason for report (e.g., Rude Behavior, Scam/Fraud, Spam, Other) |
+| `timestamp` | Timestamp | Firestore server timestamp when the report was submitted |
+| `status` | String | Moderation state of the report: `active` or `resolved` |
+
 ---
 
 # 22. CONCEPTUAL FRAMEWORK (IPO Model)
@@ -706,6 +721,7 @@ Stores transaction histories, meetup terms, and GCash-style receipt agreements g
 
 | Date | Time | Update |
 |---|---|---|
+| June 4, 2026 | 04:50 AM | **Administration, Security, and Git Optimization Overhaul**: Developed isolated system administrator layouts and sidebar navigation. Implemented `AdminRoute` protecting all administrative portal routes. Enhanced admin tables to show user active statuses, average ratings, a "Transactions" monitoring log, and live item/profile page previews. Added user reporting modals in chat that dynamically update user `trustScore` by -10 points. Refactored administrative credentials to load from environment variables (`.env.local`), removed/untracked `admin.json` from version control, untracked compiled `dist/` directory, and configured a dynamic local CLI provisioning script (`create-admin.cjs`). |
 | June 1, 2026 | 02:40 PM | **Roboflow Category Detection Integration**: Integrated client-side Roboflow Serverless Workflows API (`kommunitrade-product-category-detector`) to detect and map listing item categories when online. Mapped predictions to KomuniTrade category IDs to auto-populate form inputs. Configured form resetting logic to automatically clear all fields, tags, smart suggestions, and GPS time marks on listing image deletion. |
 | May 24, 2026 | 01:14 AM | **Post-Defense Hardening & Security Audit**: Migrated identity verification to server-side Cloud Function (`verifyUserIdentity`) using Google Gemini 1.5 Flash API to compare government ID faces vs selfies and write verification flags to Firestore using Admin SDK (threshold ≥65%). Seals all API key leak vectors by proxying Google Vision and DeepSeek requests through server-side functions and deleting the client-side `deepseekService.js`. Implements parallel 8-neighbor geohash scanning to eliminate border boundary discovery misses. Configures advanced Firestore and Storage security rules. Fixes E2EE multi-device key desync via `createUserProfile` key sync on auth state change. Adds chatId-derived decryption fallback and key rotation user messaging. |
 | May 24, 2026 | 02:54 AM | **Documentation Audit**: Corrected all inaccurate README claims — replaced ArcFace/FaceNet with Gemini 1.5 Flash, MobileNetV3/PyTorch with MobileNet v2/TensorFlow.js, verification threshold from 85% to 65%, removed unimplemented Dashboard Analytics and Feedback Forum from feature lists, removed Government ID Verification from delimitations (it is implemented), fixed `verifiedAt` Firestore field type from String to Timestamp, added DeepSeek API to tech stack. |

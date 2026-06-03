@@ -12,7 +12,13 @@ import {
   TrendingUp, 
   AlertTriangle,
   Settings,
-  Heart
+  Heart,
+  ArrowLeft,
+  ExternalLink,
+  Eye,
+  Activity,
+  FileText,
+  Star
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { db, collection, getDocs, doc, deleteDoc, updateDoc } from "../firebase";
@@ -26,6 +32,8 @@ export default function AdminDashboard() {
   const [usersList, setUsersList] = useState([]);
   const [listingsList, setListingsList] = useState([]);
   const [feedbackList, setFeedbackList] = useState([]);
+  const [reportsList, setReportsList] = useState([]);
+  const [transactionsList, setTransactionsList] = useState([]);
   
   const [dbLoading, setDbLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,6 +65,18 @@ export default function AdminDashboard() {
       // Sort feedback by date descending
       feedback.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
       setFeedbackList(feedback);
+
+      // 4. Reports
+      const reportsSnap = await getDocs(collection(db, "reports"));
+      const reports = reportsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      reports.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+      setReportsList(reports);
+
+      // 5. Transactions
+      const txSnap = await getDocs(collection(db, "transactions"));
+      const transactions = txSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      transactions.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+      setTransactionsList(transactions);
     } catch (e) {
       console.error("Failed to fetch admin dashboard collections:", e);
     } finally {
@@ -145,6 +165,17 @@ export default function AdminDashboard() {
     }
   };
 
+  // Dismiss Report
+  const handleDismissReport = async (reportId) => {
+    if (!window.confirm("Are you sure you want to dismiss this report?")) return;
+    try {
+      await deleteDoc(doc(db, "reports", reportId));
+      setReportsList(reportsList.filter(r => r.id !== reportId));
+    } catch (e) {
+      alert("Failed to dismiss report: " + e.message);
+    }
+  };
+
   if (loading || !userProfile || userProfile.role !== "admin") {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh", flexDirection: "column", gap: "1rem" }}>
@@ -174,13 +205,29 @@ export default function AdminDashboard() {
     (f.message || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const filteredReports = reportsList.filter(r => 
+    (r.reason || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.reportedUserId || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.reporterId || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredTransactions = transactionsList.filter(t => 
+    (t.id || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (t.status || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (t.buyerId || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (t.sellerId || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="admin-dashboard-container animate-fade-in" style={{ paddingBottom: "4rem" }}>
       
       {/* ── Header ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginBottom: "2rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem", marginBottom: "2rem" }}>
         <div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(239, 68, 68, 0.1)", color: "#EF4444", padding: "0.4rem 1rem", borderRadius: "999px", fontWeight: 800, fontSize: "0.8rem", marginBottom: "0.75rem" }}>
+          <button onClick={() => navigate("/admin/portal")} style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", marginBottom: "1rem" }}>
+            <ArrowLeft size={16} /> Back to Portal
+          </button>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "rgba(239, 68, 68, 0.1)", color: "#EF4444", padding: "0.4rem 1rem", borderRadius: "999px", fontWeight: 800, fontSize: "0.8rem", marginBottom: "0.75rem", width: "fit-content" }}>
             <ShieldAlert size={12} /> System Admin Mode
           </div>
           <h1 style={{ fontSize: "2.25rem", fontWeight: 900, fontFamily: "'Outfit', sans-serif", letterSpacing: "-0.02em", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -225,6 +272,21 @@ export default function AdminDashboard() {
           <div>
             <div style={{ fontSize: "1.75rem", fontWeight: 900, fontFamily: "'Outfit', sans-serif", color: "var(--text-main)", lineHeight: 1.1 }}>{feedbackList.length}</div>
             <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500, marginTop: "0.2rem" }}>Feedbacks Filed</div>
+          </div>
+        </div>
+
+        <div style={{ background: "var(--card-bg)", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", gap: "1.25rem", position: 'relative' }}>
+          {reportsList.length > 0 && (
+            <div style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#EF4444', color: 'white', fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.6rem', borderRadius: '12px', boxShadow: '0 4px 10px rgba(239, 68, 68, 0.4)' }}>
+              {reportsList.length} ALERTS
+            </div>
+          )}
+          <div style={{ background: "rgba(239, 68, 68, 0.1)", color: "#EF4444", width: "48px", height: "48px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ShieldAlert size={24} />
+          </div>
+          <div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 900, fontFamily: "'Outfit', sans-serif", color: "var(--text-main)", lineHeight: 1.1 }}>{reportsList.length}</div>
+            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500, marginTop: "0.2rem" }}>Active Reports</div>
           </div>
         </div>
 
@@ -326,6 +388,23 @@ export default function AdminDashboard() {
           >
             <MessageSquare size={15} /> Feedbacks
           </button>
+          <button 
+            className={`admin-tab-btn ${activeTab === "reports" ? "active" : ""}`} 
+            onClick={() => { setActiveTab("reports"); setSearchTerm(""); }}
+            style={{...tabButtonStyle(activeTab === "reports"), position: 'relative'}}
+          >
+            <ShieldAlert size={15} /> Reports
+            {reportsList.length > 0 && (
+              <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#EF4444', width: '8px', height: '8px', borderRadius: '50%' }}></span>
+            )}
+          </button>
+          <button 
+            className={`admin-tab-btn ${activeTab === "transactions" ? "active" : ""}`} 
+            onClick={() => { setActiveTab("transactions"); setSearchTerm(""); }}
+            style={tabButtonStyle(activeTab === "transactions")}
+          >
+            <FileText size={15} /> Transactions
+          </button>
         </div>
 
         {/* Search Bar */}
@@ -358,6 +437,7 @@ export default function AdminDashboard() {
                 <tr style={{ borderBottom: "2px solid var(--border-color)", textAlign: "left" }}>
                   <th style={thStyle}>Alias / ID</th>
                   <th style={thStyle}>Contact Details</th>
+                  <th style={thStyle}>Status & Rating</th>
                   <th style={thStyle}>Verified Spot</th>
                   <th style={thStyle}>Trust Rating</th>
                   <th style={thStyle}>Badges</th>
@@ -383,6 +463,15 @@ export default function AdminDashboard() {
                         <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.1rem" }}>{user.phoneNumber || "No Mobile"}</div>
                       </td>
                       <td style={tdStyle}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
+                          <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: user.isOnline || user.lastActive ? "#10B981" : "var(--text-muted)" }} />
+                          <span style={{ fontSize: "0.8rem", color: "var(--text-main)", fontWeight: 700 }}>{user.isOnline || user.lastActive ? "Active" : "Offline"}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", color: "#F59E0B", fontSize: "0.85rem", fontWeight: 800 }}>
+                          <Star size={12} fill="#F59E0B" /> {user.averageRating ? user.averageRating.toFixed(1) : "New"}
+                        </div>
+                      </td>
+                      <td style={tdStyle}>
                         <span style={{ fontSize: "0.85rem", color: "var(--text-main)", fontWeight: 500 }}>{user.barangay || "Not set"}</span>
                       </td>
                       <td style={tdStyle}>
@@ -406,6 +495,14 @@ export default function AdminDashboard() {
                       </td>
                       <td style={tdStyle} className="text-right">
                         <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+                          <button 
+                            onClick={() => window.open(`/app/profile/${user.id}`, "_blank")} 
+                            className="btn-secondary" 
+                            style={{ padding: "0.4rem 0.6rem", borderRadius: "8px", border: "none", color: "var(--text-main)", background: "var(--bg-main)", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "0.3rem", fontWeight: 700, fontSize: "0.75rem" }}
+                            title="View Profile"
+                          >
+                            <ExternalLink size={13} /> View
+                          </button>
                           <button 
                             onClick={() => handleToggleVerification(user)} 
                             className="btn-secondary" 
@@ -481,13 +578,22 @@ export default function AdminDashboard() {
                         <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{listing.condition || "Used"}</span>
                       </td>
                       <td style={tdStyle} className="text-right">
-                        <button 
-                          onClick={() => handleDeleteListing(listing.id)} 
-                          style={{ padding: "0.5rem", borderRadius: "8px", border: "none", color: "#EF4444", background: "rgba(239, 68, 68, 0.1)", cursor: "pointer" }}
-                          title="Delete Listing"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+                          <button 
+                            onClick={() => window.open(`/app/item/${listing.id}`, "_blank")} 
+                            style={{ padding: "0.5rem", borderRadius: "8px", border: "none", color: "var(--text-main)", background: "var(--bg-main)", cursor: "pointer" }}
+                            title="View Listing Page"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteListing(listing.id)} 
+                            style={{ padding: "0.5rem", borderRadius: "8px", border: "none", color: "#EF4444", background: "rgba(239, 68, 68, 0.1)", cursor: "pointer" }}
+                            title="Delete Listing"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -534,6 +640,118 @@ export default function AdminDashboard() {
                         >
                           <Trash2 size={16} />
                         </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
+
+          {/* REPORTS PANEL */}
+          {activeTab === "reports" && (
+            <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "800px" }}>
+              <thead>
+                <tr style={{ borderBottom: "2px solid var(--border-color)", textAlign: "left" }}>
+                  <th style={thStyle}>Reported User ID</th>
+                  <th style={thStyle}>Reporter ID</th>
+                  <th style={thStyle}>Reason</th>
+                  <th style={thStyle}>Status</th>
+                  <th style={thStyle} className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredReports.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: "center", padding: "3rem 0", color: "var(--text-muted)" }}>No active reports.</td>
+                  </tr>
+                ) : (
+                  filteredReports.map((report) => (
+                    <tr key={report.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                      <td style={tdStyle}>
+                        <div style={{ fontFamily: "monospace", fontSize: "0.85rem", color: "#EF4444", fontWeight: 700 }}>{report.reportedUserId?.slice(0, 12)}...</div>
+                      </td>
+                      <td style={tdStyle}>
+                        <div style={{ fontFamily: "monospace", fontSize: "0.85rem", color: "var(--text-muted)" }}>{report.reporterId?.slice(0, 8)}...</div>
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{ fontWeight: 800, color: "var(--text-main)" }}>{report.reason}</span>
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+                          {report.timestamp ? report.timestamp.toDate().toLocaleString() : 'Recent'}
+                        </div>
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{ padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.7rem", fontWeight: 700, background: "rgba(239, 68, 68, 0.1)", color: "#EF4444" }}>
+                          {report.status?.toUpperCase() || 'ACTIVE'}
+                        </span>
+                      </td>
+                      <td style={tdStyle} className="text-right">
+                        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+                          <button 
+                            onClick={() => handleDismissReport(report.id)} 
+                            className="btn-secondary" 
+                            style={{ padding: "0.4rem 0.75rem", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 700 }}
+                          >
+                            Dismiss
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteUser(report.reportedUserId)} 
+                            className="btn-danger" 
+                            style={{ padding: "0.4rem 0.75rem", borderRadius: "8px", border: "none", color: "#EF4444", background: "rgba(239, 68, 68, 0.1)", cursor: "pointer", fontSize: "0.75rem", fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                            title="Ban/Delete User"
+                          >
+                            <Trash2 size={13} /> Ban User
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
+
+          {/* TRANSACTIONS PANEL */}
+          {activeTab === "transactions" && (
+            <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "800px" }}>
+              <thead>
+                <tr style={{ borderBottom: "2px solid var(--border-color)", textAlign: "left" }}>
+                  <th style={thStyle}>Transaction ID</th>
+                  <th style={thStyle}>Date</th>
+                  <th style={thStyle}>Amount</th>
+                  <th style={thStyle}>Participants (Buyer → Seller)</th>
+                  <th style={thStyle}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTransactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: "center", padding: "3rem 0", color: "var(--text-muted)" }}>No transactions match your search.</td>
+                  </tr>
+                ) : (
+                  filteredTransactions.map((tx) => (
+                    <tr key={tx.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                      <td style={tdStyle}>
+                        <div style={{ fontFamily: "monospace", fontSize: "0.85rem", color: "var(--text-main)", fontWeight: 700 }}>{tx.id.slice(0, 10)}...</div>
+                      </td>
+                      <td style={tdStyle}>
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>{tx.timestamp ? tx.timestamp.toDate().toLocaleString() : 'N/A'}</div>
+                      </td>
+                      <td style={tdStyle}>
+                        <div style={{ fontWeight: 800, color: "var(--text-main)" }}>₱{(tx.amount || 0).toLocaleString()}</div>
+                      </td>
+                      <td style={tdStyle}>
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-main)", fontFamily: "monospace", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                          <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700 }}>BUYER:</span> {tx.buyerId?.slice(0,8)}...
+                        </div>
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-main)", fontFamily: "monospace", display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.2rem" }}>
+                          <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700 }}>SELLER:</span> {tx.sellerId?.slice(0,8)}...
+                        </div>
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{ padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.7rem", fontWeight: 700, background: tx.status === 'completed' ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)", color: tx.status === 'completed' ? "#10B981" : "#F59E0B" }}>
+                          {tx.status?.toUpperCase() || 'PENDING'}
+                        </span>
                       </td>
                     </tr>
                   ))

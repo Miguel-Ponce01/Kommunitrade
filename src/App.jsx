@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './hooks/useLanguage.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import Layout from './components/Layout';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -16,6 +17,8 @@ import TransactionHistory from './pages/TransactionHistory';
 import Verification from './pages/Verification';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminPortal from './pages/AdminPortal';
+import DeveloperOptions from './pages/DeveloperOptions';
 
 function App() {
   return (
@@ -26,7 +29,21 @@ function App() {
             {/* Public routes */}
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/admin-login" element={<AdminLogin />} />
+            <Route path="/admin" element={<AdminLogin />} />
+
+            {/* Protected Admin routes (No Layout) */}
+            <Route
+              path="/admin/*"
+              element={
+                <AdminRoute>
+                  <Routes>
+                    <Route path="portal" element={<AdminPortal />} />
+                    <Route path="dashboard" element={<AdminDashboard />} />
+                    <Route path="developer" element={<DeveloperOptions />} />
+                  </Routes>
+                </AdminRoute>
+              }
+            />
 
             {/* Protected app routes */}
             <Route
@@ -46,7 +63,6 @@ function App() {
               <Route path="messages" element={<Messages />} />
               <Route path="transactions" element={<TransactionHistory />} />
               <Route path="verification" element={<Verification />} />
-              <Route path="admin" element={<AdminDashboard />} />
             </Route>
 
             {/* Fallback */}

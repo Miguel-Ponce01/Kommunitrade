@@ -249,6 +249,34 @@ const translations = {
     success_saved: 'Changes saved successfully!',
     success_deleted: 'Item deleted successfully!',
     success_reported: 'Thank you for reporting. We will review this.',
+
+    // STATS COUNTER
+    stats_counter_title: 'KomuniTrade by the Numbers',
+    stats_counter_subtitle: 'Growing every day with trusted Davaoeño traders.',
+    stats_listings_label: 'Local Listings',
+    stats_sellers_label: 'Verified Sellers',
+    stats_satisfaction_label: 'Satisfaction Rate',
+
+    // HOW IT WORKS
+    hiw_title: 'How It Works',
+    hiw_subtitle: 'Three simple steps to start trading in your neighborhood.',
+    hiw_step1_title: 'Post Your Item',
+    hiw_step1_desc: 'Snap a photo, set a price, and your listing goes live to nearby buyers instantly.',
+    hiw_step2_title: 'Get Verified',
+    hiw_step2_desc: 'Our AI verifies your listing in ~2 seconds so buyers know it\'s legit.',
+    hiw_step3_title: 'Trade Locally',
+    hiw_step3_desc: 'Chat securely, agree on a meet-up spot, and complete your trade face-to-face.',
+
+    // PWA INSTALL
+    pwa_title: 'Take KomuniTrade Everywhere',
+    pwa_desc: 'Install the app on your phone for instant access — no app store needed.',
+    pwa_cta: 'Install the App',
+    pwa_feat1: 'Works offline with cached listings',
+    pwa_feat2: 'Lightning-fast load times',
+    pwa_feat3: 'Home screen shortcut like a native app',
+
+    // FOOTER
+    footer_tagline: 'Made with ❤️ in Davao City.',
   },
 
   // =====================================================
@@ -473,6 +501,34 @@ const translations = {
     success_saved: 'Matagumpay na nai-save ang mga pagbabago!',
     success_deleted: 'Matagumpay na natanggal ang item!',
     success_reported: 'Salamat sa pag-uulat. Susuriin namin ito.',
+
+    // STATS COUNTER
+    stats_counter_title: 'KomuniTrade sa mga Numero',
+    stats_counter_subtitle: 'Lumalaki araw-araw kasama ang mga Davaoeño traders.',
+    stats_listings_label: 'Mga Lokal na Listahan',
+    stats_sellers_label: 'Beripikadong Nagbebenta',
+    stats_satisfaction_label: 'Rate ng Kasiyahan',
+
+    // HOW IT WORKS
+    hiw_title: 'Paano Ito Gumagana',
+    hiw_subtitle: 'Tatlong simpleng hakbang para magsimulang mag-trade sa iyong kapitbahayan.',
+    hiw_step1_title: 'I-post ang Iyong Item',
+    hiw_step1_desc: 'Kumuha ng larawan, magtakda ng presyo, at live na ang iyong listahan sa mga malapit na mamimili.',
+    hiw_step2_title: 'Ma-verify',
+    hiw_step2_desc: 'Bine-verify ng aming AI ang iyong listahan sa ~2 segundo para malaman ng buyers na totoo ito.',
+    hiw_step3_title: 'Mag-trade ng Lokal',
+    hiw_step3_desc: 'Mag-chat nang ligtas, mag-agree sa meet-up spot, at kumpletuhin ang trade nang harapan.',
+
+    // PWA INSTALL
+    pwa_title: 'Dalhin ang KomuniTrade Kahit Saan',
+    pwa_desc: 'I-install ang app sa iyong phone para sa instant access — walang app store na kailangan.',
+    pwa_cta: 'I-install ang App',
+    pwa_feat1: 'Gumagana offline gamit ang naka-cache na listahan',
+    pwa_feat2: 'Napakabilis mag-load',
+    pwa_feat3: 'Shortcut sa home screen tulad ng native app',
+
+    // FOOTER
+    footer_tagline: 'Gawa nang may ❤️ sa Lungsod ng Davao.',
   },
 
   // =====================================================
@@ -697,6 +753,34 @@ const translations = {
     success_saved: 'Malampuson nga naluwas ang imong mga pagbag-o!',
     success_deleted: 'Malampuson nga natangtang ang item!',
     success_reported: 'Salamat sa pagreport. Susihon namo kini.',
+
+    // STATS COUNTER
+    stats_counter_title: 'KomuniTrade sa mga Numero',
+    stats_counter_subtitle: 'Nagkadako matag adlaw uban sa mga Davaoeño traders.',
+    stats_listings_label: 'Lokal nga Listings',
+    stats_sellers_label: 'Verified nga Sellers',
+    stats_satisfaction_label: 'Satisfaction Rate',
+
+    // HOW IT WORKS
+    hiw_title: 'Giunsa Kini Paglihok',
+    hiw_subtitle: 'Tulo ka simple nga lakang para makasugod ug trade sa imong silingananan.',
+    hiw_step1_title: 'I-post ang Imong Item',
+    hiw_step1_desc: 'Pagkuha og litrato, butangi presyo, ug live na ang imong listing sa nearby buyers.',
+    hiw_step2_title: 'Ma-verify',
+    hiw_step2_desc: 'Gi-verify sa among AI ang imong listing sa ~2 segundo aron mahibal-an sa buyers nga legit kini.',
+    hiw_step3_title: 'Trade sa Lokal',
+    hiw_step3_desc: 'Mag-chat nga luwas, mag-agree sa meet-up spot, ug kumpleto na ang trade ninyong duha.',
+
+    // PWA INSTALL
+    pwa_title: 'Dad-a ang KomuniTrade Bisan Asa',
+    pwa_desc: 'I-install ang app sa imong phone para instant access — wala na kinahanglan og app store.',
+    pwa_cta: 'I-install ang App',
+    pwa_feat1: 'Mugana bisan offline gamit ang cached listings',
+    pwa_feat2: 'Paspas kaayo mag-load',
+    pwa_feat3: 'Shortcut sa home screen sama sa native app',
+
+    // FOOTER
+    footer_tagline: 'Gihimo uban sa ❤️ sa Davao City.',
   },
 };
 

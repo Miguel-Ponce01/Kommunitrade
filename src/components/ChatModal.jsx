@@ -12,7 +12,8 @@ import {
   serverTimestamp,
   doc,
   setDoc,
-  getDoc
+  getDoc,
+  updateDoc
 } from '../firebase';
 import { isListingActive } from '../utils/geo';
 import { encryptMessage, decryptMessage } from '../utils/crypto';
@@ -24,6 +25,8 @@ export default function ChatModal({ isOpen, onClose, item }) {
   const [sendError, setSendError] = useState(null);
   const [peerPublicKey, setPeerPublicKey] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
+  const [reportReason, setReportReason] = useState('');
   const scrollRef = useRef(null);
 
   const currentUser = auth.currentUser;
@@ -138,6 +141,40 @@ export default function ChatModal({ isOpen, onClose, item }) {
     }
   };
 
+  const handleReportUser = async (e) => {
+    e.preventDefault();
+    if (!reportReason) return;
+    try {
+      const sellerId = item.sellerId || item.userId;
+      const buyerId = item.buyerId || currentUser.uid;
+      const peerId = currentUser.uid === sellerId ? buyerId : sellerId;
+
+      await addDoc(collection(db, 'reports'), {
+        reporterId: currentUser.uid,
+        reportedUserId: peerId,
+        chatId: chatId,
+        reason: reportReason,
+        timestamp: serverTimestamp(),
+        status: 'active'
+      });
+
+      // Decrease trust score
+      const peerRef = doc(db, 'users', peerId);
+      const peerSnap = await getDoc(peerRef);
+      if (peerSnap.exists()) {
+        const currentScore = peerSnap.data().trustScore ?? 100;
+        await updateDoc(peerRef, { trustScore: Math.max(0, currentScore - 10) });
+      }
+
+      setIsReporting(false);
+      setReportReason('');
+      alert("User has been reported to administration.");
+    } catch (err) {
+      console.error("Failed to report user:", err);
+      alert("Error reporting user.");
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -155,7 +192,14 @@ export default function ChatModal({ isOpen, onClose, item }) {
               <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>Re: {item.title}</p>
             </div>
           </div>
-          <div className="chat-header-actions">
+          <div className="chat-header-actions" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button
+              title="Report User"
+              onClick={() => setIsReporting(true)}
+              style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#EF4444', cursor: 'pointer', padding: '0.4rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <AlertTriangle size={16} />
+            </button>
             <button 
               className="btn-primary chat-finalize-btn"
               onClick={() => {
@@ -175,6 +219,29 @@ export default function ChatModal({ isOpen, onClose, item }) {
           <Bot size={14} />
           <span>Your identity is hidden. Messages are <strong>E2EE Encrypted</strong>.</span>
         </div>
+
+        {/* Report Overlay */}
+        {isReporting && (
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', borderRadius: '24px' }}>
+            <div style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '16px', width: '100%', maxWidth: '300px', border: '1px solid var(--border-color)' }}>
+              <h4 style={{ margin: '0 0 1rem', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <AlertTriangle size={18} /> Report User
+              </h4>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Please select a reason for reporting. This will flag the user for moderation.</p>
+              <select value={reportReason} onChange={(e) => setReportReason(e.target.value)} className="form-control" style={{ marginBottom: '1rem', width: '100%', padding: '0.5rem', borderRadius: '8px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
+                <option value="">Select reason...</option>
+                <option value="Rude Behavior">Rude Behavior</option>
+                <option value="Scam/Fraud">Scam / Fraud</option>
+                <option value="Spam">Spam</option>
+                <option value="Other">Other</option>
+              </select>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setIsReporting(false)} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px' }}>Cancel</button>
+                <button type="button" onClick={handleReportUser} className="btn-primary" style={{ background: '#EF4444', padding: '0.4rem 0.8rem', fontSize: '0.8rem', border: 'none', borderRadius: '8px', color: 'white' }} disabled={!reportReason}>Submit Report</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Messages Area */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', position: 'relative' }}>

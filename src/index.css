@@ -5701,3 +5701,550 @@ ul {
     transform: translateY(-4px);
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   LANDING PAGE PREMIUM UPGRADE — NEW SECTIONS
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Scroll-Triggered Reveal Animations ─────────────────────── */
+.kt-reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.kt-reveal.kt-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger children inside a reveal group */
+.kt-reveal-group .kt-reveal-child {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.kt-reveal-group.kt-visible .kt-reveal-child:nth-child(1) { transition-delay: 0s; opacity: 1; transform: translateY(0); }
+.kt-reveal-group.kt-visible .kt-reveal-child:nth-child(2) { transition-delay: 0.15s; opacity: 1; transform: translateY(0); }
+.kt-reveal-group.kt-visible .kt-reveal-child:nth-child(3) { transition-delay: 0.3s; opacity: 1; transform: translateY(0); }
+.kt-reveal-group.kt-visible .kt-reveal-child:nth-child(4) { transition-delay: 0.45s; opacity: 1; transform: translateY(0); }
+
+/* ── 2. Floating Hero Particles ────────────────────────────────── */
+.kt-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 71, 87, 0.15);
+  pointer-events: none;
+  z-index: 1;
+  animation: kt-particle-drift linear infinite;
+}
+
+[data-theme="dark"] .kt-particle {
+  background: rgba(255, 71, 87, 0.08);
+}
+
+@keyframes kt-particle-drift {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx, 60px), var(--dy, -120px)) scale(var(--scale-end, 0.5));
+    opacity: 0;
+  }
+}
+
+/* ── 3. Animated Stats Counter Section ─────────────────────────── */
+.kt-stats-section {
+  padding: 5rem 0;
+  background: var(--card-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.kt-stats-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,71,87,0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.kt-stats-header {
+  text-align: center;
+  margin-bottom: 3.5rem;
+  position: relative;
+}
+
+.kt-stats-header h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 900;
+  color: var(--text-main);
+  letter-spacing: -0.03em;
+  margin: 0 0 0.5rem;
+}
+
+.kt-stats-header p {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.kt-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.kt-stat-card {
+  text-align: center;
+  padding: 2rem 1rem;
+  border-radius: 24px;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.kt-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.06);
+  border-color: var(--primary);
+}
+
+.kt-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.kt-stat-icon.listings { background: linear-gradient(135deg, #FF4757, #FF6B81); }
+.kt-stat-icon.sellers  { background: linear-gradient(135deg, #10B981, #34D399); }
+.kt-stat-icon.rating   { background: linear-gradient(135deg, #FFA502, #FECA57); }
+
+.kt-stat-number {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(2.2rem, 5vw, 3rem);
+  font-weight: 900;
+  color: var(--text-main);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-bottom: 0.3rem;
+}
+
+.kt-stat-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── 4. How It Works Section ───────────────────────────────────── */
+.kt-how-section {
+  padding: 6rem 0;
+  position: relative;
+}
+
+.kt-how-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.kt-how-header h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 900;
+  color: var(--text-main);
+  letter-spacing: -0.03em;
+  margin: 0 0 0.5rem;
+}
+
+.kt-how-header p {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.kt-how-steps {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.kt-step {
+  flex: 1;
+  text-align: center;
+  position: relative;
+  padding: 0 1.5rem;
+}
+
+.kt-step-num {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF4757, #FF6B81);
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  box-shadow: 0 8px 24px rgba(255, 71, 87, 0.3);
+  position: relative;
+  z-index: 2;
+}
+
+.kt-step-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
+
+.kt-step-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 240px;
+  margin: 0 auto;
+}
+
+/* Connector line between steps */
+.kt-connector {
+  position: absolute;
+  top: 28px;
+  left: calc(50% + 32px);
+  width: calc(100% - 64px);
+  height: 2px;
+  background: linear-gradient(90deg, #FF4757, #FF6B81);
+  z-index: 1;
+  opacity: 0.3;
+}
+
+.kt-connector::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #FF4757;
+  opacity: 0.6;
+}
+
+/* ── 5. Auto-Scrolling Testimonial Carousel ────────────────────── */
+.kt-testimonial-section {
+  overflow: hidden;
+  padding: 0 0 2rem;
+}
+
+.kt-testimonial-track-wrapper {
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+}
+
+.kt-testimonial-track {
+  display: flex;
+  gap: 1.5rem;
+  animation: kt-testimonial-scroll 40s linear infinite;
+  width: max-content;
+}
+
+.kt-testimonial-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes kt-testimonial-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.kt-testimonial-card {
+  flex-shrink: 0;
+  width: 320px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 1.75rem;
+  transition: all 0.3s ease;
+}
+
+.kt-testimonial-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+  transform: translateY(-4px);
+}
+
+.kt-testimonial-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.kt-testimonial-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #FF4757, #FF6B81);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.kt-testimonial-meta {
+  flex: 1;
+}
+
+.kt-testimonial-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+
+.kt-testimonial-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.kt-testimonial-stars {
+  display: flex;
+  gap: 2px;
+  color: #FACC15;
+  margin-bottom: 0.75rem;
+}
+
+.kt-testimonial-msg {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── 6. PWA Install Banner Section ─────────────────────────────── */
+.kt-pwa-section {
+  padding: 5rem 0;
+  background: var(--card-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.kt-pwa-section::before {
+  content: '';
+  position: absolute;
+  top: -120px;
+  right: -120px;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,71,87,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.kt-pwa-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.kt-pwa-text h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+  font-weight: 900;
+  color: var(--text-main);
+  letter-spacing: -0.03em;
+  margin: 0 0 1rem;
+}
+
+.kt-pwa-text p {
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  margin: 0 0 2rem;
+}
+
+.kt-pwa-install-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 2rem;
+  border-radius: 14px;
+  background: #FF4757;
+  color: #fff;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 12px 32px rgba(255,71,87,0.3);
+}
+
+.kt-pwa-install-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 40px rgba(255,71,87,0.4);
+}
+
+.kt-pwa-features {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.kt-pwa-feat {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--bg-color);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.kt-pwa-feat:hover {
+  border-color: var(--primary);
+  transform: translateX(4px);
+}
+
+.kt-pwa-feat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.kt-pwa-feat-icon:nth-child(1) { background: linear-gradient(135deg, #6366F1, #818CF8); }
+.kt-pwa-feat:nth-child(1) .kt-pwa-feat-icon { background: linear-gradient(135deg, #6366F1, #818CF8); }
+.kt-pwa-feat:nth-child(2) .kt-pwa-feat-icon { background: linear-gradient(135deg, #F59E0B, #FBBF24); }
+.kt-pwa-feat:nth-child(3) .kt-pwa-feat-icon { background: linear-gradient(135deg, #10B981, #34D399); }
+
+.kt-pwa-feat-text {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.4;
+}
+
+.kt-pwa-feat-text span {
+  display: block;
+  font-weight: 400;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+/* ── 7. Mobile Responsiveness Fixes ────────────────────────────── */
+
+/* Trust section: 2-col → 1-col */
+@media (max-width: 768px) {
+  .editorial-landing #trust .apple-grid > div {
+    grid-template-columns: 1fr !important;
+    gap: 2.5rem !important;
+  }
+  
+  .editorial-landing #trust .apple-grid > div > div:last-child {
+    order: -1;
+  }
+}
+
+/* Stats section */
+@media (max-width: 640px) {
+  .kt-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    max-width: 340px;
+  }
+  
+  .kt-stat-card {
+    padding: 1.5rem 1rem;
+    border-radius: 16px;
+  }
+  
+  .kt-stat-number {
+    font-size: 2rem;
+  }
+}
+
+/* How It Works */
+@media (max-width: 768px) {
+  .kt-how-steps {
+    flex-direction: column;
+    gap: 2rem;
+    align-items: center;
+  }
+  
+  .kt-step {
+    padding: 0;
+  }
+  
+  .kt-connector {
+    display: none;
+  }
+}
+
+/* Testimonial Carousel */
+@media (max-width: 640px) {
+  .kt-testimonial-card {
+    width: 270px;
+    padding: 1.25rem;
+  }
+}
+
+/* PWA Section */
+@media (max-width: 768px) {
+  .kt-pwa-grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+}
+
+/* Reduce hero particles on small screens */
+@media (max-width: 640px) {
+  .kt-particle:nth-child(n+8) {
+    display: none;
+  }
+}
