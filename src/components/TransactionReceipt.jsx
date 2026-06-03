@@ -42,6 +42,47 @@ export default function TransactionReceipt({ transaction, onClose }) {
 
   if (!transaction) return null;
 
+  const getStatusConfig = (status) => {
+    switch (status) {
+      case 'Confirmed':
+      case 'Completed':
+        return {
+          headerBg: '#10B981',
+          statusColor: '#10B981',
+          statusBg: '#ECFDF5',
+          icon: <CheckCircle size={32} color="#10B981" />,
+          label: 'Agreement Confirmed'
+        };
+      case 'Pending Agreement':
+        return {
+          headerBg: '#F59E0B',
+          statusColor: '#D97706',
+          statusBg: '#FEF3C7',
+          icon: <Clock size={32} color="#D97706" />,
+          label: 'Pending Confirmation'
+        };
+      case 'Cancelled':
+      case 'Declined':
+        return {
+          headerBg: '#EF4444',
+          statusColor: '#DC2626',
+          statusBg: '#FEE2E2',
+          icon: <X size={32} color="#DC2626" />,
+          label: 'Agreement Cancelled'
+        };
+      default:
+        return {
+          headerBg: '#2563EB',
+          statusColor: '#2563EB',
+          statusBg: '#E0E7FF',
+          icon: <Clock size={32} color="#2563EB" />,
+          label: status
+        };
+    }
+  };
+
+  const statusConfig = getStatusConfig(transaction.status);
+
   return (
     <div className="location-modal-overlay" style={{ zIndex: 2000 }}>
       <style>{`
@@ -59,6 +100,7 @@ export default function TransactionReceipt({ transaction, onClose }) {
         }
         .receipt-container::-webkit-scrollbar-thumb:hover {
           background: #94a3b8;
+          border-radius: 4px;
         }
       `}</style>
       <div className="location-modal-content" style={{ maxWidth: '450px', background: 'transparent', boxShadow: 'none' }}>
@@ -89,7 +131,7 @@ export default function TransactionReceipt({ transaction, onClose }) {
           }}
         >
           {/* Receipt Header */}
-          <div style={{ background: '#2563eb', color: '#ffffff', padding: '1.5rem', textAlign: 'center' }}>
+          <div style={{ background: statusConfig.headerBg, color: '#ffffff', padding: '1.5rem', textAlign: 'center', transition: 'background-color 0.3s' }}>
              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>KomuniTrade</h2>
              <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '2px' }}>Transaction Agreement</p>
           </div>
@@ -97,10 +139,10 @@ export default function TransactionReceipt({ transaction, onClose }) {
           <div style={{ padding: '2rem 1.5rem' }}>
             {/* Status Status Icon */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-               <div style={{ width: '60px', height: '60px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-                 <CheckCircle size={32} color="#10b981" />
+               <div style={{ width: '60px', height: '60px', background: statusConfig.statusBg, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+                 {statusConfig.icon}
                </div>
-               <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>{transaction.status}</h3>
+               <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: statusConfig.statusColor }}>{statusConfig.label}</h3>
                <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: '#6b7280' }}>Agreement securely recorded</p>
             </div>
 

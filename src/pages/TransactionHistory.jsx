@@ -14,34 +14,63 @@ export default function TransactionHistory() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTx, setSelectedTx] = useState(null);
 
+  const [sellerTxs, setSellerTxs] = useState([]);
+  const [buyerTxs, setBuyerTxs] = useState([]);
+
   useEffect(() => {
     if (!currentUser) return;
     
-    // Query transactions where the current user is the seller
-    const q = query(
+    // 1. Subscribe to seller transactions
+    const qSeller = query(
       collection(db, 'transactions'),
       where('sellerId', '==', currentUser.uid)
     );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubSeller = onSnapshot(qSeller, (snapshot) => {
       const txs = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
           id: doc.id,
           ...data,
-          // Format date for the receipt component
           created_at: data.created_at?.toDate ? data.created_at.toDate().toISOString() : new Date().toISOString()
         };
       });
-      // Sort descending by date locally
-      txs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      
-      setTransactions(txs);
-      setIsLoading(false);
+      setSellerTxs(txs);
     });
 
-    return () => unsubscribe();
+    // 2. Subscribe to buyer transactions
+    const qBuyer = query(
+      collection(db, 'transactions'),
+      where('buyerId', '==', currentUser.uid)
+    );
+    const unsubBuyer = onSnapshot(qBuyer, (snapshot) => {
+      const txs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          created_at: data.created_at?.toDate ? data.created_at.toDate().toISOString() : new Date().toISOString()
+        };
+      });
+      setBuyerTxs(txs);
+    });
+
+    return () => {
+      unsubSeller();
+      unsubBuyer();
+    };
   }, [currentUser]);
+
+  useEffect(() => {
+    const allTxsMap = new Map();
+    sellerTxs.forEach(tx => allTxsMap.set(tx.id, tx));
+    buyerTxs.forEach(tx => allTxsMap.set(tx.id, tx));
+    
+    const combined = Array.from(allTxsMap.values());
+    combined.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
+    setTransactions(combined);
+    setIsLoading(false);
+  }, [sellerTxs, buyerTxs]);
 
   const getStatusColor = (status) => {
     switch (status) {

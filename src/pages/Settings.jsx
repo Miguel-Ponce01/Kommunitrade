@@ -36,6 +36,7 @@ export default function Settings() {
   const { lang, setLang, t } = useLanguage();
   const { currentUser, logout } = useAuth();
   const [showRules, setShowRules] = useState(false);
+  const [hasAgreedRules, setHasAgreedRules] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState(localStorage.getItem('komuni_user_phone') || "");
   const [isSavingPhone, setIsSavingPhone] = useState(false);
   const [tradingMode, setTradingMode] = useState("Open to Both");
@@ -564,7 +565,7 @@ export default function Settings() {
         </h2>
         <div className="settings-card-group">
           
-          <div className="settings-item-row" onClick={() => setShowRules(true)}>
+          <div className="settings-item-row" onClick={() => { setShowRules(true); setHasAgreedRules(false); }}>
             <div className="settings-item-left">
               <div className="settings-icon-box" style={{ background: '#FCE7F3', color: '#DB2777' }}>
                 <FileText size={20} />
@@ -636,75 +637,94 @@ export default function Settings() {
                 Welcome to KomuniTrade. To maintain a safe, trusted, and respectful hyperlocal marketplace for the Davao City community, all members are required to abide by the following guidelines:
               </p>
 
-              {/* Rule 1 */}
-              <div className="rule-section">
-                <div className="rule-icon-container" style={{ background: '#FFE4E6', color: '#E11D48' }}>
-                  <MapPin size={18} />
+              <div className="rules-grid">
+                {/* Rule 1 */}
+                <div className="rule-card">
+                  <div className="rule-icon-container rule-meetup">
+                    <MapPin size={18} />
+                  </div>
+                  <div className="rule-text-content">
+                    <h3 className="rule-title">1. Safe Meetup Guidelines (Davao)</h3>
+                    <p className="rule-desc">All meetups must be conducted in public, well-lit areas with high foot traffic and CCTV. Recommended: SM City Ecoland, Abreeza Mall, SM Lanang Premier, GMall Davao, or People's Park.</p>
+                  </div>
                 </div>
-                <div className="rule-text-content">
-                  <h3 className="rule-title">1. Safe Meetup Guidelines (Davao City)</h3>
-                  <p className="rule-desc">For your safety, all meetups must be conducted in public, well-lit areas with high foot traffic and CCTV coverage. Recommended locations include: SM City Davao (Ecoland), SM Lanang Premier, Abreeza Mall, Gaisano Mall of Davao, or inside branded coffee shops.</p>
-                </div>
-              </div>
 
-              {/* Rule 2 */}
-              <div className="rule-section">
-                <div className="rule-icon-container" style={{ background: '#D1FAE5', color: '#059669' }}>
-                  <Shield size={18} />
+                {/* Rule 2 */}
+                <div className="rule-card">
+                  <div className="rule-icon-container rule-verification">
+                    <Shield size={18} />
+                  </div>
+                  <div className="rule-text-content">
+                    <h3 className="rule-title">2. Item Verification</h3>
+                    <p className="rule-desc">Thoroughly inspect the item at the meetup location BEFORE finalizing payment. KomuniTrade connects users but provides no warranty for items traded.</p>
+                  </div>
                 </div>
-                <div className="rule-text-content">
-                  <h3 className="rule-title">2. Item Verification</h3>
-                  <p className="rule-desc">Buyers are required to thoroughly inspect the item at the meetup location BEFORE finalizing the payment or completing the barter. KomuniTrade acts as a platform for connection but does not provide warranties for physical goods exchanged.</p>
-                </div>
-              </div>
 
-              {/* Rule 3 */}
-              <div className="rule-section">
-                <div className="rule-icon-container" style={{ background: '#FEE2E2', color: '#DC2626' }}>
-                  <AlertTriangle size={18} />
+                {/* Rule 3 */}
+                <div className="rule-card">
+                  <div className="rule-icon-container rule-prohibited">
+                    <AlertTriangle size={18} />
+                  </div>
+                  <div className="rule-text-content">
+                    <h3 className="rule-title">3. Prohibited Items</h3>
+                    <p className="rule-desc">The exchange of illegal items, stolen goods, weapons, and items restricted by Davao LGU or Philippine Law is strictly banned. Violators will be permanently blocked.</p>
+                  </div>
                 </div>
-                <div className="rule-text-content">
-                  <h3 className="rule-title">3. Prohibited Items</h3>
-                  <p className="rule-desc">The exchange of illegal drugs, unregistered firearms, stolen goods, counterfeit items, and items restricted by the Local Government Unit of Davao City and Philippine Law is strictly prohibited. Violators will be banned and reported.</p>
-                </div>
-              </div>
 
-              {/* Rule 4 */}
-              <div className="rule-section">
-                <div className="rule-icon-container" style={{ background: '#FEF3C7', color: '#D97706' }}>
-                  <Smartphone size={18} />
+                {/* Rule 4 */}
+                <div className="rule-card">
+                  <div className="rule-icon-container rule-payment">
+                    <Smartphone size={18} />
+                  </div>
+                  <div className="rule-text-content">
+                    <h3 className="rule-title">4. Payment Protocol</h3>
+                    <p className="rule-desc">Ensure digital payments (GCash, Maya, Bank Transfer) reflect in your account balance BEFORE handing over items. Do not rely solely on screenshot proofs.</p>
+                  </div>
                 </div>
-                <div className="rule-text-content">
-                  <h3 className="rule-title">4. Payment Protocol</h3>
-                  <p className="rule-desc">For cash transactions, verify the authenticity of the bills. For digital payments (GCash, Maya, Bank Transfer), ensure the amount reflects in your account BEFORE handing over the item. Do not rely solely on screenshot proofs.</p>
-                </div>
-              </div>
 
-              {/* Rule 5 */}
-              <div className="rule-section">
-                <div className="rule-icon-container" style={{ background: '#FFE4E6', color: '#E11D48' }}>
-                  <Heart size={18} />
+                {/* Rule 5 */}
+                <div className="rule-card">
+                  <div className="rule-icon-container rule-respect">
+                    <Heart size={18} />
+                  </div>
+                  <div className="rule-text-content">
+                    <h3 className="rule-title">5. Respect & Anti-Haggle Policy</h3>
+                    <p className="rule-desc">Respect the agreed-upon price. Joy-reserving or lowballing at the meetup location is discouraged and can result in profile trust score penalties.</p>
+                  </div>
                 </div>
-                <div className="rule-text-content">
-                  <h3 className="rule-title">5. Respect and Anti-Haggle Policy</h3>
-                  <p className="rule-desc">Respect the agreed-upon price. "Joy reserving" and extreme lowballing at the meetup location are highly discouraged. Users reported multiple times for such behavior will have their accounts suspended.</p>
-                </div>
-              </div>
 
-              {/* Rule 6 */}
-              <div className="rule-section">
-                <div className="rule-icon-container" style={{ background: '#E0F2FE', color: '#0369A1' }}>
-                  <FileText size={18} />
-                </div>
-                <div className="rule-text-content">
-                  <h3 className="rule-title">6. Transaction Agreement Receipts</h3>
-                  <p className="rule-desc">Utilize the built-in Transaction Agreement feature to lock in logistics and price. This digital receipt serves as your proof of agreement and helps in dispute resolution.</p>
+                {/* Rule 6 */}
+                <div className="rule-card">
+                  <div className="rule-icon-container rule-receipt">
+                    <FileText size={18} />
+                  </div>
+                  <div className="rule-text-content">
+                    <h3 className="rule-title">6. Transaction Agreements</h3>
+                    <p className="rule-desc">Utilize the in-chat Transaction Agreement feature to lock in logistics and price. This digital receipt serves as your secure trading proof.</p>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="rules-modal-footer">
-              <button className="rules-agree-btn" onClick={() => setShowRules(false)}>
+              <label className="rules-consent-checkbox-wrapper">
+                <input 
+                  type="checkbox" 
+                  className="rules-consent-checkbox"
+                  checked={hasAgreedRules}
+                  onChange={(e) => setHasAgreedRules(e.target.checked)}
+                />
+                <span className="rules-consent-checkbox-label">I have read and agree to abide by these Community Rules and Regulations.</span>
+              </label>
+              <button 
+                className="rules-agree-btn" 
+                onClick={() => {
+                  if (hasAgreedRules) {
+                    setShowRules(false);
+                  }
+                }}
+                disabled={!hasAgreedRules}
+              >
                 I Understand & Agree
               </button>
             </div>
