@@ -101,7 +101,7 @@ export default function EditItem() {
     };
   }, [previewUrl]);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -109,14 +109,18 @@ export default function EditItem() {
       URL.revokeObjectURL(previewUrl);
     }
 
-    const localImageUrl = URL.createObjectURL(file);
+    addLog("Compressing image client-side...", "primary");
+    const { compressImage } = await import('../utils/imageCompression');
+    const compressedFile = await compressImage(file);
+
+    const localImageUrl = URL.createObjectURL(compressedFile);
     setPreviewUrl(localImageUrl);
-    setImageFile(file);
+    setImageFile(compressedFile);
 
     setDebugLog([]);
-    addLog("Visual signal received. Activating GPS verification...", "primary");
+    addLog("Compressed visual signal received. Activating GPS verification...", "primary");
     captureTimeMark();
-    handleImageAnalysis(file);
+    handleImageAnalysis(compressedFile);
   };
 
   const handleImageAnalysis = async (file) => {

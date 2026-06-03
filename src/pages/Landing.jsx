@@ -4,6 +4,7 @@ import { ArrowRight, Shield, Lock, CheckCircle, Languages, X, MapPin, Star, Sett
 import Auth from './Login';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import { db, collection, addDoc, getDocs } from '../firebase';
+import GoogleMap from '../components/GoogleMap';
 import '../index.css';
 
 export default function Landing() {
@@ -190,10 +191,20 @@ export default function Landing() {
               ))}
             </div>
             <div style={{ position: 'relative' }}>
-              <div style={{ borderRadius: '32px', overflow: 'hidden', boxShadow: 'var(--shadow-premium)', background: 'var(--bg-color)', padding: '2rem', textAlign: 'center' }}>
-                <img src="/davao_map_clean.webp" alt="Davao coverage map" style={{ width: '100%', borderRadius: '16px', objectFit: 'cover' }} />
+              <div style={{ borderRadius: '32px', overflow: 'hidden', boxShadow: 'var(--shadow-premium)', background: 'var(--bg-color)', padding: '1rem', textAlign: 'center', height: '350px' }}>
+                <GoogleMap 
+                  center={{ lat: 7.0731, lng: 125.6128 }} 
+                  zoom={13} 
+                  markers={[
+                    { lat: 7.0707, lng: 125.6092, title: 'Barangay 11-B Hotspot' },
+                    { lat: 7.0731, lng: 125.6128, title: 'Davao City Hall Hotspot' },
+                    { lat: 7.0850, lng: 125.6180, title: 'Bajada Comm Activity' },
+                    { lat: 7.0910, lng: 125.6310, title: 'Lanang Student Moving Hub' },
+                    { lat: 7.0650, lng: 125.5990, title: 'Matina Thrift Center' }
+                  ]}
+                />
               </div>
-              <div style={{ position: 'absolute', bottom: '-1rem', left: '-1rem', background: 'var(--primary)', color: 'white', borderRadius: '20px', padding: '1rem 1.5rem', boxShadow: '0 20px 40px rgba(255,71,87,0.4)' }}>
+              <div style={{ position: 'absolute', bottom: '-1rem', left: '-1rem', background: 'var(--primary)', color: 'white', borderRadius: '20px', padding: '1rem 1.5rem', boxShadow: '0 20px 40px rgba(255,71,87,0.4)', zIndex: 10 }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.8 }}>VERIFICATION SPEED</div>
                 <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>~2s</div>
               </div>

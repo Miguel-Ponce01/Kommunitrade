@@ -230,6 +230,76 @@ export default function AdminDashboard() {
 
       </div>
 
+      {/* ── Visual Metrics & Graphs ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.25rem", marginBottom: "2.5rem" }}>
+        
+        {/* Category Listings Ratio */}
+        <div style={{ background: "var(--card-bg)", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-color)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+            <TrendingUp size={18} color="var(--primary)" />
+            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800 }}>Listing Category Proportions</h3>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+            {["Electronics", "Clothing", "Books", "Furniture", "Services"].map(cat => {
+              const count = listingsList.filter(l => l.category === cat).length;
+              const total = listingsList.length || 1;
+              const pct = (count / total) * 100;
+              return (
+                <div key={cat} style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: 700 }}>
+                    <span style={{ color: "var(--text-main)" }}>{cat}</span>
+                    <span style={{ color: "var(--text-muted)" }}>{count} ({pct.toFixed(0)}%)</span>
+                  </div>
+                  <div style={{ height: "8px", background: "var(--border-color)", borderRadius: "4px", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: "var(--primary)", borderRadius: "4px" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* User Identity Verification Status */}
+        <div style={{ background: "var(--card-bg)", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-color)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+            <ShieldAlert size={18} color="var(--secondary)" />
+            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800 }}>Identity Verification Status</h3>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", justifyContent: "center", height: "80%" }}>
+            {(() => {
+              const verifiedCount = usersList.filter(u => u.verified || u.isVerified).length;
+              const totalUsers = usersList.length || 1;
+              const verifiedPct = (verifiedCount / totalUsers) * 100;
+              const unverifiedPct = 100 - verifiedPct;
+              return (
+                <>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", fontWeight: 700 }}>
+                      <span style={{ color: "#10B981" }}>Verified Members</span>
+                      <span style={{ color: "var(--text-muted)" }}>{verifiedCount} ({verifiedPct.toFixed(0)}%)</span>
+                    </div>
+                    <div style={{ height: "10px", background: "var(--border-color)", borderRadius: "5px", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${verifiedPct}%`, background: "#10B981", borderRadius: "5px" }} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", fontWeight: 700 }}>
+                      <span style={{ color: "var(--text-muted)" }}>Unverified Members</span>
+                      <span style={{ color: "var(--text-muted)" }}>{usersList.length - verifiedCount} ({unverifiedPct.toFixed(0)}%)</span>
+                    </div>
+                    <div style={{ height: "10px", background: "var(--border-color)", borderRadius: "5px", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${unverifiedPct}%`, background: "var(--text-muted)", opacity: 0.5, borderRadius: "5px" }} />
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+
+      </div>
+
       {/* ── Search & Filter Controls ── */}
       <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
         

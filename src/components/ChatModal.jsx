@@ -23,6 +23,7 @@ export default function ChatModal({ isOpen, onClose, item }) {
   const [chatId, setChatId] = useState(null);
   const [sendError, setSendError] = useState(null);
   const [peerPublicKey, setPeerPublicKey] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef(null);
 
   const currentUser = auth.currentUser;
@@ -125,6 +126,10 @@ export default function ChatModal({ isOpen, onClose, item }) {
       }, { merge: true });
 
       setNewMessage('');
+      setIsTyping(true);
+      setTimeout(() => {
+        setIsTyping(false);
+      }, 2500);
     } catch (error) {
       console.error("Error sending message:", error);
       setSendError(error.message.includes('permission') 
@@ -243,8 +248,66 @@ export default function ChatModal({ isOpen, onClose, item }) {
               </p>
             </div>
           ))}
+          {isTyping && (
+            <div style={{ alignSelf: 'flex-start', maxWidth: '80%', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <div style={{ 
+                padding: '0.6rem 0.9rem', 
+                borderRadius: '16px', 
+                background: 'var(--card-bg)', 
+                border: '1px solid var(--border-color)',
+                fontSize: '0.85rem',
+                color: 'var(--text-muted)'
+              }}>
+                <span className="typing-indicator-dot" />
+                <span className="typing-indicator-dot" />
+                <span className="typing-indicator-dot" />
+              </div>
+            </div>
+          )}
           <div ref={scrollRef} />
         </div>
+
+        {/* Quick Bargaining Chips */}
+        {isListingActive(item.expiresAt) && (
+          <div style={{ 
+            display: 'flex', 
+            gap: '0.5rem', 
+            overflowX: 'auto', 
+            padding: '0.5rem 1rem', 
+            background: 'var(--bg-color)', 
+            borderTop: '1px solid var(--border-color)',
+            scrollbarWidth: 'none'
+          }}>
+            {[
+              "Is this still available?",
+              "Can we meet at the Barangay Hall?",
+              "Would you accept a trade?",
+              "What is the final price?"
+            ].map((chip) => (
+              <button
+                key={chip}
+                type="button"
+                onClick={() => {
+                  setNewMessage(chip);
+                  setSendError(null);
+                }}
+                style={{
+                  fontSize: '0.75rem',
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '16px',
+                  padding: '4px 12px',
+                  color: 'var(--text-main)',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Input Area */}
         <form onSubmit={handleSendMessage} className="chat-input-form">

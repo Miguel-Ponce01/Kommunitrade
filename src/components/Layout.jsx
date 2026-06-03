@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { 
   Home, 
@@ -12,11 +12,13 @@ import {
   ShieldCheck,
   HelpCircle,
   Languages,
-  History
+  History,
+  WifiOff
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../hooks/useLanguage.jsx';
+import { useStore } from '../hooks/useStore';
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -25,7 +27,21 @@ export default function Layout() {
   const [theme, setTheme] = useTheme();
   const { lang, setLang, t } = useLanguage();
   const { currentUser, logout, userProfile } = useAuth();
+  const { isOffline, setOffline } = useStore();
   const displayName = currentUser?.displayName || currentUser?.email?.split('@')[0] || currentUser?.phoneNumber || 'User';
+
+  useEffect(() => {
+    const handleOnline = () => setOffline(false);
+    const handleOffline = () => setOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [setOffline]);
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -144,6 +160,25 @@ export default function Layout() {
 
       {/* Main Content Stage */}
       <main className="main-content">
+        {isOffline && (
+          <div style={{
+            background: 'var(--secondary)',
+            color: 'white',
+            padding: '0.5rem 1rem',
+            textAlign: 'center',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            zIndex: 1000
+          }}>
+            <WifiOff size={16} />
+            Offline Mode: Working with locally cached listings.
+          </div>
+        )}
         <header className="mobile-header" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M6 10H18L17 19C17 20.1046 16.1046 21 15 21H9C7.89543 21 7 20.1046 7 19L6 10Z" fill="var(--primary)" fillOpacity="0.1" stroke="var(--primary)" strokeWidth="2"/>

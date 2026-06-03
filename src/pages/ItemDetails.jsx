@@ -190,7 +190,7 @@ export default function ItemDetails() {
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             {seller?.displayName || "Anonymous Seller"}
-            {seller?.verified && (
+            {(seller?.verified || seller?.isVerified || item.verified) && (
               <span title="Verified Identity" style={{ color: 'var(--primary)', display: 'inline-flex' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
               </span>
@@ -198,6 +198,28 @@ export default function ItemDetails() {
           </div>
           <div style={{ fontSize: '0.75rem', fontWeight: 800, color: trustLevel.color }}>
             {trustLevel.label}
+          </div>
+          
+          {/* Trust Meter Gauge Overlay */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+            <div style={{ flex: 1, height: '6px', background: 'var(--border-color)', borderRadius: '3px', overflow: 'hidden', maxWidth: '100px' }}>
+              <div style={{ height: '100%', width: `${(sellerRating / 5) * 100}%`, background: trustLevel.color || 'var(--primary)', borderRadius: '3px' }} />
+            </div>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>{((sellerRating / 5) * 100).toFixed(0)}% trust</span>
+          </div>
+
+          {/* Dynamic Badges Row */}
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '0.4rem' }}>
+            {(seller?.verified || seller?.isVerified || item.verified) && (
+              <span style={{ fontSize: '0.65rem', background: 'rgba(16,185,129,0.1)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                🛡️ Verified Identity
+              </span>
+            )}
+            {item.timeMark && (
+              <span style={{ fontSize: '0.65rem', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                📍 Presence Verified
+              </span>
+            )}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: '0.5rem' }}>

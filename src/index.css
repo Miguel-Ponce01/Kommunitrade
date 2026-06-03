@@ -5614,3 +5614,90 @@ ul {
   font-family: 'Outfit', sans-serif;
   letter-spacing: -0.02em;
 }
+
+/* ── Modern Pulse Skeleton Styles ──────────────────────────────────────── */
+.skeleton-card {
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: loading-skeleton-pulse 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+[data-theme="dark"] .skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+}
+
+.skeleton-img {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-title {
+  height: 20px;
+  width: 70%;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 14px;
+  width: 90%;
+  border-radius: 4px;
+}
+
+.skeleton-price {
+  height: 24px;
+  width: 40%;
+  border-radius: 4px;
+  margin-top: auto;
+}
+
+@keyframes loading-skeleton-pulse {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ── Simulated Typing Indicator Animation ───────────────────────── */
+.typing-indicator-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background-color: var(--text-muted);
+  border-radius: 50%;
+  margin-right: 3px;
+  animation: typing-indicator-bounce 1.3s infinite;
+}
+
+.typing-indicator-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typing-indicator-dot:nth-child(3) {
+  animation-delay: 0.3s;
+  margin-right: 0;
+}
+
+@keyframes typing-indicator-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-4px);
+  }
+}
