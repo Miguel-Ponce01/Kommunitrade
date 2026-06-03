@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, User, Bot, AlertTriangle } from 'lucide-react';
+import { X, Send, User, Bot, AlertTriangle, ShieldCheck, Lock } from 'lucide-react';
 import { 
   db, 
   auth,
@@ -27,6 +27,8 @@ export default function ChatModal({ isOpen, onClose, item }) {
   const [isTyping, setIsTyping] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [reportReason, setReportReason] = useState('');
+  const [showE2eeInfo, setShowE2eeInfo] = useState(false);
+  const [peerFingerprint, setPeerFingerprint] = useState(null);
   const scrollRef = useRef(null);
 
   const currentUser = auth.currentUser;
@@ -57,10 +59,26 @@ export default function ChatModal({ isOpen, onClose, item }) {
           const peerData = peerSnap.data();
           if (peerData.publicKeyJwk) {
             setPeerPublicKey(peerData.publicKeyJwk);
+            try {
+              const jwkString = JSON.stringify({ x: peerData.publicKeyJwk.x, y: peerData.publicKeyJwk.y });
+              const msgBuffer = new TextEncoder().encode(jwkString);
+              const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+              const hashArray = Array.from(new Uint8Array(hashBuffer));
+              const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(':').toUpperCase();
+              setPeerFingerprint(hashHex);
+            } catch (err) {
+              console.error("Failed to compute key fingerprint:", err);
+              setPeerFingerprint("PENDING_VERIFICATION");
+            }
+          } else {
+            setPeerFingerprint("NO_KEY_REGISTERED");
           }
+        } else {
+          setPeerFingerprint("NO_USER_PROFILE");
         }
       } catch (err) {
         console.error("Failed to fetch peer E2EE key:", err);
+        setPeerFingerprint("ERROR_FETCHING_KEY");
       }
     };
     fetchPeerKey();
@@ -215,10 +233,70 @@ export default function ChatModal({ isOpen, onClose, item }) {
         </div>
 
         {/* Anonymous Identity Notice */}
-        <div style={{ padding: '0.5rem 1rem', background: 'rgba(var(--primary-rgb), 0.1)', fontSize: '0.75rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Bot size={14} />
-          <span>Your identity is hidden. Messages are <strong>E2EE Encrypted</strong>.</span>
+        <div style={{ padding: '0.5rem 1rem', background: 'rgba(16, 185, 129, 0.08)', fontSize: '0.75rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Bot size={14} />
+            <span>Your identity is hidden. Messages are <strong>E2EE Encrypted</strong>.</span>
+          </div>
+          <button 
+            type="button" 
+            onClick={() => setShowE2eeInfo(!showE2eeInfo)} 
+            style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: 0, fontWeight: 700 }}
+          >
+            <ShieldCheck size={14} /> {showE2eeInfo ? 'Hide Key' : 'Verify'}
+          </button>
         </div>
+
+        {/* E2EE Info Panel */}
+        {showE2eeInfo && (
+          <div style={{
+            padding: '1.25rem',
+            background: 'var(--bg-color)',
+            borderBottom: '1px solid var(--border-color)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.75rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, color: 'var(--text-main)', fontSize: '0.85rem' }}>
+              <Lock size={14} color="var(--primary)" /> End-to-End Encryption Metrics
+            </div>
+            <div style={{
+              background: 'var(--card-bg)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              padding: '0.75rem 1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.4rem',
+              fontSize: '0.75rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Key Exchange:</span>
+                <span style={{ color: 'var(--text-main)', fontWeight: 800 }}>ECDH (Curve P-256)</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Cipher Protocol:</span>
+                <span style={{ color: 'var(--text-main)', fontWeight: 800 }}>AES-GCM (256-bit)</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Peer Identity Key Fingerprint (SHA-256):</span>
+                <span style={{ 
+                  color: 'var(--text-main)', 
+                  fontFamily: 'monospace', 
+                  fontSize: '0.7rem', 
+                  background: 'var(--bg-color)', 
+                  padding: '0.4rem', 
+                  borderRadius: '6px', 
+                  wordBreak: 'break-all',
+                  textAlign: 'center',
+                  border: '1px dashed var(--border-color)'
+                }}>
+                  {peerFingerprint || "COMPUTING_SECURE_FINGERPRINT..."}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Report Overlay */}
         {isReporting && (

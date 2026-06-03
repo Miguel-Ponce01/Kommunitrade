@@ -154,7 +154,7 @@ export default function PostItem() {
     const compressedFiles = await Promise.all(
       files.map(async (file) => {
         try {
-          return await compressImage(file);
+          return await compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.8 });
         } catch (err) {
           console.error("Compression error:", err);
           return file;

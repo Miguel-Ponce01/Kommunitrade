@@ -1,0 +1,24 @@
+{
+  "short_name": "KomuniTrade",
+  "name": "KomuniTrade Hyperlocal Marketplace",
+  "description": "Hyperlocal, AI-powered community marketplace for Davao City.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0F172A",
+  "theme_color": "#10B981",
+  "display": "standalone",
+  "orientation": "portrait"
+}

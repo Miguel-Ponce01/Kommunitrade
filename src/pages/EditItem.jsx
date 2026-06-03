@@ -111,7 +111,7 @@ export default function EditItem() {
 
     addLog("Compressing image client-side...", "primary");
     const { compressImage } = await import('../utils/imageCompression');
-    const compressedFile = await compressImage(file);
+    const compressedFile = await compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.8 });
 
     const localImageUrl = URL.createObjectURL(compressedFile);
     setPreviewUrl(localImageUrl);
@@ -132,7 +132,7 @@ export default function EditItem() {
     try {
       addLog("Compressing image client-side...", "primary");
       const { compressImage } = await import('../utils/imageCompression');
-      const compressedFile = await compressImage(file);
+      const compressedFile = await compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.8 });
 
       addLog("Analyzing image content securely...", "primary");
       const result = await processListingImage(compressedFile, id, category || null);
