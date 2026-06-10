@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ShoppingBag, Mail, Phone, Eye, EyeOff, ArrowRight, ArrowLeft, RotateCcw, CheckCircle, Sparkles } from "lucide-react";
+import { ShoppingBag, Mail, Phone, Eye, EyeOff, ArrowRight, ArrowLeft, RotateCcw, CheckCircle, Sparkles, X } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 // ─── Google Icon SVG ───────────────────────────────────────────────────────
@@ -65,13 +65,14 @@ function OTPInput({ value, onChange }) {
 }
 
 // ─── Main Auth Page ────────────────────────────────────────────────────────
-export default function Auth() {
+export default function Auth({ onClose }) {
   const navigate = useNavigate();
   const { currentUser, signInWithGoogle, registerWithEmail, loginWithEmail, resendVerification, sendPhoneOTP, verifyPhoneOTP } = useAuth();
 
   const [tab, setTab] = useState("google"); // google | email | phone
   const [mode, setMode] = useState("login"); // login | register (email tab)
   const [step, setStep] = useState(1); // 1 = form, 2 = verify
+  const [roleNotice, setRoleNotice] = useState("general"); // general | seller | buyer
 
   // Email fields
   const [name, setName] = useState("");
@@ -249,13 +250,82 @@ export default function Auth() {
       <div id="recaptcha-container" style={{ position: "fixed", bottom: 0, left: 0 }} />
 
       <div className="auth-card">
-        {/* Logo */}
-        <div className="auth-header">
-          <Link to="/" className="auth-logo">
-            <ShoppingBag size={28} className="auth-icon" />
-            <h2>KomuniTrade</h2>
+        {/* Top row: Logo + close button inside the card */}
+        <div className="auth-modal-top-row">
+          <Link to="/" className="auth-modal-brand" style={{ textDecoration: 'none' }}>
+            <ShoppingBag size={24} className="auth-icon" style={{ color: 'var(--primary)' }} />
+            KomuniTrade
           </Link>
-          <p className="auth-subtitle">Your neighborhood marketplace</p>
+          {onClose && (
+            <button className="auth-modal-close" onClick={onClose} aria-label="Close">
+              <X size={18} />
+            </button>
+          )}
+        </div>
+        {/* Subtitle */}
+        <div className="auth-header">
+          <p className="auth-subtitle" style={{ marginBottom: '1.25rem', marginTop: 0 }}>Your neighborhood marketplace</p>
+        </div>
+
+        {/* Role Selector & Notice */}
+        <div style={{ margin: '0 0 1.5rem 0', background: 'var(--bg-color)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border-color)', textAlign: 'left' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Select Role Perspective</div>
+          <div style={{ display: 'flex', background: 'var(--border-color)', padding: '0.2rem', borderRadius: '8px', gap: '0.2rem', marginBottom: '0.75rem' }}>
+            {['general', 'seller', 'buyer'].map(role => (
+              <button
+                key={role}
+                type="button"
+                onClick={() => setRoleNotice(role)}
+                style={{
+                  flex: 1,
+                  padding: '0.4rem 0.5rem',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  textTransform: 'capitalize',
+                  cursor: 'pointer',
+                  background: roleNotice === role ? 'var(--card-bg)' : 'transparent',
+                  color: roleNotice === role ? 'var(--primary)' : 'var(--text-muted)',
+                  boxShadow: roleNotice === role ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {role}
+              </button>
+            ))}
+          </div>
+
+          {/* Guideline Rules Box */}
+          <div style={{ fontSize: '0.8rem', lineHeight: 1.4, color: 'var(--text-main)' }}>
+            {roleNotice === 'general' && (
+              <div>
+                <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '4px' }}>General Marketplace Rules</strong>
+                • Share neighborhood location securely using Barangay presets.<br/>
+                • Complete all trades in person at designated safe hotspots.<br/>
+                • Maintain positive community code of conduct at all times.
+              </div>
+            )}
+            {roleNotice === 'seller' && (
+              <div>
+                <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '4px' }}>Seller Regulations (Rule 202 & 303)</strong>
+                • Take real photos of your items at physical locations (`timeMark` presence check).<br/>
+                • Accurate descriptions: False quality scales violate Rule 202 and deduct 10% trust.<br/>
+                • Meetup commitment: No-show or late arrivals (Rule 303) deduct 15% trust rating.
+              </div>
+            )}
+            {roleNotice === 'buyer' && (
+              <div>
+                <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '4px' }}>Buyer Guidelines & PIN Handshake</strong>
+                • Punctuality: Be on time for meetups. Rule 303 penalties apply to no-shows.<br/>
+                • Safety check: Always verify the item's condition in person before trade.<br/>
+                • Completed PIN Handshakes award both trading partners with +5% trust rating.
+              </div>
+            )}
+            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic', borderTop: '1px dashed var(--border-color)', paddingTop: '0.4rem', marginTop: '0.5rem' }}>
+              By signing in, you agree to the active regulations. Violations will impact your public trust score.
+            </p>
+          </div>
         </div>
 
         {/* Tabs */}

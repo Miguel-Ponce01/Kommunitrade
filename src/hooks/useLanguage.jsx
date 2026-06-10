@@ -277,6 +277,18 @@ const translations = {
 
     // FOOTER
     footer_tagline: 'Made with ❤️ in Davao City.',
+
+    // SMARTER TRADING
+    smarter_trading_title: 'Smarter trading starts here',
+    smarter_card1_title: "World's safest meetups",
+    smarter_card1_desc: 'Trade safely in designated Barangay Hotspots, verified by our community trust engine.',
+    smarter_card2_title: 'Built-in AI verification',
+    smarter_card2_desc: 'Automatically verify listings, analyze photos with TensorFlow, and catch scams before they happen.',
+    smarter_card3_title: 'Fast local matching',
+    smarter_card3_desc: 'Our lightweight, offline-ready engine connects you with active buyers in your immediate neighborhood.',
+    smarter_quote: '"Every local trade should be this simple. With secure hotspots and built-in image checks, KomuniTrade scales trust beautifully across Davao."',
+    smarter_quote_author: 'Davao Tech Review',
+    smarter_quote_role: 'Leading Tech Publication',
   },
 
   // =====================================================
@@ -529,6 +541,18 @@ const translations = {
 
     // FOOTER
     footer_tagline: 'Gawa nang may ❤️ sa Lungsod ng Davao.',
+
+    // SMARTER TRADING
+    smarter_trading_title: 'Mas matalinong bentahan ay nagsisimula rito',
+    smarter_card1_title: 'Pinakaligtas na meetups sa buong mundo',
+    smarter_card1_desc: 'Ligtas na makipagpalitan sa mga itinalagang Barangay Hotspots, beripikado ng aming community trust engine.',
+    smarter_card2_title: 'Built-in na AI verification',
+    smarter_card2_desc: 'Awtomatikong i-verify ang mga listahan, suriin ang mga larawan gamit ang TensorFlow, at maiwasan ang mga scam.',
+    smarter_card3_title: 'Mabilis na lokal na pagtutugma',
+    smarter_card3_desc: 'Ikinokonekta ka ng aming magaan at offline-ready na engine sa mga aktibong mamimili sa iyong kapitbahayan.',
+    smarter_quote: '"Dapat ganito kasimple ang bawat lokal na kalakalan. Sa pamamagitan ng mga secure na hotspot at built-in na image check, pinalalago ng KomuniTrade ang tiwala sa Davao."',
+    smarter_quote_author: 'Davao Tech Review',
+    smarter_quote_role: 'Nangungunang Publikasyon ng Teknolohiya',
   },
 
   // =====================================================
@@ -781,6 +805,18 @@ const translations = {
 
     // FOOTER
     footer_tagline: 'Gihimo uban sa ❤️ sa Davao City.',
+
+    // SMARTER TRADING
+    smarter_trading_title: 'Mas brayt nga trading magsugod diri',
+    smarter_card1_title: 'Pinaka-luwas nga meetup zone',
+    smarter_card1_desc: 'Luwas nga pakig-trade sa mga designadong Barangay Hotspots, nga beripikado sa atong community trust engine.',
+    smarter_card2_title: 'Built-in nga AI verification',
+    smarter_card2_desc: 'Awtomatikong i-verify ang mga listings, analisahon ang litrato gamit ang TensorFlow, ug sumpoon ang mga scams.',
+    smarter_card3_title: 'Paspas nga lokal matching',
+    smarter_card3_desc: 'Ang atong gaan ug offline-ready nga engine magkonektar nimo sa mga active buyers sa imong silinganan.',
+    smarter_quote: '"Dapat ingon ani kasimple ang matag lokal nga trading. Uban sa mga secure nga hotspots ug built-in image checks, nindot kaayo pagpadako sa trust sa KomuniTrade sa tibuok Davao."',
+    smarter_quote_author: 'Davao Tech Review',
+    smarter_quote_role: 'Nanguna nga Publikasyon sa Teknolohiya',
   },
 };
 

@@ -270,3 +270,40 @@ export function resolveBarangayFromGeohash(geohash) {
   const { lat, lng } = decodeGeohash(geohash);
   return findNearestBarangay(lat, lng);
 }
+
+// ─── Davao City Safe Meetup Hotspots ──────────────────────────────────────────
+export const SAFE_HOTSPOTS = {
+  'Obrero': ['Obrero Barangay Hall', 'Obrero Police Precinct 5 (Bajada)', 'Gaisano Mall of Davao (Main Entrance)'],
+  'Agdao': ['Agdao Barangay Hall', 'Agdao Public Market (Front Gate)', 'Agdao Police Outpost'],
+  'Buhangin': ['Buhangin Barangay Hall', 'Buhangin Police Station', 'SM City Lanang (Atrium Center)'],
+  'Matina': ['Matina Aplaya Barangay Hall', 'NCCC Mall Matina (Front Entrance)', 'Matina Crossing Police Precinct'],
+  'Poblacion': ['Davao City Hall Plaza', 'People\'s Park (Main Entrance Gate)', 'Poblacion Police Precinct'],
+  'San Isidro': ['San Isidro Barangay Hall', 'San Isidro Multi-Purpose Gym'],
+  'Bagumbayan': ['Bagumbayan Hall', 'Bagumbayan Public Plaza'],
+  'Greenpark Village': ['Greenpark Clubhouse', 'Greenpark Main Security Gatehouse'],
+  'Phase 1': ['Phase 1 Community Park', 'Phase 1 Security Guard House'],
+  'Phase 2': ['Phase 2 Guardhouse', 'Phase 2 Covered Court'],
+  'Davao City': ['Rizal Park (City Hall)', 'Abreeza Mall (Activity Center)', 'Davao City Police Office Headquarters']
+};
+
+/**
+ * Returns the verified safe hotspots for a given Barangay name.
+ * Falls back to Davao City general hotspots if not specifically mapped.
+ * @param {string} barangay - Name of the Barangay
+ * @returns {string[]} List of safe meetup locations
+ */
+export function getSafeMeetupSpots(barangay) {
+  if (!barangay) return SAFE_HOTSPOTS['Davao City'];
+  
+  // Direct exact match
+  if (SAFE_HOTSPOTS[barangay]) return SAFE_HOTSPOTS[barangay];
+  
+  // Partial match (case-insensitive)
+  const key = Object.keys(SAFE_HOTSPOTS).find(k =>
+    k.toLowerCase().includes(barangay.toLowerCase()) ||
+    barangay.toLowerCase().includes(k.toLowerCase())
+  );
+  
+  return key ? SAFE_HOTSPOTS[key] : SAFE_HOTSPOTS['Davao City'];
+}
+

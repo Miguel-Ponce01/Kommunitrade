@@ -34,7 +34,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const [theme, setTheme] = useTheme();
   const { lang, setLang, t } = useLanguage();
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, userProfile } = useAuth();
   const [showRules, setShowRules] = useState(false);
   const [hasAgreedRules, setHasAgreedRules] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState(localStorage.getItem('komuni_user_phone') || "");
@@ -215,6 +215,36 @@ export default function Settings() {
                 {isSavingPhone ? <Loader2 className="animate-spin" size={12} /> : "Save"}
               </button>
             </div>
+          </div>
+
+          {/* Identity Verification */}
+          <div className="settings-item-row">
+            <div className="settings-item-left">
+              <div className="settings-icon-box" style={{ background: '#D1FAE5', color: '#059669' }}>
+                <Shield size={20} />
+              </div>
+              <div className="settings-label-wrap">
+                <span className="settings-label-main">Identity Verification</span>
+                <span className="settings-label-sub">
+                  {(userProfile?.verified || userProfile?.isVerified) 
+                    ? "Your identity is fully verified" 
+                    : "Verify your Government ID & Selfie to buy/sell"}
+                </span>
+              </div>
+            </div>
+            {(userProfile?.verified || userProfile?.isVerified) ? (
+              <span style={{ fontSize: '0.85rem', color: '#059669', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Check size={16} /> Verified
+              </span>
+            ) : (
+              <button 
+                onClick={() => navigate('/app/verification')}
+                className="btn-primary"
+                style={{ width: 'auto', padding: '0.4rem 1rem', fontSize: '0.8rem', borderRadius: '8px' }}
+              >
+                Verify Now
+              </button>
+            )}
           </div>
 
 

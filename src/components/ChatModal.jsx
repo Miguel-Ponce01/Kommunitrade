@@ -15,7 +15,7 @@ import {
   getDoc,
   updateDoc
 } from '../firebase';
-import { isListingActive, BARANGAY_COORDS } from '../utils/geo';
+import { isListingActive, BARANGAY_COORDS, resolveLocationCoords, findNearestBarangay, getSafeMeetupSpots } from '../utils/geo';
 import { encryptMessage, decryptMessage } from '../utils/crypto';
 
 export default function ChatModal({ isOpen, onClose, item }) {
@@ -37,6 +37,8 @@ export default function ChatModal({ isOpen, onClose, item }) {
   const [showCheckout, setShowCheckout] = useState(false);
   const [proposalTxs, setProposalTxs] = useState({});
   const [peerProfile, setPeerProfile] = useState(null);
+  const [recommendedSpots, setRecommendedSpots] = useState([]);
+  const [midpointBarangay, setMidpointBarangay] = useState('');
 
   const [agreedPrice, setAgreedPrice] = useState(item?.price || '');
   const [paymentMethod, setPaymentMethod] = useState('Cash on Meetup');
@@ -107,6 +109,35 @@ export default function ChatModal({ isOpen, onClose, item }) {
       }
     };
     fetchPeerKey();
+    
+    // Fetch buyer's location to compute midpoint and suggest safe hotspots
+    const fetchBuyerLocation = async () => {
+      try {
+        const buyerRef = doc(db, 'users', buyerId);
+        const buyerSnap = await getDoc(buyerRef);
+        
+        let buyerBarangay = 'Obrero';
+        if (buyerSnap.exists()) {
+          buyerBarangay = buyerSnap.data().barangay || 'Obrero';
+        }
+        
+        const sellerBarangay = item.barangay || 'Obrero';
+
+        const coord1 = resolveLocationCoords(buyerBarangay);
+        const coord2 = resolveLocationCoords(sellerBarangay);
+        const midLat = (coord1.lat + coord2.lat) / 2;
+        const midLng = (coord1.lng + coord2.lng) / 2;
+
+        const midBrgy = findNearestBarangay(midLat, midLng);
+        setMidpointBarangay(midBrgy);
+        setRecommendedSpots(getSafeMeetupSpots(midBrgy));
+      } catch (err) {
+        console.error("Failed to compute midpoint spots:", err);
+        setMidpointBarangay(item.barangay || 'Obrero');
+        setRecommendedSpots(getSafeMeetupSpots(item.barangay || 'Obrero'));
+      }
+    };
+    fetchBuyerLocation();
 
     const q = query(
       collection(db, 'chats', chatIdString, 'messages'),
@@ -267,6 +298,9 @@ export default function ChatModal({ isOpen, onClose, item }) {
 
       const finalLocation = meetupLocation === 'Custom Spot' ? customLocation : meetupLocation;
 
+      const bPin = Math.floor(100000 + Math.random() * 900000).toString();
+      const sPin = Math.floor(100000 + Math.random() * 900000).toString();
+
       // 1. Write transaction doc with Pending Agreement
       const refNo = `TRX-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
       const txDocRef = await addDoc(collection(db, 'transactions'), {
@@ -285,7 +319,9 @@ export default function ChatModal({ isOpen, onClose, item }) {
         meetup_time: meetupTime,
         agreement_summary: additionalTerms,
         created_at: serverTimestamp(),
-        listingId: item.id
+        listingId: item.id,
+        buyerPin: bPin,
+        sellerPin: sPin
       });
 
       // 2. Format proposal tag
@@ -404,8 +440,9 @@ export default function ChatModal({ isOpen, onClose, item }) {
               <AlertTriangle size={16} />
             </button>
             <button 
-              className="btn-primary chat-finalize-btn"
+              className="button-primary-pill"
               onClick={() => setShowCheckout(true)}
+              style={{ width: 'auto' }}
             >
               Finalize Agreement
             </button>
@@ -416,7 +453,7 @@ export default function ChatModal({ isOpen, onClose, item }) {
         </div>
 
         {/* Anonymous Identity Notice */}
-        <div style={{ padding: '0.5rem 1rem', background: 'rgba(16, 185, 129, 0.08)', fontSize: '0.75rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)' }}>
+        <div style={{ padding: '0.5rem 1rem', background: 'var(--bg-color)', fontSize: '0.75rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Bot size={14} />
             <span>Your identity is hidden. Messages are <strong>E2EE Encrypted</strong>.</span>
@@ -738,11 +775,11 @@ export default function ChatModal({ isOpen, onClose, item }) {
               >
                 <div style={{ 
                   padding: '0.75rem 1rem', 
-                  borderRadius: '16px', 
-                  background: msg.senderId === currentUser?.uid ? 'var(--primary)' : 'var(--card-bg)',
-                  color: msg.senderId === currentUser?.uid ? 'white' : 'var(--text-main)',
+                  borderRadius: 'var(--radius-lg)', 
+                  background: msg.senderId === currentUser?.uid ? 'var(--text-main)' : 'var(--card-bg)',
+                  color: msg.senderId === currentUser?.uid ? 'var(--bg-color)' : 'var(--text-main)',
                   border: msg.senderId === currentUser?.uid ? 'none' : '1px solid var(--border-color)',
-                  boxShadow: 'var(--shadow-sm)',
+                  boxShadow: 'none',
                   fontSize: '0.9rem'
                 }}>
                   {msg.text}
@@ -800,8 +837,8 @@ export default function ChatModal({ isOpen, onClose, item }) {
                   fontSize: '0.75rem',
                   background: 'var(--card-bg)',
                   border: '1px solid var(--border-color)',
-                  borderRadius: '16px',
-                  padding: '4px 12px',
+                  borderRadius: 'var(--radius-pill)',
+                  padding: '6px 14px',
                   color: 'var(--text-main)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -827,8 +864,8 @@ export default function ChatModal({ isOpen, onClose, item }) {
             disabled={!isListingActive(item.expiresAt)}
             autoComplete="off"
           />
-          <button type="submit" className="btn btn-primary chat-send-btn" disabled={!newMessage.trim()}>
-            <Send size={20} />
+          <button type="submit" className="button-primary-pill" style={{ width: 'auto', padding: '0 1rem' }} disabled={!newMessage.trim()}>
+            <Send size={18} />
           </button>
         </form>
 
@@ -924,6 +961,43 @@ export default function ChatModal({ isOpen, onClose, item }) {
                   </select>
                 </div>
 
+                {/* Midpoint Safe Spot Suggestions */}
+                {recommendedSpots.length > 0 && (
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', color: '#166534', textAlign: 'left' }}>
+                    <div style={{ fontWeight: 800, color: '#14532d', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      🛡️ Suggested Safe Spot Midpoint ({midpointBarangay})
+                    </div>
+                    <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: '#166534', lineHeight: 1.3 }}>
+                      Calculated as the midpoint between buyer and seller neighborhoods.
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      {recommendedSpots.map(spot => (
+                        <button
+                          key={spot}
+                          type="button"
+                          onClick={() => {
+                            setMeetupLocation('Custom Spot');
+                            setCustomLocation(spot);
+                          }}
+                          style={{
+                            background: 'white',
+                            border: '1px solid #bbf7d0',
+                            borderRadius: '8px',
+                            padding: '4px 8px',
+                            fontSize: '0.75rem',
+                            color: '#15803d',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {spot}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {meetupLocation === 'Custom Spot' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }} className="animate-fade-in">
                     <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Specify Custom Location</label>
@@ -976,15 +1050,15 @@ export default function ChatModal({ isOpen, onClose, item }) {
                   <button 
                     type="button" 
                     onClick={() => setShowCheckout(false)} 
-                    className="btn-secondary" 
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', fontSize: '0.9rem' }}
+                    className="button-secondary-pill" 
+                    style={{ flex: 1, padding: '0.75rem', fontSize: '0.9rem' }}
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit" 
-                    className="btn-primary" 
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 800 }}
+                    className="button-primary-pill" 
+                    style={{ flex: 1, padding: '0.75rem', fontSize: '0.9rem', fontWeight: 600 }}
                   >
                     Propose Deal
                   </button>

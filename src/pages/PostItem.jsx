@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Loader2, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, Check, TrendingUp, PlusCircle } from 'lucide-react';
+import { Camera, Loader2, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, Check, TrendingUp, PlusCircle, Shield } from 'lucide-react';
 import { MOCK_BARANGAYS, CATEGORIES } from '../data/mockData';
 import { db, auth, storage, collection, addDoc, serverTimestamp } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from '../firebase';
@@ -292,6 +292,40 @@ export default function PostItem() {
       setIsPublishing(false);
     }
   };
+
+  const isVerified = userProfile?.verified || userProfile?.isVerified;
+
+  if (!isVerified) {
+    return (
+      <div className="panel animate-fade-in" style={{ maxWidth: '600px', margin: '4rem auto', padding: '3rem 2rem', textAlign: 'center', borderRadius: '24px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ width: '80px', height: '80px', background: '#FEE2E2', color: '#EF4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justify: 'center', margin: '0 auto 2rem' }}>
+          <Shield size={40} />
+        </div>
+        <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '1rem', fontFamily: "'Outfit', sans-serif" }}>
+          Identity Verification Required
+        </h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2.5rem' }}>
+          To keep our local Davao community safe and secure, all sellers must complete identity verification using a Government ID and Selfie before posting items.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <button 
+            onClick={() => navigate('/app/verification')}
+            className="btn-primary"
+            style={{ width: '100%', padding: '0.9rem', borderRadius: '100px', fontWeight: 700 }}
+          >
+            Verify My Identity
+          </button>
+          <button 
+            onClick={() => navigate('/app')}
+            className="btn-secondary"
+            style={{ width: '100%', padding: '0.9rem', borderRadius: '100px', fontWeight: 700 }}
+          >
+            Back to Marketplace
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '5rem' }}>

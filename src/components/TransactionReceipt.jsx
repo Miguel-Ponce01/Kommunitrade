@@ -1,10 +1,125 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { X, CheckCircle, MapPin, Calendar, Clock, Download, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { db, doc, updateDoc, addDoc, collection, getDoc, serverTimestamp } from '../firebase';
 
 export default function TransactionReceipt({ transaction, onClose }) {
   const receiptRef = useRef(null);
   const { currentUser } = useAuth();
+
+  const [pinInput, setPinInput] = useState('');
+  const [verificationError, setVerificationError] = useState('');
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeReason, setDisputeReason] = useState('Rule 303: Meetup No-Show');
+  const [disputeComments, setDisputeComments] = useState('');
+  const [submittingDispute, setSubmittingDispute] = useState(false);
+  const [submittingVerification, setSubmittingVerification] = useState(false);
+
+  const isSeller = currentUser?.uid === transaction?.sellerId;
+  const isBuyer = currentUser?.uid === transaction?.buyerId;
+
+  const handleVerifyPin = async (e) => {
+    e.preventDefault();
+    setVerificationError('');
+    setSubmittingVerification(true);
+    try {
+      const targetPin = isSeller ? transaction.buyerPin : transaction.sellerPin;
+      if (pinInput.trim() !== targetPin) {
+        setVerificationError('Invalid PIN code. Please check with your partner.');
+        setSubmittingVerification(false);
+        return;
+      }
+
+      const txRef = doc(db, 'transactions', transaction.id);
+      await updateDoc(txRef, { status: 'Completed' });
+
+      const sellerRef = doc(db, 'users', transaction.sellerId);
+      const buyerRef = doc(db, 'users', transaction.buyerId);
+
+      const sellerSnap = await getDoc(sellerRef);
+      const buyerSnap = await getDoc(buyerRef);
+
+      if (sellerSnap.exists()) {
+        const sData = sellerSnap.data();
+        const nextScore = Math.min(100, (sData.trustScore ?? 100) + 5);
+        await updateDoc(sellerRef, { trustScore: nextScore });
+        await addDoc(collection(db, 'trust_logs'), {
+          userId: transaction.sellerId,
+          change: 5,
+          newScore: nextScore,
+          event: 'Trade Reward',
+          ruleApplied: 'Commendation 1',
+          reason: `Successfully completed trade for item: "${transaction.item_name}"`,
+          timestamp: serverTimestamp()
+        });
+      }
+
+      if (buyerSnap.exists()) {
+        const bData = buyerSnap.data();
+        const nextScore = Math.min(100, (bData.trustScore ?? 100) + 5);
+        await updateDoc(buyerRef, { trustScore: nextScore });
+        await addDoc(collection(db, 'trust_logs'), {
+          userId: transaction.buyerId,
+          change: 5,
+          newScore: nextScore,
+          event: 'Trade Reward',
+          ruleApplied: 'Commendation 1',
+          reason: `Successfully completed trade for item: "${transaction.item_name}"`,
+          timestamp: serverTimestamp()
+        });
+      }
+
+      setVerificationSuccess(true);
+      alert('Transaction completed successfully! Trust scores updated.');
+      if (onClose) onClose();
+    } catch (err) {
+      console.error(err);
+      setVerificationError('Error completing transaction: ' + err.message);
+    } finally {
+      setSubmittingVerification(false);
+    }
+  };
+
+  const handleRaiseDispute = async (e) => {
+    e.preventDefault();
+    if (!disputeComments.trim()) return;
+    setSubmittingDispute(true);
+    try {
+      const refNo = transaction.reference_number;
+      const offenderId = isSeller ? transaction.buyerId : transaction.sellerId;
+      
+      const currentUserName = localStorage.getItem('komuni_display_name') || `Agent_${currentUser.uid.substring(0, 6).toUpperCase()}`;
+
+      await addDoc(collection(db, 'disputes'), {
+        transactionId: transaction.id,
+        reference_number: refNo,
+        item_name: transaction.item_name,
+        reporterId: currentUser.uid,
+        reporterAlias: currentUserName,
+        reportedUserId: offenderId,
+        reason: disputeReason,
+        comments: disputeComments,
+        timestamp: serverTimestamp(),
+        status: 'active'
+      });
+
+      const txRef = doc(db, 'transactions', transaction.id);
+      await updateDoc(txRef, { 
+        disputed: true,
+        disputeReason: disputeReason
+      });
+
+      alert('Dispute has been filed and reported to moderation.');
+      setShowDisputeModal(false);
+      if (onClose) onClose();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to raise dispute: ' + err.message);
+    } finally {
+      setSubmittingDispute(false);
+    }
+  };
 
   const handleDownload = async () => {
     if (!receiptRef.current) return;
@@ -196,51 +311,158 @@ export default function TransactionReceipt({ transaction, onClose }) {
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><Calendar size={14} color="#6b7280"/> {transaction.meetup_date}</div>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><Clock size={14} color="#6b7280"/> {transaction.meetup_time}</div>
               </div>
-            </div>
-
-            <div style={{ fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.5, fontStyle: 'italic', marginBottom: '2rem', textAlign: 'center' }}>
+            </div>            <div style={{ fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.5, fontStyle: 'italic', marginBottom: '2rem', textAlign: 'center' }}>
               "{transaction.agreement_summary}"
             </div>
 
-            {/* QR & Reference */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-               <img 
-                 src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${transaction.reference_number}`} 
-                 alt="QR Code"
-                 style={{ width: '60px', height: '60px', borderRadius: '8px' }}
-                 crossOrigin="anonymous" 
-               />
-               <div>
-                 <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Reference No.</div>
-                 <div style={{ fontSize: '1.1rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", color: '#0f172a', letterSpacing: '1px' }}>{transaction.reference_number}</div>
-                 <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.2rem' }}>Generated: {new Date(transaction.created_at).toLocaleString()}</div>
-               </div>
-            </div>
+            {/* PIN HANDSHAKE VERIFICATION SECTION */}
+            {transaction.status === 'Confirmed' && (isBuyer || isSeller) && (
+              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '1.25rem', borderRadius: '12px', marginBottom: '1.5rem', textAlign: 'left' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>In-Person Meetup Verification</div>
+                
+                <p style={{ margin: '0 0 1rem 0', fontSize: '0.8rem', color: '#1e40af', lineHeight: 1.4 }}>
+                  Your Verification PIN: <strong style={{ fontSize: '1rem', color: '#1d4ed8', fontFamily: 'monospace' }}>{isSeller ? transaction.sellerPin : transaction.buyerPin}</strong><br/>
+                  <span style={{ fontSize: '0.75rem', opacity: 0.95 }}>Share this code with your partner ONLY during the physical meetup.</span>
+                </p>
 
-          </div>
+                <form onSubmit={handleVerifyPin} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e40af' }}>Enter Partner's PIN to Complete Trade</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input 
+                      type="text" 
+                      maxLength={6} 
+                      placeholder="6-digit PIN"
+                      value={pinInput}
+                      onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+                      style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #bfdbfe', fontSize: '0.9rem', color: '#1a1a1a', outline: 'none' }}
+                      required
+                    />
+                    <button 
+                      type="submit" 
+                      disabled={submittingVerification}
+                      style={{ background: '#2563eb', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}
+                    >
+                      {submittingVerification ? 'Verifying...' : 'Complete'}
+                    </button>
+                  </div>
+                  {verificationError && (
+                    <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', fontWeight: 700 }}>
+                      {verificationError}
+                    </div>
+                  )}
+                </form>
+              </div>
+            )}
 
-          {/* Footer Ribbon */}
-          <div style={{ background: '#1e293b', padding: '0.75rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.7rem' }}>
-            Verify this transaction at komunitrade.app/verify
+            {/* DISPUTE TRIGGER SECTION */}
+            {(transaction.status === 'Confirmed' || transaction.status === 'Completed') && (isBuyer || isSeller) && !transaction.disputed && (
+              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setShowDisputeModal(true)}
+                  style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Flag Dispute / Report Issue
+                </button>
+              </div>
+            )}
+
+            {transaction.disputed && (
+              <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', textAlign: 'center', color: '#b91c1c', fontSize: '0.8rem', fontWeight: 700 }}>
+                ⚠️ This transaction is currently disputed: "{transaction.disputeReason || 'Reported Issue'}"
+              </div>
+            )}
+
+             {/* QR & Reference */}
+             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${transaction.reference_number}`} 
+                  alt="QR Code"
+                  style={{ width: '60px', height: '60px', borderRadius: '8px' }}
+                  crossOrigin="anonymous" 
+                />
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Reference No.</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", color: '#0f172a', letterSpacing: '1px' }}>{transaction.reference_number}</div>
+                  <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.2rem' }}>Generated: {new Date(transaction.created_at).toLocaleString()}</div>
+                </div>
+             </div>
+
+           </div>
+
+           {/* Footer Ribbon */}
+           <div style={{ background: '#1e293b', padding: '0.75rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.7rem' }}>
+             Verify this transaction at komunitrade.app/verify
+           </div>
+           
+           {/* Jagged Edge Effect (CSS generated) */}
+           <div style={{ 
+             height: '10px', 
+             background: 'linear-gradient(-45deg, transparent 5px, #ffffff 0), linear-gradient(45deg, transparent 5px, #ffffff 0)',
+             backgroundPosition: 'left-bottom',
+             backgroundRepeat: 'repeat-x',
+             backgroundSize: '10px 10px',
+             position: 'absolute',
+             bottom: 0,
+             left: 0,
+             width: '100%',
+             transform: 'rotate(180deg)',
+             opacity: 0.1
+           }} />
+         </div>
+
+       </div>
+
+      {/* Dispute Modal Overlay */}
+      {showDisputeModal && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="panel animate-slide-up" style={{ width: '100%', maxWidth: '400px', padding: '2rem', color: 'var(--text-main)', background: 'var(--card-bg)', borderRadius: '16px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, marginBottom: '0.5rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem', textAlign: 'center' }}>
+              Flag Dispute on Receipt
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+              Reporting this transaction will flag it for administration and immediately deduct from the trust score loop if verified.
+            </p>
+            
+            <form onSubmit={handleRaiseDispute} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'left' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>Dispute Category</label>
+                <select 
+                  className="form-control" 
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)', outline: 'none' }}
+                  required 
+                  value={disputeReason} 
+                  onChange={(e) => setDisputeReason(e.target.value)}
+                >
+                  <option value="Rule 303: Meetup No-Show">Rule 303: Meetup No-Show</option>
+                  <option value="Rule 202: Item Not as Described">Rule 202: Item Not as Described</option>
+                  <option value="Rule 404: Receipt/Currency Fraud">Rule 404: Receipt/Currency Fraud</option>
+                  <option value="Rule 101: Bad Conduct/Harassment">Rule 101: Bad Conduct/Harassment</option>
+                </select>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>Detailed Explanation</label>
+                <textarea 
+                  className="form-control"
+                  style={{ width: '100%', height: '100px', resize: 'none', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none' }}
+                  placeholder="Provide details about what went wrong at the meetup..."
+                  required
+                  value={disputeComments}
+                  onChange={(e) => setDisputeComments(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowDisputeModal(false)} className="btn-secondary" style={{ padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem' }}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ background: '#ef4444', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 800, width: 'auto' }} disabled={submittingDispute}>
+                  {submittingDispute ? 'Filing...' : 'File Dispute'}
+                </button>
+              </div>
+            </form>
           </div>
-          
-          {/* Jagged Edge Effect (CSS generated) */}
-          <div style={{ 
-            height: '10px', 
-            background: 'linear-gradient(-45deg, transparent 5px, #ffffff 0), linear-gradient(45deg, transparent 5px, #ffffff 0)',
-            backgroundPosition: 'left-bottom',
-            backgroundRepeat: 'repeat-x',
-            backgroundSize: '10px 10px',
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            width: '100%',
-            transform: 'rotate(180deg)',
-            opacity: 0.1
-          }} />
         </div>
-
-      </div>
-    </div>
-  );
-}
+      )}
+     </div>
+   );
+ }

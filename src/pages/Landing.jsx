@@ -67,6 +67,10 @@ export default function Landing() {
   // Particles
   const particles = useMemo(() => generateParticles(14), []);
 
+  const scrollToTop = () => {
+    document.querySelector('.editorial-landing')?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Fetch Feedback from Firestore
   useEffect(() => {
     const fetchFeedback = async () => {
@@ -176,18 +180,510 @@ export default function Landing() {
   }, [feedback]);
 
   return (
-    <div className="editorial-landing animate-fade-in">
+    <div className="editorial-landing animate-fade-in" style={{ backgroundColor: 'var(--colors-canvas-night)', color: 'var(--colors-on-primary)', minHeight: '100vh' }}>
+      <style>{`
+        .editorial-landing {
+          background-color: var(--colors-canvas-night) !important;
+          color: var(--colors-on-primary) !important;
+        }
+        .kt-editorial-nav {
+          display: flex;
+          align-items: center;
+          padding: 16px 24px;
+          background-color: transparent;
+          position: fixed;
+          top: 0; left: 0; right: 0;
+          z-index: 100;
+          transition: background-color 0.3s;
+        }
+        .kt-editorial-nav.scrolled {
+          background-color: var(--colors-canvas-night);
+          border-bottom: 1px solid var(--colors-hairline-dark);
+        }
+        .kt-nav-inner {
+          display: flex;
+          justify-content: space-between;
+          width: 100%;
+          max-width: 1440px;
+          margin: 0 auto;
+        }
+        .kt-nav-brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          transition: transform 0.2s ease;
+        }
+        .kt-nav-brand:hover {
+          transform: scale(1.02);
+        }
+        .kt-brand-logo {
+          width: 32px;
+          height: 32px;
+          filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+          transition: transform 0.2s ease;
+        }
+        .kt-nav-brand:hover .kt-brand-logo {
+          transform: rotate(5deg) scale(1.08);
+        }
+        .kt-brand-text {
+          font-family: 'NeueHaasGrotesk Display', Helvetica, Arial, sans-serif;
+          font-weight: 500;
+          font-size: 1.6rem;
+          letter-spacing: 0.5px;
+          color: #10B981;
+          transition: color 0.2s;
+        }
+        .kt-nav-brand:hover .kt-brand-text {
+          color: var(--colors-on-primary);
+        }
+        .kt-nav-link {
+          font-family: 'Inter', sans-serif;
+          font-size: 16px;
+          color: var(--colors-shade-30);
+          text-decoration: none;
+          margin: 0 12px;
+        }
+        .kt-nav-link:hover { color: var(--colors-on-primary); }
+        .kt-hero {
+          position: relative;
+          padding: 192px 24px 128px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          overflow: hidden;
+        }
+        .kt-hero-heading {
+          font-family: 'NeueHaasGrotesk Display', Helvetica, Arial, sans-serif;
+          font-size: 96px;
+          font-weight: 330;
+          line-height: 1.0;
+          letter-spacing: 2.4px;
+          color: var(--colors-on-primary);
+          margin-bottom: 32px;
+          position: relative;
+          z-index: 10;
+        }
+        @media (max-width: 768px) {
+          .kt-hero-heading { font-size: 55px; letter-spacing: 0; }
+        }
+        .kt-hero-sub {
+          font-family: 'Inter', sans-serif;
+          font-size: 18px;
+          font-weight: 420;
+          color: var(--colors-shade-30);
+          max-width: 600px;
+          margin: 0 auto 48px;
+          position: relative;
+          z-index: 10;
+        }
+        .kt-hero-image-wrap {
+          position: absolute;
+          top: 0; left: 0; width: 100%; height: 100%;
+          z-index: 0;
+          opacity: 0.4;
+        }
+        .kt-hero-img {
+          width: 100%; height: 100%; object-fit: cover;
+        }
+        .kt-order-btn, .kt-cta-pill {
+          background: transparent;
+          color: var(--colors-on-primary);
+          font-family: 'Inter', sans-serif;
+          font-size: 16px;
+          font-weight: 420;
+          border-radius: 9999px;
+          padding: 12px 26px;
+          border: 2px solid var(--colors-on-primary);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          position: relative;
+          z-index: 10;
+        }
+        .kt-order-btn:hover, .kt-cta-pill:hover { background: rgba(255,255,255,0.1); }
+
+        /* ── SMARTER TRADING SECTION ── */
+        .kt-smarter-trading-section {
+          background-color: var(--colors-canvas-night);
+          padding: 128px 24px;
+          border-top: 1px solid var(--colors-hairline-dark);
+          color: var(--colors-on-primary);
+        }
+        .kt-smarter-heading {
+          font-family: 'NeueHaasGrotesk Display', Helvetica, Arial, sans-serif;
+          font-size: 48px;
+          font-weight: 330;
+          line-height: 1.14;
+          letter-spacing: -0.02em;
+          margin-bottom: 56px;
+          color: var(--colors-on-primary);
+          text-align: left;
+        }
+        .kt-smarter-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+          margin-bottom: 80px;
+        }
+        @media (max-width: 992px) {
+          .kt-smarter-grid {
+            grid-template-columns: 1fr;
+            gap: 32px;
+          }
+          .kt-smarter-heading {
+            font-size: 36px;
+            margin-bottom: 40px;
+          }
+        }
+        .kt-smarter-card {
+          background-color: var(--colors-canvas-night-elevated);
+          border: 1px solid var(--colors-hairline-dark);
+          border-radius: 20px;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        .kt-smarter-card:hover {
+          transform: translateY(-4px);
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+        .kt-smarter-graphic-wrap {
+          height: 220px;
+          position: relative;
+          overflow: hidden;
+          background: radial-gradient(circle at center, #111111 0%, #050505 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-bottom: 1px solid var(--colors-hairline-dark);
+        }
+        
+        /* Card 1: Meetup Receipt Mockup */
+        .mockup-meetup-card {
+          width: 190px;
+          background: #ffffff;
+          color: #1a1a1a;
+          border-radius: 12px;
+          padding: 14px;
+          font-family: 'Inter', sans-serif;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+          transform: rotate(-3deg);
+          transition: transform 0.3s ease;
+        }
+        .kt-smarter-card:hover .mockup-meetup-card {
+          transform: rotate(0deg) scale(1.03);
+        }
+        .mockup-meetup-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+          border-bottom: 1px solid #f0f0f0;
+          padding-bottom: 8px;
+        }
+        .mockup-user-avatar {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: #000000;
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: 700;
+        }
+        .mockup-username {
+          font-size: 10px;
+          font-weight: 600;
+          text-align: left;
+        }
+        .mockup-item {
+          font-size: 8px;
+          color: #666666;
+          text-align: left;
+        }
+        .mockup-meetup-details {
+          font-size: 9px;
+          margin-bottom: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+        }
+        .detail-row span {
+          color: #888888;
+        }
+        .badge-verified {
+          background: #d4f9e0;
+          color: #0b512c;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 7px;
+          font-weight: 700;
+        }
+        .mockup-meetup-action {
+          width: 100%;
+        }
+        .btn-shop-pay {
+          width: 100%;
+          background: #5a31f4;
+          color: white;
+          border: none;
+          padding: 8px;
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .floating-badge {
+          position: absolute;
+          background: var(--colors-on-primary);
+          color: var(--colors-primary);
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .map-badge {
+          bottom: 20px;
+          right: 30px;
+          transform: rotate(10deg);
+        }
+        
+        /* Card 2: AI Scanner Mockup */
+        .mockup-ai-container {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .mockup-ai-frame {
+          width: 110px;
+          height: 110px;
+          border-radius: 12px;
+          overflow: hidden;
+          position: relative;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: #111111;
+        }
+        .mockup-ai-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          opacity: 0.8;
+        }
+        .mockup-ai-scanner-line {
+          position: absolute;
+          width: 100%;
+          height: 2px;
+          background: #c1fbd4;
+          box-shadow: 0 0 8px #c1fbd4;
+          top: 0;
+          left: 0;
+          animation: scan 2s linear infinite;
+          z-index: 2;
+        }
+        @keyframes scan {
+          0% { top: 0%; }
+          50% { top: 100%; }
+          100% { top: 0%; }
+        }
+        .mockup-ai-tags {
+          position: absolute;
+          left: 15px;
+          bottom: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .ai-tag {
+          font-size: 8px;
+          background: rgba(0, 0, 0, 0.75);
+          backdrop-filter: blur(4px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #eeeeee;
+          padding: 3px 6px;
+          border-radius: 4px;
+          font-weight: 500;
+          white-space: nowrap;
+          text-align: left;
+        }
+        .ai-tag.tag-green {
+          border-color: #c1fbd4;
+          color: #c1fbd4;
+        }
+        .ai-tag.tag-purple {
+          border-color: #d6bbfb;
+          color: #d6bbfb;
+        }
+        .ai-sparkle {
+          position: absolute;
+          color: #d6bbfb;
+          font-size: 16px;
+          text-shadow: 0 0 5px #d6bbfb;
+          animation: pulse-sparkle 1.5s ease-in-out infinite alternate;
+        }
+        .sparkle-1 { top: 40px; right: 40px; }
+        .sparkle-2 { bottom: 50px; right: 25px; animation-delay: 0.75s; }
+        @keyframes pulse-sparkle {
+          0% { transform: scale(0.8); opacity: 0.5; }
+          100% { transform: scale(1.2); opacity: 1; }
+        }
+
+        /* Card 3: Radar Map Mockup */
+        .mockup-radar-container {
+          position: relative;
+          width: 180px;
+          height: 180px;
+          border-radius: 50%;
+          border: 1px dashed rgba(255,255,255,0.08);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+        .mockup-davao-map-overlay {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          background: url('/davao_map_clean.webp') no-repeat center;
+          background-size: cover;
+          opacity: 0.15;
+        }
+        .radar-circle {
+          position: absolute;
+          border: 1px solid rgba(193, 251, 212, 0.2);
+          border-radius: 50%;
+          animation: radar-pulse 3s linear infinite;
+        }
+        .circle-1 { width: 60px; height: 60px; }
+        .circle-2 { width: 120px; height: 120px; animation-delay: 1s; }
+        .circle-3 { width: 180px; height: 180px; animation-delay: 2s; }
+        .radar-center {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #c1fbd4;
+          box-shadow: 0 0 8px #c1fbd4;
+          z-index: 2;
+        }
+        @keyframes radar-pulse {
+          0% { transform: scale(0.5); opacity: 1; }
+          100% { transform: scale(1.2); opacity: 0; }
+        }
+        .radar-marker {
+          position: absolute;
+          font-size: 12px;
+          z-index: 2;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+          animation: marker-bounce 2s ease-in-out infinite alternate;
+        }
+        .marker-1 { top: 40px; left: 50px; }
+        .marker-2 { bottom: 45px; right: 50px; animation-delay: 0.5s; }
+        .marker-3 { top: 80px; right: 35px; animation-delay: 1s; }
+        @keyframes marker-bounce {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-4px); }
+        }
+        .radar-stats {
+          position: absolute;
+          background: rgba(0,0,0,0.85);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 50%;
+          width: 90px;
+          height: 90px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+          z-index: 3;
+        }
+        .radar-metric {
+          font-family: 'NeueHaasGrotesk Display', sans-serif;
+          font-size: 16px;
+          font-weight: 500;
+          color: #c1fbd4;
+        }
+        .radar-label {
+          font-size: 7px;
+          color: #888888;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-top: 2px;
+        }
+
+        /* Card Typography details */
+        .kt-smarter-card-title {
+          font-family: 'NeueHaasGrotesk Display', Helvetica, Arial, sans-serif;
+          font-size: 20px;
+          font-weight: 500;
+          margin: 24px 24px 8px;
+          color: var(--colors-on-primary);
+          text-align: left;
+        }
+        .kt-smarter-card-desc {
+          font-family: 'Inter', sans-serif;
+          font-size: 14px;
+          color: var(--colors-shade-30);
+          line-height: 1.5;
+          margin-bottom: 24px;
+          padding: 0 24px;
+          text-align: left;
+        }
+
+        /* Quote Section at the bottom */
+        .kt-smarter-quote-wrap {
+          border-top: 1px solid var(--colors-hairline-dark);
+          padding-top: 48px;
+          margin-top: 48px;
+          text-align: left;
+        }
+        .kt-smarter-quote {
+          font-family: 'NeueHaasGrotesk Display', Helvetica, Arial, sans-serif;
+          font-size: 26px;
+          font-weight: 330;
+          line-height: 1.4;
+          color: var(--colors-on-primary);
+          margin-bottom: 24px;
+          max-width: 800px;
+          text-align: left;
+        }
+        .kt-smarter-quote-author {
+          font-family: 'Inter', sans-serif;
+        }
+        .author-name {
+          font-weight: 600;
+          font-size: 14px;
+          color: var(--colors-on-primary);
+        }
+        .author-role {
+          font-size: 12px;
+          color: var(--colors-shade-40);
+          margin-top: 2px;
+        }
+      `}</style>
 
       {/* ── NAVBAR ──────────────────────────────────── */}
       <nav className={`kt-editorial-nav ${scrolled ? 'scrolled' : ''}`}>
         <div className="kt-nav-inner">
           {/* Brand */}
-          <div className="kt-nav-brand">
-            <svg className="kt-nav-logo" width="36" height="36" viewBox="0 0 24 24" fill="none">
-              <path d="M6 10H18L17 19C17 20.1046 16.1046 21 15 21H9C7.89543 21 7 20.1046 7 19L6 10Z" fill="#FF4757" fillOpacity="0.15" stroke="#FF4757" strokeWidth="2" />
-              <path d="M9 10V6C9 4.34315 10.3431 3 12 3C13.6569 3 15 4.34315 15 6V10" stroke="#FF4757" strokeWidth="2" strokeLinecap="round" />
-              <path d="M12 2L9 5H15L12 2Z" fill="#FF4757" />
-            </svg>
+          <div className="kt-nav-brand" onClick={scrollToTop} title="Scroll to top">
+            <img src="/logo.svg" alt="KomuniTrade Logo" className="kt-brand-logo" />
             <span className="kt-brand-text">KOMUNITRADE</span>
           </div>
 
@@ -228,33 +724,6 @@ export default function Landing() {
           />
         ))}
 
-        {/* Giant decorative background text */}
-        <div className="kt-hero-deco-text" aria-hidden="true">
-          KT
-        </div>
-
-        {/* Floating hero image */}
-        <div className="kt-hero-image-wrap">
-          <img
-            src="/durian_fruit.webp"
-            alt="Fresh Davao products"
-            className="kt-hero-img"
-          />
-          {/* Floating stat badges */}
-          <div className="kt-hero-badge kt-badge-top-left">
-            <MapPin size={14} />
-            <span>Davao City</span>
-          </div>
-          <div className="kt-hero-badge kt-badge-top-right">
-            <Star size={14} fill="currentColor" />
-            <span>Verified Sellers</span>
-          </div>
-          <div className="kt-hero-badge kt-badge-bottom">
-            <span className="kt-badge-num">2,000+</span>
-            <span>Local Listings</span>
-          </div>
-        </div>
-
         {/* Text block */}
         <div className="kt-hero-text">
           <div className="kt-location-chip">
@@ -278,8 +747,8 @@ export default function Landing() {
 
           <button className="kt-order-btn" onClick={openAuth}>
             <span>{t('hero_cta_sell')}</span>
-            <ArrowRight size={18} />
           </button>
+
         </div>
 
       </section>
@@ -311,18 +780,104 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── SMARTER TRADING STARTS HERE ── */}
+      <section className="kt-smarter-trading-section kt-reveal">
+        <div className="apple-grid">
+          <h2 className="kt-smarter-heading">{t('smarter_trading_title')}</h2>
+          
+          <div className="kt-smarter-grid">
+            {/* Card 1: Safe Meetups */}
+            <div className="kt-smarter-card">
+              <div className="kt-smarter-graphic-wrap">
+                <div className="mockup-meetup-card">
+                  <div className="mockup-meetup-header">
+                    <div className="mockup-user-avatar">J</div>
+                    <div>
+                      <div className="mockup-username">Juan D. (Seller)</div>
+                      <div className="mockup-item">Fresh Durian • 5kg</div>
+                    </div>
+                  </div>
+                  <div className="mockup-meetup-details">
+                    <div className="detail-row"><span>Meetup Spot</span><strong>Barangay 11-B Hotspot</strong></div>
+                    <div className="detail-row"><span>Status</span><span className="badge-verified">Verified Meetup Zone</span></div>
+                    <div className="detail-row"><span>Total</span><strong>₱1,250.00</strong></div>
+                  </div>
+                  <div className="mockup-meetup-action">
+                    <button className="btn-shop-pay">Accept & Meet</button>
+                  </div>
+                </div>
+                <div className="floating-badge map-badge"><MapPin size={18} /></div>
+              </div>
+              <h3 className="kt-smarter-card-title">{t('smarter_card1_title')}</h3>
+              <p className="kt-smarter-card-desc">{t('smarter_card1_desc')}</p>
+            </div>
+
+            {/* Card 2: AI verification */}
+            <div className="kt-smarter-card">
+              <div className="kt-smarter-graphic-wrap">
+                <div className="mockup-ai-container">
+                  <div className="mockup-ai-frame">
+                    <div className="mockup-ai-scanner-line" />
+                    <img src="/fresh.webp" alt="AI item check" className="mockup-ai-img" />
+                  </div>
+                  <div className="mockup-ai-tags">
+                    <span className="ai-tag">Item: Durian 100%</span>
+                    <span className="ai-tag tag-green">Safe Content ✓</span>
+                    <span className="ai-tag tag-purple">Fair Price Match ✓</span>
+                  </div>
+                  <div className="ai-sparkle sparkle-1">✦</div>
+                  <div className="ai-sparkle sparkle-2">✦</div>
+                </div>
+              </div>
+              <h3 className="kt-smarter-card-title">{t('smarter_card2_title')}</h3>
+              <p className="kt-smarter-card-desc">{t('smarter_card2_desc')}</p>
+            </div>
+
+            {/* Card 3: Fast Local Matching */}
+            <div className="kt-smarter-card">
+              <div className="kt-smarter-graphic-wrap">
+                <div className="mockup-radar-container">
+                  <div className="mockup-davao-map-overlay" />
+                  <div className="radar-circle circle-1" />
+                  <div className="radar-circle circle-2" />
+                  <div className="radar-circle circle-3" />
+                  <div className="radar-center" />
+                  <div className="radar-marker marker-1">📱</div>
+                  <div className="radar-marker marker-2">👚</div>
+                  <div className="radar-marker marker-3">🍍</div>
+                  <div className="radar-stats">
+                    <div className="radar-metric">98.4%</div>
+                    <div className="radar-label">Local Match Rate</div>
+                  </div>
+                </div>
+              </div>
+              <h3 className="kt-smarter-card-title">{t('smarter_card3_title')}</h3>
+              <p className="kt-smarter-card-desc">{t('smarter_card3_desc')}</p>
+            </div>
+          </div>
+
+          <div className="kt-smarter-quote-wrap">
+            <p className="kt-smarter-quote">{t('smarter_quote')}</p>
+            <div className="kt-smarter-quote-author">
+              <div className="author-name">{t('smarter_quote_author')}</div>
+              <div className="author-role">{t('smarter_quote_role')}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── TRUST SECTION ───────────────────────────── */}
-      <section id="trust" className="kt-reveal" style={{ background: 'var(--card-bg)', padding: '8rem 0', position: 'relative' }}>
+      <section id="trust" className="kt-reveal" style={{ background: 'var(--colors-canvas-night)', padding: '128px 0', position: 'relative', borderTop: '1px solid var(--colors-hairline-dark)' }}>
         <div className="apple-grid" style={{ position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5rem', alignItems: 'center' }}>
             <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '0.4rem 1rem', borderRadius: '999px', fontWeight: 800, fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'transparent', border: '1px solid var(--colors-shade-50)', color: 'var(--colors-shade-30)', padding: '0.4rem 1rem', borderRadius: '9999px', fontWeight: 500, fontSize: '0.85rem', marginBottom: '1.5rem', fontFamily: "'Inter', sans-serif" }}>
                 <Shield size={14} /> {t('trust_badge')}
               </div>
-              <h2 style={{ fontSize: '3rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", lineHeight: 1.1, marginBottom: '1.5rem', color: 'var(--text-main)' }}>
+              <h2 style={{ fontSize: '70px', fontWeight: 330, fontFamily: "'NeueHaasGrotesk Display', Helvetica, Arial, sans-serif", lineHeight: 1.0, marginBottom: '1.5rem', color: 'var(--colors-on-primary)', letterSpacing: '0' }}>
                 {t('trust_title')}
               </h2>
-              <p style={{ color: 'var(--text-muted)', lineHeight: 1.8, fontSize: '1.05rem', marginBottom: '2rem' }}>
+              <p style={{ color: 'var(--colors-shade-30)', lineHeight: 1.56, fontSize: '18px', fontWeight: 550, marginBottom: '2rem', fontFamily: "'Inter', sans-serif" }}>
                 {t('trust_desc')}
               </p>
               {[
@@ -331,16 +886,16 @@ export default function Landing() {
                 [<Shield size={20} />, t('trust_feat3_title'), t('trust_feat3_desc')],
               ].map(([icon, title, desc]) => (
                 <div key={title} style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                  <div style={{ color: 'var(--primary)', flexShrink: 0, marginTop: '0.2rem' }}>{icon}</div>
+                  <div style={{ color: 'var(--colors-on-primary)', flexShrink: 0, marginTop: '0.2rem' }}>{icon}</div>
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '0.25rem', color: 'var(--text-main)', fontFamily: "'Outfit', sans-serif" }}>{title}</div>
-                    <div style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{desc}</div>
+                    <div style={{ fontWeight: 500, fontSize: '20px', marginBottom: '0.25rem', color: 'var(--colors-on-primary)', fontFamily: "'NeueHaasGrotesk Display', Helvetica, Arial, sans-serif" }}>{title}</div>
+                    <div style={{ fontSize: '16px', color: 'var(--colors-shade-40)', lineHeight: 1.5, fontFamily: "'Inter', sans-serif" }}>{desc}</div>
                   </div>
                 </div>
               ))}
             </div>
             <div style={{ position: 'relative' }}>
-              <div style={{ borderRadius: '32px', overflow: 'hidden', boxShadow: 'var(--shadow-premium)', background: 'var(--bg-color)', padding: '1rem', textAlign: 'center', height: '350px' }}>
+              <div style={{ borderRadius: '20px', overflow: 'hidden', background: 'var(--colors-canvas-night-elevated)', padding: '0', textAlign: 'center', height: '350px', border: '1px solid var(--colors-hairline-dark)' }}>
                 <GoogleMap 
                   center={{ lat: 7.0731, lng: 125.6128 }} 
                   zoom={13} 
@@ -352,10 +907,6 @@ export default function Landing() {
                     { lat: 7.0650, lng: 125.5990, title: 'Matina Thrift Center' }
                   ]}
                 />
-              </div>
-              <div style={{ position: 'absolute', bottom: '-1rem', left: '-1rem', background: 'var(--primary)', color: 'white', borderRadius: '20px', padding: '1rem 1.5rem', boxShadow: '0 20px 40px rgba(255,71,87,0.4)', zIndex: 10 }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.8 }}>VERIFICATION SPEED</div>
-                <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>~2s</div>
               </div>
             </div>
           </div>
@@ -476,7 +1027,6 @@ export default function Landing() {
                     } 
                   }} 
                   className="btn-primary" 
-                  style={{ padding: '0.75rem', borderRadius: '8px' }}
                 >
                   Submit Feedback
                 </button>
@@ -527,15 +1077,15 @@ export default function Landing() {
       </section>
 
       {/* ── FOOTER CTA ──────────────────────────────── */}
-      <section className="editorial-footer-cta">
+      <section className="editorial-footer-cta" style={{ background: 'var(--colors-canvas-night)', padding: '128px 24px', borderTop: '1px solid var(--colors-hairline-dark)', textAlign: 'center' }}>
         <div className="apple-grid">
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '1.5rem', position: 'relative' }}>
+          <p style={{ color: 'var(--colors-shade-40)', fontSize: '12px', fontWeight: 400, letterSpacing: '0.72px', marginBottom: '24px', position: 'relative', fontFamily: "'Inter', sans-serif", textTransform: 'uppercase' }}>
             {t('cta_footer_location')}
           </p>
-          <h2 dangerouslySetInnerHTML={{ __html: t('cta_footer_title') }} />
-          <p>{t('cta_footer_desc')}</p>
+          <h2 style={{ fontFamily: "'NeueHaasGrotesk Display', sans-serif", fontSize: '55px', fontWeight: 330, color: 'var(--colors-on-primary)', marginBottom: '24px' }} dangerouslySetInnerHTML={{ __html: t('cta_footer_title') }} />
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '18px', color: 'var(--colors-shade-30)', maxWidth: '600px', margin: '0 auto 48px' }}>{t('cta_footer_desc')}</p>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2.5rem' }}>
-            <button onClick={() => openAuth('register')} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem', background: '#fff', color: '#0F172A', border: 'none', padding: '1.1rem 2.5rem', borderRadius: '16px', fontWeight: 800, fontSize: '1.1rem', cursor: 'pointer', fontFamily: "'Outfit', sans-serif", boxShadow: '0 20px 40px rgba(0,0,0,0.3)', transition: 'all 0.3s ease', position: 'relative' }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 28px 50px rgba(0,0,0,0.4)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3)'; }}>
+            <button onClick={() => openAuth('register')} className="button-outline-on-dark" style={{ fontSize: '18px', padding: '16px 32px' }}>
               {t('cta_footer_btn')} <ArrowRight size={20} />
             </button>
             <button onClick={() => document.getElementById('feedback-section')?.scrollIntoView({ behavior: 'smooth' })} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.6rem 1.25rem', borderRadius: '999px', fontWeight: 800, fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', transition: 'all 0.3s ease', letterSpacing: '0.05em' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
@@ -556,10 +1106,7 @@ export default function Landing() {
       {showAuthModal && (
         <div className="auth-modal-overlay" onClick={() => setShowAuthModal(false)}>
           <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-            <button className="auth-modal-close" onClick={() => setShowAuthModal(false)} style={{ top: '1.5rem', right: '1.5rem', zIndex: 10 }}>
-              <X size={20} />
-            </button>
-            <Auth />
+            <Auth onClose={() => setShowAuthModal(false)} />
           </div>
         </div>
       )}

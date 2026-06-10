@@ -31,7 +31,12 @@ export default function Profile() {
   const location = useLocation();
   const { lang, setLang, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('inventory');
-  
+  const queryParams = new URLSearchParams(location.search);
+  const uidParam = queryParams.get('uid');
+  const { currentUser } = useAuth();
+  const targetUid = uidParam || (currentUser ? currentUser.uid : null);
+  const isOwnProfile = !uidParam || (currentUser && uidParam === currentUser.uid);
+
   // Handle tab from URL query params (reactive via useLocation)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -44,7 +49,6 @@ export default function Profile() {
   const [myListings, setMyListings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const { currentUser } = useAuth();
   
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [selectedListingForTransaction, setSelectedListingForTransaction] = useState(null);
@@ -55,10 +59,85 @@ export default function Profile() {
     meetupLocation: ''
   });
 
-  const queryParams = new URLSearchParams(location.search);
-  const uidParam = queryParams.get('uid');
-  const targetUid = uidParam || (currentUser ? currentUser.uid : null);
-  const isOwnProfile = !uidParam || (currentUser && uidParam === currentUser.uid);
+  const [completedTxCount, setCompletedTxCount] = useState(0);
+  const [totalValueSaved, setTotalValueSaved] = useState(0);
+  const [trustLogs, setTrustLogs] = useState([]);
+
+  useEffect(() => {
+    if (!currentUser || !isOwnProfile) return;
+    
+    // Subscribe to trust logs
+    const qLogs = query(
+      collection(db, 'trust_logs'),
+      where('userId', '==', currentUser.uid)
+    );
+    const unsubLogs = onSnapshot(qLogs, (snapshot) => {
+      const logs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toLocaleString() : new Date().toLocaleString()
+        };
+      });
+      // Sort descending
+      logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      setTrustLogs(logs);
+    });
+
+    // Subscribe to completed transactions
+    // 1. Seller completed
+    const qSellerCompleted = query(
+      collection(db, 'transactions'),
+      where('sellerId', '==', currentUser.uid),
+      where('status', '==', 'Completed')
+    );
+    // 2. Buyer completed
+    const qBuyerCompleted = query(
+      collection(db, 'transactions'),
+      where('buyerId', '==', currentUser.uid),
+      where('status', '==', 'Completed')
+    );
+
+    const unsubSellerCompleted = onSnapshot(qSellerCompleted, (snapshot) => {
+      const sellerCount = snapshot.docs.length;
+      let sellerSaved = 0;
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.payment_method === 'Barter') {
+          sellerSaved += parseFloat(data.agreed_price || 0);
+        } else {
+          sellerSaved += parseFloat(data.agreed_price || 0) * 0.40;
+        }
+      });
+
+      // Fetch buyer completed
+      const unsubBuyerCompleted = onSnapshot(qBuyerCompleted, (buyerSnapshot) => {
+        const buyerCount = buyerSnapshot.docs.length;
+        let buyerSaved = 0;
+        buyerSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          if (data.payment_method === 'Barter') {
+            buyerSaved += parseFloat(data.agreed_price || 0);
+          } else {
+            buyerSaved += parseFloat(data.agreed_price || 0) * 0.40;
+          }
+        });
+
+        setCompletedTxCount(sellerCount + buyerCount);
+        setTotalValueSaved(sellerSaved + buyerSaved);
+      });
+
+      return () => unsubBuyerCompleted();
+    });
+
+    return () => {
+      unsubLogs();
+      unsubSellerCompleted();
+    };
+  }, [currentUser, isOwnProfile]);
+
+
 
   const [profileData, setProfileData] = useState(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
@@ -223,6 +302,9 @@ export default function Profile() {
     if (!selectedListingForTransaction || !currentUser) return;
 
     try {
+      const bPin = Math.floor(100000 + Math.random() * 900000).toString();
+      const sPin = Math.floor(100000 + Math.random() * 900000).toString();
+
       // 1. Create transaction record
       await addDoc(collection(db, 'transactions'), {
         reference_number: `TRX-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -239,7 +321,9 @@ export default function Profile() {
         meetup_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         agreement_summary: `Transaction completed. Both buyer and seller agreed to the purchase of ${selectedListingForTransaction.title} worth ₱${transactionData.price}.`,
         created_at: serverTimestamp(),
-        listingId: selectedListingForTransaction.id
+        listingId: selectedListingForTransaction.id,
+        buyerPin: bPin,
+        sellerPin: sPin
       });
 
       // 2. Mark listing as sold
@@ -367,7 +451,7 @@ export default function Profile() {
             </div>
           ) : (
             <>
-              <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 0.5rem', fontFamily: "'Outfit', sans-serif" }}>
+              <h2 className="heading-xl" style={{ margin: '0 0 0.5rem' }}>
                 {displayName}
               </h2>
               <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
@@ -474,20 +558,20 @@ export default function Profile() {
           </div>
 
           {/* Action Buttons */}
-          <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {isOwnProfile ? (
               <>
                 <button 
-                  className="btn-primary" 
+                  className="button-primary-pill" 
                   onClick={isEditing ? handleSave : () => setIsEditing(true)}
-                  style={{ width: '100%', borderRadius: '12px' }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
                   {isEditing ? 'SAVE CHANGES' : t('prof_edit')}
                 </button>
                 <button 
-                  className="btn-secondary" 
+                  className="button-secondary-pill" 
                   onClick={handleShare}
-                  style={{ width: '100%', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
                   <Share2 size={18} /> SHARE
                 </button>
@@ -495,18 +579,18 @@ export default function Profile() {
             ) : (
               <>
                 <button 
-                  className="btn-primary" 
+                  className="button-primary-pill" 
                   onClick={() => {
                     alert("To start a secure chat, please click on one of the seller's active listings below and click 'Contact Seller'.");
                   }}
-                  style={{ width: '100%', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
                   <MessageCircle size={18} /> MESSAGE SELLER
                 </button>
                 <button 
-                  className="btn-secondary" 
+                  className="button-secondary-pill" 
                   onClick={handleShare}
-                  style={{ width: '100%', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
                   <Share2 size={18} /> SHARE PROFILE
                 </button>
@@ -518,7 +602,7 @@ export default function Profile() {
         {/* Right Column: About & Content */}
         <div className="profile-main-content" style={{ paddingTop: '1.5rem' }}>
           
-          {/* Tabs for Inventory / Security */}
+          {/* Tabs for Inventory / Security / Ledger */}
           <div className="tab-nav" style={{ borderBottom: '1px solid var(--border-color)', marginBottom: '1rem', display: isOwnProfile ? 'flex' : 'none' }}>
             <button 
               className={`tab-item ${activeTab === 'inventory' ? 'active' : ''}`} 
@@ -541,6 +625,7 @@ export default function Profile() {
               onClick={() => setActiveTab('security')}
               style={{ 
                 padding: '1rem 0', 
+                marginRight: '2rem',
                 background: 'none', 
                 border: 'none',
                 borderBottom: activeTab === 'security' ? '3px solid var(--text-main)' : '3px solid transparent',
@@ -551,19 +636,34 @@ export default function Profile() {
             >
               {t('prof_security')}
             </button>
+            <button 
+              className={`tab-item ${activeTab === 'ledger' ? 'active' : ''}`} 
+              onClick={() => setActiveTab('ledger')}
+              style={{ 
+                padding: '1rem 0', 
+                background: 'none', 
+                border: 'none',
+                borderBottom: activeTab === 'ledger' ? '3px solid var(--text-main)' : '3px solid transparent',
+                fontWeight: 700,
+                cursor: 'pointer',
+                color: activeTab === 'ledger' ? 'var(--text-main)' : 'var(--text-muted)'
+              }}
+            >
+              Impact Ledger
+            </button>
           </div>
 
           {activeTab === 'inventory' && (
             <div className="animate-fade-in">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{t('prof_active_listings')}</h2>
+                <h2 className="heading-md" style={{ margin: 0 }}>{t('prof_active_listings')}</h2>
                 {isOwnProfile && (
                   <button 
-                    className="btn-primary" 
+                    className="button-primary-pill" 
                     onClick={() => navigate('/app/post')}
-                    style={{ borderRadius: '12px', padding: '0.6rem 1.2rem', width: 'auto' }}
+                    style={{ width: 'auto', padding: '0.5rem 1rem' }}
                   >
-                    <Plus size={20} /> {t('prof_list_new')}
+                    <Plus size={16} /> {t('prof_list_new')}
                   </button>
                 )}
               </div>
@@ -581,11 +681,11 @@ export default function Profile() {
                   <p className="empty-state-desc">{t('prof_no_listings_desc')}</p>
                   {isOwnProfile && (
                     <button 
-                      className="btn-primary" 
+                      className="button-primary-pill" 
                       onClick={() => navigate('/app/post')}
-                      style={{ width: 'auto', padding: '0.85rem 2rem', borderRadius: '14px', fontSize: '0.95rem' }}
+                      style={{ width: 'auto' }}
                     >
-                      <Plus size={20} /> {t('prof_list_new')}
+                      <Plus size={18} /> {t('prof_list_new')}
                     </button>
                   )}
                 </div>
@@ -595,10 +695,10 @@ export default function Profile() {
                     <div key={item.id} style={{ position: 'relative' }}>
                       <ItemCard item={item} onClick={() => navigate(`/app/item/${item.id}`)} />
                       {isOwnProfile && (
-                        <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
-                          <button title="Mark as Sold" className="glass" onClick={(e) => handleMarkAsSold(e, item)} style={{ width: '36px', height: '36px', borderRadius: '10px', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle2 size={16} /></button>
-                          <button className="glass" onClick={(e) => { e.stopPropagation(); navigate(`/app/edit-item/${item.id}`); }} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Edit3 size={16} /></button>
-                          <button className="glass" onClick={(e) => handleDelete(e, item.id)} style={{ width: '36px', height: '36px', borderRadius: '10px', color: '#ef4444', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={16} /></button>
+                        <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '0.4rem', zIndex: 10 }}>
+                          <button title="Mark as Sold" className="button-outline-on-light" onClick={(e) => handleMarkAsSold(e, item)} style={{ width: '32px', height: '32px', borderRadius: '50%', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle2 size={16} /></button>
+                          <button className="button-outline-on-light" onClick={(e) => { e.stopPropagation(); navigate(`/app/edit-item/${item.id}`); }} style={{ width: '32px', height: '32px', borderRadius: '50%', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Edit3 size={16} /></button>
+                          <button className="button-outline-on-light" onClick={(e) => handleDelete(e, item.id)} style={{ width: '32px', height: '32px', borderRadius: '50%', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}><Trash2 size={16} /></button>
                         </div>
                       )}
                     </div>
@@ -610,12 +710,13 @@ export default function Profile() {
 
           {activeTab === 'security' && (
             <div className="animate-fade-in">
-              <div style={{ background: 'var(--card-bg)', padding: '2.5rem', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem' }}>Security Dashboard</h3>
+              <div style={{ padding: '2.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>Security Dashboard</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem', textAlign: 'left' }}>Active security protocols and identity verification metrics.</p>
                 <div style={{ display: 'grid', gap: '1rem' }}>
                    {[
                     { event: 'E2EE Encryption Active', status: 'Optimal', icon: <ShieldCheck size={18} /> },
-                    { event: 'Identity Verification', status: 'Verified', icon: <Fingerprint size={18} /> },
+                    { event: 'Identity Verification', status: (profileData?.verified || profileData?.isVerified) ? 'Verified' : 'Unverified', icon: <Fingerprint size={18} /> },
                     { event: 'Last Login', status: 'Today', icon: <History size={18} /> }
                    ].map((log, i) => (
                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'var(--bg-color)', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
@@ -628,6 +729,108 @@ export default function Profile() {
                    ))}
                 </div>
               </div>
+
+              {/* Trust Score History Logs Audit Trail */}
+              <div style={{ padding: '2.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem', textAlign: 'left' }}>Trust Rating Audit Trail</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.5rem', textAlign: 'left' }}>Transparent audit log of your Trust Score adjustments. Governed by community rules.</p>
+                
+                {trustLogs.length === 0 ? (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                    No trust adjustments recorded yet. Maintain honest trade practices to preserve your score!
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', borderLeft: '2px solid var(--border-color)', paddingLeft: '1.5rem', marginLeft: '0.5rem' }}>
+                    {trustLogs.map((log) => {
+                      const isPositive = log.change > 0;
+                      return (
+                        <div key={log.id} style={{ position: 'relative', textAlign: 'left' }}>
+                          {/* Timeline Dot */}
+                          <div style={{
+                            position: 'absolute',
+                            left: 'calc(-1.5rem - 7px)',
+                            top: '4px',
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            background: isPositive ? '#10b981' : '#ef4444',
+                            border: '2px solid var(--card-bg)',
+                            boxShadow: '0 0 0 4px var(--border-color)'
+                          }} />
+                          
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>{log.event}</span>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', background: 'var(--primary-light)', padding: '2px 6px', borderRadius: '4px' }}>
+                                  {log.ruleApplied || 'General'}
+                                </span>
+                              </div>
+                              <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{log.reason}</p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <span style={{ fontWeight: 900, fontSize: '1.1rem', color: isPositive ? '#10b981' : '#ef4444' }}>
+                                {isPositive ? `+${log.change}` : log.change}%
+                              </span>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>{log.timestamp}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'ledger' && (
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              
+              {/* Stat Cards Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+                
+                <div style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left' }}>
+                  <div style={{ color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Trades Completed</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", color: 'var(--text-main)' }}>{completedTxCount}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Verified local meetup exchanges</div>
+                </div>
+
+                <div style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left' }}>
+                  <div style={{ color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Approximate Value Saved</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", color: 'var(--primary)' }}>₱{totalValueSaved.toLocaleString()}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Saved by bartering or buying pre-owned</div>
+                </div>
+
+                <div style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left' }}>
+                  <div style={{ color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>CO2 Offset</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", color: '#059669' }}>{completedTxCount * 12} kg</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Saved by trading pre-manufactured goods</div>
+                </div>
+
+                <div style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left' }}>
+                  <div style={{ color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Landfill Diversion</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", color: '#059669' }}>{completedTxCount * 5} kg</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total weight of items kept in circulation</div>
+                </div>
+
+              </div>
+
+              {/* Detail Ledger Information Box */}
+              <div style={{ background: 'var(--card-bg)', padding: '2rem', borderRadius: '24px', border: '1px solid var(--border-color)', textAlign: 'left' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 850, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🛡️ How Your Ledger is Calculated
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  <p>
+                    <strong>Local Cash Savings</strong>: Calculated by adding 100% of the agreed value for Barter deals (zero cash spent) and assuming a baseline 40% value discount for Cash/GCash trades compared to purchasing equivalent brand-new retail goods.
+                  </p>
+                  <p>
+                    <strong>CO2 & Landfill Offsets</strong>: Every traded and reused item diverts roughly 5kg of solid waste from city landfills and saves 12kg of greenhouse gas emissions by eliminating the need to manufacture, package, and transport new products.
+                  </p>
+                </div>
+              </div>
+
             </div>
           )}
 

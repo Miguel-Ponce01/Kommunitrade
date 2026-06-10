@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, MapPin, Shield, Loader2 } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
 import LocationModal from '../components/LocationModal';
@@ -23,8 +23,27 @@ export default function Home() {
   const [userLat, setUserLat] = useState(initialCoords.lat);
   const [userLng, setUserLng] = useState(initialCoords.lng);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get('q') || "";
+  const selectedCategory = searchParams.get('category') || "All";
+  
+  const setSearchQuery = (val) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (val) next.set('q', val);
+      else next.delete('q');
+      return next;
+    });
+  };
+
+  const setSelectedCategory = (val) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (val && val !== 'All') next.set('category', val);
+      else next.delete('category');
+      return next;
+    });
+  };
 
   const [listings, setListings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -174,7 +193,7 @@ export default function Home() {
           className="location-trigger-btn"
           onClick={() => setIsLocationModalOpen(true)}
         >
-          <MapPin size={16} style={{ color: 'var(--primary)' }} />
+          <MapPin size={16} />
           <span>{location} • {radius}km</span>
         </button>
       </div>

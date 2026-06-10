@@ -18,25 +18,41 @@ import {
   Eye,
   Activity,
   FileText,
-  Star
+  Star,
+  X,
+  Info,
+  Check,
+  AlertCircle
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { db, collection, getDocs, doc, deleteDoc, updateDoc } from "../firebase";
+import { db, collection, getDocs, doc, deleteDoc, updateDoc, addDoc, serverTimestamp, query, where } from "../firebase";
 import "../index.css";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { userProfile, loading } = useAuth();
   
-  const [activeTab, setActiveTab] = useState("users"); // users | listings | feedback
+  const [activeTab, setActiveTab] = useState("users"); // users | listings | feedback | reports | transactions | disputes
   const [usersList, setUsersList] = useState([]);
   const [listingsList, setListingsList] = useState([]);
   const [feedbackList, setFeedbackList] = useState([]);
   const [reportsList, setReportsList] = useState([]);
   const [transactionsList, setTransactionsList] = useState([]);
+  const [disputesList, setDisputesList] = useState([]);
   
   const [dbLoading, setDbLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Trust Adjustment Modal State
+  const [showAdjustTrustModal, setShowAdjustTrustModal] = useState(false);
+  const [adjustingUser, setAdjustingUser] = useState(null);
+  const [adjustDelta, setAdjustDelta] = useState(-15);
+  const [adjustRule, setAdjustRule] = useState("Rule 303: Meetup Reliability");
+  const [adjustReason, setAdjustReason] = useState("");
+  const [submittingAdjust, setSubmittingAdjust] = useState(false);
+
+  // Transaction Audit Modal State
+  const [viewingTx, setViewingTx] = useState(null);
 
   // Security Check: Redirect non-admins
   useEffect(() => {
@@ -75,8 +91,18 @@ export default function AdminDashboard() {
       // 5. Transactions
       const txSnap = await getDocs(collection(db, "transactions"));
       const transactions = txSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      transactions.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+      transactions.sort((a, b) => {
+        const timeA = a.created_at?.seconds || a.timestamp?.seconds || 0;
+        const timeB = b.created_at?.seconds || b.timestamp?.seconds || 0;
+        return timeB - timeA;
+      });
       setTransactionsList(transactions);
+
+      // 6. Disputes
+      const disputesSnap = await getDocs(collection(db, "disputes"));
+      const disputes = disputesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      disputes.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+      setDisputesList(disputes);
     } catch (e) {
       console.error("Failed to fetch admin dashboard collections:", e);
     } finally {
@@ -113,7 +139,45 @@ export default function AdminDashboard() {
     }
   };
 
-  // Adjust User Trust Score
+  // Adjust User Trust Score Submit
+  const handleTrustScoreAdjustmentSubmit = async (e) => {
+    e.preventDefault();
+    if (!adjustingUser) return;
+    setSubmittingAdjust(true);
+    try {
+      const currentScore = adjustingUser.trustScore ?? 100;
+      const nextScore = Math.max(0, Math.min(100, currentScore + Number(adjustDelta)));
+      
+      const userRef = doc(db, "users", adjustingUser.id);
+      await updateDoc(userRef, {
+        trustScore: nextScore
+      });
+
+      await addDoc(collection(db, "trust_logs"), {
+        userId: adjustingUser.id,
+        change: Number(adjustDelta),
+        newScore: nextScore,
+        event: Number(adjustDelta) >= 0 ? "Admin Commendation" : "Admin Penalty",
+        ruleApplied: adjustRule,
+        reason: adjustReason,
+        timestamp: serverTimestamp()
+      });
+
+      // Update local state
+      setUsersList(usersList.map(u => u.id === adjustingUser.id ? { ...u, trustScore: nextScore } : u));
+      
+      setShowAdjustTrustModal(false);
+      setAdjustingUser(null);
+      alert("Trust score adjusted and log recorded successfully.");
+    } catch (err) {
+      console.error("Adjustment failed:", err);
+      alert("Failed to adjust trust score: " + err.message);
+    } finally {
+      setSubmittingAdjust(false);
+    }
+  };
+
+  // Adjust User Trust Score (legacy inline)
   const handleTrustScoreChange = async (targetUser, delta) => {
     let nextScore = Math.max(0, Math.min(100, (targetUser.trustScore || 100) + delta));
     try {
@@ -176,6 +240,138 @@ export default function AdminDashboard() {
     }
   };
 
+  // Dismiss Dispute
+  const handleDismissDispute = async (dispute) => {
+    if (!window.confirm("Are you sure you want to dismiss this dispute? This will clear the dispute flag from the transaction.")) return;
+    try {
+      await deleteDoc(doc(db, "disputes", dispute.id));
+      
+      const txRef = doc(db, "transactions", dispute.transactionId);
+      await updateDoc(txRef, {
+        disputed: false,
+        disputeReason: ""
+      });
+      
+      setDisputesList(disputesList.filter(d => d.id !== dispute.id));
+      setTransactionsList(transactionsList.map(t => 
+        t.id === dispute.transactionId 
+          ? { ...t, disputed: false, disputeReason: "" } 
+          : t
+      ));
+      
+      alert("Dispute dismissed successfully.");
+    } catch (e) {
+      alert("Failed to dismiss dispute: " + e.message);
+    }
+  };
+
+  // Uphold Dispute & Penalty
+  const handleUpholdDispute = async (dispute) => {
+    if (!window.confirm("Are you sure you want to uphold this dispute? This will cancel the transaction, penalize the offender by -15% trust, write a trust log, and remove this dispute.")) return;
+    try {
+      // 1. Cancel transaction
+      const txRef = doc(db, "transactions", dispute.transactionId);
+      await updateDoc(txRef, {
+        status: "Cancelled",
+        disputed: true,
+        disputeReason: `Dispute upheld: ${dispute.reason}`
+      });
+
+      // 2. Penalize reported user (offender) by 15%
+      const offenderId = dispute.reportedUserId;
+      let currentScore = 100;
+      const offenderInList = usersList.find(u => u.id === offenderId);
+      if (offenderInList) {
+        currentScore = offenderInList.trustScore ?? 100;
+      }
+      const nextScore = Math.max(0, currentScore - 15);
+      
+      const offenderRef = doc(db, "users", offenderId);
+      await updateDoc(offenderRef, {
+        trustScore: nextScore
+      });
+
+      // 3. Write trust log
+      let ruleApplied = "Rule 101: General Conduct";
+      if (dispute.reason?.includes("303") || dispute.reason?.includes("Reliability")) {
+        ruleApplied = "Rule 303: Meetup Reliability";
+      } else if (dispute.reason?.includes("202") || dispute.reason?.includes("Accuracy")) {
+        ruleApplied = "Rule 202: Listing Accuracy";
+      } else if (dispute.reason?.includes("404") || dispute.reason?.includes("Authenticity")) {
+        ruleApplied = "Rule 404: Financial Authenticity";
+      }
+
+      await addDoc(collection(db, "trust_logs"), {
+        userId: offenderId,
+        change: -15,
+        newScore: nextScore,
+        event: "Dispute Penalty",
+        ruleApplied: ruleApplied,
+        reason: `Dispute upheld by admin: ${dispute.comments || dispute.reason}`,
+        timestamp: serverTimestamp()
+      });
+
+      // 4. Delete dispute doc
+      await deleteDoc(doc(db, "disputes", dispute.id));
+
+      // Update states
+      setDisputesList(disputesList.filter(d => d.id !== dispute.id));
+      setTransactionsList(transactionsList.map(t => 
+        t.id === dispute.transactionId 
+          ? { ...t, status: "Cancelled", disputed: true, disputeReason: `Dispute upheld: ${dispute.reason}` } 
+          : t
+      ));
+      setUsersList(usersList.map(u => u.id === offenderId ? { ...u, trustScore: nextScore } : u));
+
+      alert("Dispute upheld successfully. Transaction cancelled and offender penalized.");
+    } catch (e) {
+      alert("Failed to uphold dispute: " + e.message);
+    }
+  };
+
+  // Cancel Transaction
+  const handleCancelTransaction = async (txId) => {
+    if (!window.confirm("Are you sure you want to cancel this transaction agreement?")) return;
+    try {
+      const txRef = doc(db, "transactions", txId);
+      await updateDoc(txRef, {
+        status: "Cancelled"
+      });
+      setTransactionsList(transactionsList.map(t => 
+        t.id === txId ? { ...t, status: "Cancelled" } : t
+      ));
+      alert("Transaction cancelled successfully.");
+    } catch (e) {
+      alert("Failed to cancel transaction: " + e.message);
+    }
+  };
+
+  const handleAuditDisputeReceipt = (dispute) => {
+    const tx = transactionsList.find(t => t.id === dispute.transactionId);
+    if (tx) {
+      setViewingTx(tx);
+    } else {
+      setViewingTx({
+        id: dispute.transactionId,
+        reference_number: dispute.reference_number || "TRX-UNKNOWN",
+        item_name: dispute.item_name || "Unknown Item",
+        item_condition: "Unknown",
+        agreed_price: 0,
+        payment_method: "Unknown",
+        meetup_location: "Unknown Spot",
+        meetup_date: "N/A",
+        meetup_time: "N/A",
+        buyerId: dispute.reporterId,
+        sellerId: dispute.reportedUserId,
+        buyerPin: "------",
+        sellerPin: "------",
+        status: "Disputed",
+        disputed: true,
+        disputeReason: dispute.reason
+      });
+    }
+  };
+
   if (loading || !userProfile || userProfile.role !== "admin") {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh", flexDirection: "column", gap: "1rem" }}>
@@ -218,6 +414,60 @@ export default function AdminDashboard() {
     (t.sellerId || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const filteredDisputes = disputesList.filter(d => 
+    (d.id || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (d.reference_number || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (d.item_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (d.reason || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (d.comments || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (d.reporterAlias || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const actionBtnStyle = {
+    border: "1px solid var(--border-color)",
+    background: "var(--card-bg)",
+    color: "var(--text-main)",
+    padding: "0.45rem 0.85rem",
+    borderRadius: "8px",
+    fontWeight: 700,
+    fontSize: "0.8rem",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.4rem",
+    transition: "var(--transition)"
+  };
+
+  const actionBtnDangerStyle = {
+    border: "1px solid rgba(239, 68, 68, 0.2)",
+    background: "rgba(239, 68, 68, 0.05)",
+    color: "#EF4444",
+    padding: "0.45rem 0.85rem",
+    borderRadius: "8px",
+    fontWeight: 700,
+    fontSize: "0.8rem",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.4rem",
+    transition: "var(--transition)"
+  };
+
+  const actionBtnSuccessStyle = {
+    border: "1px solid rgba(16, 185, 129, 0.2)",
+    background: "rgba(16, 185, 129, 0.05)",
+    color: "#10B981",
+    padding: "0.45rem 0.85rem",
+    borderRadius: "8px",
+    fontWeight: 700,
+    fontSize: "0.8rem",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.4rem",
+    transition: "var(--transition)"
+  };
+
   return (
     <div className="admin-dashboard-container animate-fade-in" style={{ paddingBottom: "4rem" }}>
       
@@ -243,8 +493,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Summary Stats ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.25rem", marginBottom: "2.5rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.25rem", marginBottom: "2.5rem" }}>
         
+        {/* Users Card */}
         <div style={{ background: "var(--card-bg)", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", gap: "1.25rem" }}>
           <div style={{ background: "rgba(59, 130, 246, 0.1)", color: "#3B82F6", width: "48px", height: "48px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Users size={24} />
@@ -255,6 +506,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Listings Card */}
         <div style={{ background: "var(--card-bg)", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", gap: "1.25rem" }}>
           <div style={{ background: "rgba(16, 185, 129, 0.1)", color: "#10B981", width: "48px", height: "48px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <ShoppingBag size={24} />
@@ -265,8 +517,9 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Feedback Card */}
         <div style={{ background: "var(--card-bg)", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", gap: "1.25rem" }}>
-          <div style={{ background: "rgba(245, 158, 11, 0.1)", color: "#F59E0B", width: "48px", height: "48px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "rgba(139, 92, 246, 0.1)", color: "#8B5CF6", width: "48px", height: "48px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <MessageSquare size={24} />
           </div>
           <div>
@@ -275,6 +528,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Reports Card */}
         <div style={{ background: "var(--card-bg)", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", gap: "1.25rem", position: 'relative' }}>
           {reportsList.length > 0 && (
             <div style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#EF4444', color: 'white', fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.6rem', borderRadius: '12px', boxShadow: '0 4px 10px rgba(239, 68, 68, 0.4)' }}>
@@ -287,6 +541,33 @@ export default function AdminDashboard() {
           <div>
             <div style={{ fontSize: "1.75rem", fontWeight: 900, fontFamily: "'Outfit', sans-serif", color: "var(--text-main)", lineHeight: 1.1 }}>{reportsList.length}</div>
             <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500, marginTop: "0.2rem" }}>Active Reports</div>
+          </div>
+        </div>
+
+        {/* Transactions Card */}
+        <div style={{ background: "var(--card-bg)", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", gap: "1.25rem" }}>
+          <div style={{ background: "rgba(6, 182, 212, 0.1)", color: "#06B6D4", width: "48px", height: "48px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <FileText size={24} />
+          </div>
+          <div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 900, fontFamily: "'Outfit', sans-serif", color: "var(--text-main)", lineHeight: 1.1 }}>{transactionsList.length}</div>
+            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500, marginTop: "0.2rem" }}>Total Transactions</div>
+          </div>
+        </div>
+
+        {/* Disputes Card */}
+        <div style={{ background: "var(--card-bg)", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", gap: "1.25rem", position: 'relative' }}>
+          {disputesList.filter(d => d.status === 'active').length > 0 && (
+            <div style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#F59E0B', color: 'white', fontSize: '0.75rem', fontWeight: 900, padding: '0.2rem 0.6rem', borderRadius: '12px', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.4)' }}>
+              {disputesList.filter(d => d.status === 'active').length} OPEN
+            </div>
+          )}
+          <div style={{ background: "rgba(245, 158, 11, 0.1)", color: "#F59E0B", width: "48px", height: "48px", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <AlertTriangle size={24} />
+          </div>
+          <div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 900, fontFamily: "'Outfit', sans-serif", color: "var(--text-main)", lineHeight: 1.1 }}>{disputesList.length}</div>
+            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 500, marginTop: "0.2rem" }}>Active Disputes</div>
           </div>
         </div>
 
@@ -366,7 +647,7 @@ export default function AdminDashboard() {
       <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
         
         {/* Tabs */}
-        <div style={{ display: "flex", background: "var(--border-color)", padding: "0.3rem", borderRadius: "12px", gap: "0.2rem" }}>
+        <div style={{ display: "flex", background: "var(--border-color)", padding: "0.3rem", borderRadius: "12px", gap: "0.2rem", flexWrap: "wrap" }}>
           <button 
             className={`admin-tab-btn ${activeTab === "users" ? "active" : ""}`} 
             onClick={() => { setActiveTab("users"); setSearchTerm(""); }}
@@ -404,6 +685,16 @@ export default function AdminDashboard() {
             style={tabButtonStyle(activeTab === "transactions")}
           >
             <FileText size={15} /> Transactions
+          </button>
+          <button 
+            className={`admin-tab-btn ${activeTab === "disputes" ? "active" : ""}`} 
+            onClick={() => { setActiveTab("disputes"); setSearchTerm(""); }}
+            style={{...tabButtonStyle(activeTab === "disputes"), position: 'relative'}}
+          >
+            <AlertTriangle size={15} /> Disputes
+            {disputesList.filter(d => d.status === 'active').length > 0 && (
+              <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#F59E0B', width: '8px', height: '8px', borderRadius: '50%' }}></span>
+            )}
           </button>
         </div>
 
@@ -447,7 +738,7 @@ export default function AdminDashboard() {
               <tbody>
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: "center", padding: "3rem 0", color: "var(--text-muted)" }}>No registered users match your search.</td>
+                    <td colSpan={7} style={{ textAlign: "center", padding: "3rem 0", color: "var(--text-muted)" }}>No registered users match your search.</td>
                   </tr>
                 ) : (
                   filteredUsers.map((user) => (
@@ -475,13 +766,7 @@ export default function AdminDashboard() {
                         <span style={{ fontSize: "0.85rem", color: "var(--text-main)", fontWeight: 500 }}>{user.barangay || "Not set"}</span>
                       </td>
                       <td style={tdStyle}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          <span style={{ fontWeight: 800, color: getTrustColor(user.trustScore) }}>{user.trustScore ?? 100}%</span>
-                          <div style={{ display: "flex", gap: "0.2rem" }}>
-                            <button onClick={() => handleTrustScoreChange(user, -10)} style={scoreChangeBtnStyle("-")} title="Decrease Score">-10</button>
-                            <button onClick={() => handleTrustScoreChange(user, 10)} style={scoreChangeBtnStyle("+")} title="Increase Score">+10</button>
-                          </div>
-                        </div>
+                        <span style={{ fontWeight: 800, color: getTrustColor(user.trustScore) }}>{user.trustScore ?? 100}%</span>
                       </td>
                       <td style={tdStyle}>
                         <div style={{ display: "flex", gap: "0.3rem" }}>
@@ -494,31 +779,41 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td style={tdStyle} className="text-right">
-                        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+                        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", flexWrap: "wrap" }}>
                           <button 
                             onClick={() => window.open(`/app/profile/${user.id}`, "_blank")} 
-                            className="btn-secondary" 
-                            style={{ padding: "0.4rem 0.6rem", borderRadius: "8px", border: "none", color: "var(--text-main)", background: "var(--bg-main)", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "0.3rem", fontWeight: 700, fontSize: "0.75rem" }}
+                            style={actionBtnStyle}
                             title="View Profile"
                           >
-                            <ExternalLink size={13} /> View
+                            <ExternalLink size={13} /> View Profile
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setAdjustingUser(user);
+                              setAdjustDelta(-15);
+                              setAdjustRule("Rule 303: Meetup Reliability");
+                              setAdjustReason("");
+                              setShowAdjustTrustModal(true);
+                            }}
+                            style={actionBtnStyle}
+                            title="Adjust Trust Score"
+                          >
+                            <Settings size={13} /> Adjust Trust Score
                           </button>
                           <button 
                             onClick={() => handleToggleVerification(user)} 
-                            className="btn-secondary" 
-                            style={{ padding: "0.4rem 0.75rem", borderRadius: "8px", fontSize: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.3rem", fontWeight: 700 }}
+                            style={(user.verified || user.isVerified) ? actionBtnDangerStyle : actionBtnSuccessStyle}
                           >
                             {(user.verified || user.isVerified) ? <UserX size={13} /> : <UserCheck size={13} />}
-                            {(user.verified || user.isVerified) ? "Revoke Badge" : "Verify Badge"}
+                            {(user.verified || user.isVerified) ? "Revoke Badge" : "Verify Identity"}
                           </button>
                           <button 
                             onClick={() => handleDeleteUser(user.id)} 
-                            className="btn-danger" 
                             disabled={user.id === userProfile?.uid}
-                            style={{ padding: "0.4rem", borderRadius: "8px", border: "none", color: "#EF4444", background: "rgba(239, 68, 68, 0.1)", cursor: "pointer", opacity: user.id === userProfile?.uid ? 0.3 : 1 }}
+                            style={{ ...actionBtnDangerStyle, opacity: user.id === userProfile?.uid ? 0.3 : 1 }}
                             title="Delete User Document"
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={13} /> Delete Profile
                           </button>
                         </div>
                       </td>
@@ -581,17 +876,17 @@ export default function AdminDashboard() {
                         <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
                           <button 
                             onClick={() => window.open(`/app/item/${listing.id}`, "_blank")} 
-                            style={{ padding: "0.5rem", borderRadius: "8px", border: "none", color: "var(--text-main)", background: "var(--bg-main)", cursor: "pointer" }}
+                            style={actionBtnStyle}
                             title="View Listing Page"
                           >
-                            <Eye size={16} />
+                            <Eye size={13} /> View Listing
                           </button>
                           <button 
                             onClick={() => handleDeleteListing(listing.id)} 
-                            style={{ padding: "0.5rem", borderRadius: "8px", border: "none", color: "#EF4444", background: "rgba(239, 68, 68, 0.1)", cursor: "pointer" }}
+                            style={actionBtnDangerStyle}
                             title="Delete Listing"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={13} /> Delete Listing
                           </button>
                         </div>
                       </td>
@@ -628,17 +923,17 @@ export default function AdminDashboard() {
                         <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>{feedback.date || "Just now"}</span>
                       </td>
                       <td style={tdStyle}>
-                        <p style={{ fontSize: "0.9rem", color: "var(--text-main)", maxWidth: "500px", wordBreak: "break-word", lineHeight: 1.4 }}>
+                        <p style={{ fontSize: "0.9rem", color: "var(--text-main)", maxWidth: "500px", wordBreak: "break-word", lineHeight: 1.4, margin: 0 }}>
                           {feedback.message}
                         </p>
                       </td>
                       <td style={tdStyle} className="text-right">
                         <button 
                           onClick={() => handleDeleteFeedback(feedback.id)} 
-                          style={{ padding: "0.5rem", borderRadius: "8px", border: "none", color: "#EF4444", background: "rgba(239, 68, 68, 0.1)", cursor: "pointer" }}
+                          style={actionBtnDangerStyle}
                           title="Delete Feedback"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={13} /> Delete Feedback
                         </button>
                       </td>
                     </tr>
@@ -689,18 +984,16 @@ export default function AdminDashboard() {
                         <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
                           <button 
                             onClick={() => handleDismissReport(report.id)} 
-                            className="btn-secondary" 
-                            style={{ padding: "0.4rem 0.75rem", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 700 }}
+                            style={actionBtnStyle}
                           >
-                            Dismiss
+                            Dismiss Report
                           </button>
                           <button 
                             onClick={() => handleDeleteUser(report.reportedUserId)} 
-                            className="btn-danger" 
-                            style={{ padding: "0.4rem 0.75rem", borderRadius: "8px", border: "none", color: "#EF4444", background: "rgba(239, 68, 68, 0.1)", cursor: "pointer", fontSize: "0.75rem", fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                            style={actionBtnDangerStyle}
                             title="Ban/Delete User"
                           >
-                            <Trash2 size={13} /> Ban User
+                            <Trash2 size={13} /> Ban Reported User
                           </button>
                         </div>
                       </td>
@@ -721,12 +1014,13 @@ export default function AdminDashboard() {
                   <th style={thStyle}>Amount</th>
                   <th style={thStyle}>Participants (Buyer → Seller)</th>
                   <th style={thStyle}>Status</th>
+                  <th style={thStyle} className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTransactions.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: "center", padding: "3rem 0", color: "var(--text-muted)" }}>No transactions match your search.</td>
+                    <td colSpan={6} style={{ textAlign: "center", padding: "3rem 0", color: "var(--text-muted)" }}>No transactions match your search.</td>
                   </tr>
                 ) : (
                   filteredTransactions.map((tx) => (
@@ -735,23 +1029,50 @@ export default function AdminDashboard() {
                         <div style={{ fontFamily: "monospace", fontSize: "0.85rem", color: "var(--text-main)", fontWeight: 700 }}>{tx.id.slice(0, 10)}...</div>
                       </td>
                       <td style={tdStyle}>
-                        <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>{tx.timestamp ? tx.timestamp.toDate().toLocaleString() : 'N/A'}</div>
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                          {tx.created_at?.seconds ? tx.created_at.toDate().toLocaleString() : tx.timestamp?.seconds ? tx.timestamp.toDate().toLocaleString() : 'N/A'}
+                        </div>
                       </td>
                       <td style={tdStyle}>
-                        <div style={{ fontWeight: 800, color: "var(--text-main)" }}>₱{(tx.amount || 0).toLocaleString()}</div>
+                        <div style={{ fontWeight: 800, color: "var(--text-main)" }}>₱{(tx.agreed_price || tx.amount || 0).toLocaleString()}</div>
                       </td>
                       <td style={tdStyle}>
                         <div style={{ fontSize: "0.85rem", color: "var(--text-main)", fontFamily: "monospace", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                          <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700 }}>BUYER:</span> {tx.buyerId?.slice(0,8)}...
+                          <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700 }}>BUYER:</span> {tx.buyer_name || tx.buyerId?.slice(0,8)}
                         </div>
                         <div style={{ fontSize: "0.85rem", color: "var(--text-main)", fontFamily: "monospace", display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.2rem" }}>
-                          <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700 }}>SELLER:</span> {tx.sellerId?.slice(0,8)}...
+                          <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700 }}>SELLER:</span> {tx.seller_masked_name || tx.sellerId?.slice(0,8)}
                         </div>
                       </td>
                       <td style={tdStyle}>
-                        <span style={{ padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.7rem", fontWeight: 700, background: tx.status === 'completed' ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)", color: tx.status === 'completed' ? "#10B981" : "#F59E0B" }}>
+                        <span style={{ 
+                          padding: "0.2rem 0.5rem", 
+                          borderRadius: "6px", 
+                          fontSize: "0.7rem", 
+                          fontWeight: 700, 
+                          background: tx.status === 'Completed' ? "rgba(16, 185, 129, 0.1)" : tx.status === 'Cancelled' ? "rgba(239, 68, 68, 0.1)" : "rgba(245, 158, 11, 0.1)", 
+                          color: tx.status === 'Completed' ? "#10B981" : tx.status === 'Cancelled' ? "#EF4444" : "#F59E0B" 
+                        }}>
                           {tx.status?.toUpperCase() || 'PENDING'}
                         </span>
+                      </td>
+                      <td style={tdStyle} className="text-right">
+                        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+                          <button 
+                            onClick={() => setViewingTx(tx)} 
+                            style={actionBtnStyle}
+                          >
+                            <Eye size={13} /> Audit Details
+                          </button>
+                          {tx.status !== "Cancelled" && tx.status !== "Completed" && (
+                            <button 
+                              onClick={() => handleCancelTransaction(tx.id)} 
+                              style={actionBtnDangerStyle}
+                            >
+                              <X size={13} /> Cancel Transaction
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -760,6 +1081,359 @@ export default function AdminDashboard() {
             </table>
           )}
 
+          {/* DISPUTES PANEL */}
+          {activeTab === "disputes" && (
+            <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "800px" }}>
+              <thead>
+                <tr style={{ borderBottom: "2px solid var(--border-color)", textAlign: "left" }}>
+                  <th style={thStyle}>Dispute Ref</th>
+                  <th style={thStyle}>Reporter Alias</th>
+                  <th style={thStyle}>Offender ID</th>
+                  <th style={thStyle}>Item Listing</th>
+                  <th style={thStyle}>Violation Reason</th>
+                  <th style={thStyle}>Comments</th>
+                  <th style={thStyle}>Status</th>
+                  <th style={thStyle} className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredDisputes.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: "center", padding: "3rem 0", color: "var(--text-muted)" }}>No transaction disputes matching search.</td>
+                  </tr>
+                ) : (
+                  filteredDisputes.map((dispute) => (
+                    <tr key={dispute.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                      <td style={tdStyle}>
+                        <div style={{ fontWeight: 800, color: "var(--text-main)", fontSize: "0.9rem" }}>{dispute.reference_number || "TRX-UNKNOWN"}</div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "monospace" }}>ID: {dispute.id.slice(0, 8)}...</div>
+                      </td>
+                      <td style={tdStyle}>
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-main)", fontWeight: 700 }}>{dispute.reporterAlias || "Anonymous"}</div>
+                        <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontFamily: "monospace" }}>UID: {dispute.reporterId?.slice(0, 8)}...</div>
+                      </td>
+                      <td style={tdStyle}>
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-main)", fontFamily: "monospace" }}>UID: {dispute.reportedUserId?.slice(0, 10)}...</div>
+                      </td>
+                      <td style={tdStyle}>
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-main)", fontWeight: 700 }}>{dispute.item_name || "Unknown Item"}</div>
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{ fontWeight: 800, color: "#EF4444", fontSize: "0.85rem" }}>{dispute.reason}</span>
+                      </td>
+                      <td style={tdStyle}>
+                        <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", maxWidth: "250px", wordBreak: "break-word", margin: 0, lineHeight: 1.3 }}>
+                          {dispute.comments}
+                        </p>
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{ 
+                          padding: "0.2rem 0.5rem", 
+                          borderRadius: "6px", 
+                          fontSize: "0.7rem", 
+                          fontWeight: 700, 
+                          background: dispute.status === 'resolved' ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)", 
+                          color: dispute.status === 'resolved' ? "#10B981" : "#EF4444" 
+                        }}>
+                          {dispute.status?.toUpperCase() || 'ACTIVE'}
+                        </span>
+                      </td>
+                      <td style={tdStyle} className="text-right">
+                        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                          <button 
+                            onClick={() => handleAuditDisputeReceipt(dispute)} 
+                            style={actionBtnStyle}
+                          >
+                            <Eye size={13} /> Audit Receipt
+                          </button>
+                          {dispute.status !== "resolved" && (
+                            <>
+                              <button 
+                                onClick={() => handleDismissDispute(dispute)} 
+                                style={actionBtnSuccessStyle}
+                              >
+                                <Check size={13} /> Dismiss Dispute
+                              </button>
+                              <button 
+                                onClick={() => handleUpholdDispute(dispute)} 
+                                style={actionBtnDangerStyle}
+                              >
+                                <AlertTriangle size={13} /> Uphold Dispute & Penalty
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
+
+        </div>
+      )}
+
+      {/* Adjust Trust Score Modal Overlay */}
+      {showAdjustTrustModal && adjustingUser && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(15, 23, 42, 0.65)",
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 1000
+        }}>
+          <form onSubmit={handleTrustScoreAdjustmentSubmit} style={{
+            background: "var(--card-bg)",
+            border: "1px solid var(--border-color)",
+            borderRadius: "20px",
+            padding: "2rem",
+            width: "100%",
+            maxWidth: "480px",
+            boxShadow: "var(--shadow-premium)",
+            color: "var(--text-main)",
+            position: "relative"
+          }}>
+            <button 
+              type="button"
+              onClick={() => { setShowAdjustTrustModal(false); setAdjustingUser(null); }}
+              style={{
+                position: "absolute",
+                top: "1.25rem",
+                right: "1.25rem",
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                cursor: "pointer"
+              }}
+            >
+              <X size={20} />
+            </button>
+
+            <h3 style={{ fontSize: "1.5rem", fontWeight: 800, fontFamily: "'Outfit', sans-serif", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <Settings size={22} color="var(--primary)" /> Adjust Trust Score
+            </h3>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem" }}>
+              Apply a score delta to <strong>{adjustingUser.displayName || "User"}</strong>. All score adjustments are logged in their audit trail for full community transparency.
+            </p>
+
+            <div style={{ background: "var(--bg-color)", padding: "0.75rem", borderRadius: "10px", marginBottom: "1.25rem", fontSize: "0.85rem" }}>
+              <div><strong>Email:</strong> {adjustingUser.email || "No Email"}</div>
+              <div><strong>Current Score:</strong> <span style={{ fontWeight: 800, color: getTrustColor(adjustingUser.trustScore) }}>{adjustingUser.trustScore ?? 100}%</span></div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+              
+              <div>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 700, fontSize: "0.85rem" }}>Trust Score Delta</label>
+                <select 
+                  value={adjustDelta} 
+                  onChange={(e) => setAdjustDelta(Number(e.target.value))}
+                  style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid var(--border-color)", background: "var(--bg-color)", color: "var(--text-main)", fontWeight: 600 }}
+                >
+                  <option value="-15">-15 (Major Dispute Penalty)</option>
+                  <option value="-10">-10 (Standard Infraction)</option>
+                  <option value="-5">-5 (Minor Warning)</option>
+                  <option value="5">+5 (Trade Success Commendation)</option>
+                  <option value="10">+10 (Exemplary Behavior Commendation)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 700, fontSize: "0.85rem" }}>Rule / Violation Category</label>
+                <select 
+                  value={adjustRule} 
+                  onChange={(e) => setAdjustRule(e.target.value)}
+                  style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid var(--border-color)", background: "var(--bg-color)", color: "var(--text-main)", fontWeight: 600 }}
+                >
+                  <option value="Rule 101: General Conduct">Rule 101: General Conduct</option>
+                  <option value="Rule 202: Listing Accuracy">Rule 202: Listing Accuracy</option>
+                  <option value="Rule 303: Meetup Reliability">Rule 303: Meetup Reliability</option>
+                  <option value="Rule 404: Financial Authenticity">Rule 404: Financial Authenticity</option>
+                  <option value="Rule 505: Communication Policy">Rule 505: Communication Policy</option>
+                  <option value="Commendation 1: Positive Trade">Commendation 1: Positive Trade</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 700, fontSize: "0.85rem" }}>Reason Description</label>
+                <textarea 
+                  required
+                  rows={3}
+                  placeholder="Explanatory reason shown on user's security dashboard..."
+                  value={adjustReason}
+                  onChange={(e) => setAdjustReason(e.target.value)}
+                  style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid var(--border-color)", background: "var(--bg-color)", color: "var(--text-main)", fontFamily: "inherit", resize: "none", fontSize: "0.9rem" }}
+                />
+              </div>
+
+            </div>
+
+            <div style={{ marginTop: "1.5rem", display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
+              <button 
+                type="button" 
+                onClick={() => { setShowAdjustTrustModal(false); setAdjustingUser(null); }} 
+                className="btn-secondary" 
+                style={{ padding: "0.5rem 1rem", borderRadius: "10px" }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={submittingAdjust}
+                className="btn-primary" 
+                style={{ padding: "0.5rem 1.25rem", borderRadius: "10px", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
+              >
+                {submittingAdjust ? "Applying..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Audit Receipt Modal Overlay */}
+      {viewingTx && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(15, 23, 42, 0.65)",
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: "var(--card-bg)",
+            border: "1px solid var(--border-color)",
+            borderRadius: "20px",
+            padding: "2rem",
+            width: "100%",
+            maxWidth: "540px",
+            boxShadow: "var(--shadow-premium)",
+            color: "var(--text-main)",
+            position: "relative"
+          }}>
+            <button 
+              onClick={() => setViewingTx(null)}
+              style={{
+                position: "absolute",
+                top: "1.25rem",
+                right: "1.25rem",
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                cursor: "pointer"
+              }}
+            >
+              <X size={20} />
+            </button>
+
+            <h3 style={{ fontSize: "1.5rem", fontWeight: 800, fontFamily: "'Outfit', sans-serif", marginBottom: "1.5rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <FileText size={22} color="var(--primary)" /> Trade Receipt Audit Log
+            </h3>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem", fontSize: "0.9rem" }}>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div>
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700, display: "block", textTransform: "uppercase" }}>Transaction Reference</span>
+                  <span style={{ fontWeight: 800, fontFamily: "monospace" }}>{viewingTx.reference_number || "N/A"}</span>
+                </div>
+                <div>
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700, display: "block", textTransform: "uppercase" }}>Agreement Status</span>
+                  <span style={{ 
+                    fontWeight: 800, 
+                    padding: "0.15rem 0.5rem", 
+                    borderRadius: "4px", 
+                    fontSize: "0.75rem",
+                    background: viewingTx.status === "Completed" ? "rgba(16, 185, 129, 0.1)" : viewingTx.status === "Cancelled" ? "rgba(239, 68, 68, 0.1)" : "rgba(245, 158, 11, 0.1)",
+                    color: viewingTx.status === "Completed" ? "#10B981" : viewingTx.status === "Cancelled" ? "#EF4444" : "#F59E0B"
+                  }}>{viewingTx.status?.toUpperCase() || "PENDING"}</span>
+                </div>
+              </div>
+
+              <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "0.5rem" }} />
+
+              <div>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700, display: "block", textTransform: "uppercase" }}>Item Listing Details</span>
+                <span style={{ fontWeight: 800 }}>{viewingTx.item_name || "Unnamed Item"}</span>
+                <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginLeft: "0.5rem" }}>({viewingTx.item_condition || "Used"})</span>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div>
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700, display: "block", textTransform: "uppercase" }}>Agreed Valuation</span>
+                  <span style={{ fontWeight: 800 }}>₱{(viewingTx.agreed_price || viewingTx.amount || 0).toLocaleString()}</span>
+                </div>
+                <div>
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700, display: "block", textTransform: "uppercase" }}>Payment Mode</span>
+                  <span style={{ fontWeight: 800, color: "var(--primary)" }}>{viewingTx.payment_method || "Direct Trade"}</span>
+                </div>
+              </div>
+
+              <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "0.5rem" }} />
+
+              <div>
+                <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700, display: "block", textTransform: "uppercase" }}>Meetup Venue</span>
+                <span style={{ fontWeight: 800 }}>{viewingTx.meetup_location || "Davao City Spot"}</span>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div>
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700, display: "block", textTransform: "uppercase" }}>Meetup Schedule</span>
+                  <span style={{ fontWeight: 700 }}>{viewingTx.meetup_date || "N/A"} @ {viewingTx.meetup_time || "N/A"}</span>
+                </div>
+                <div>
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700, display: "block", textTransform: "uppercase" }}>Agreement Created At</span>
+                  <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                    {viewingTx.created_at?.seconds ? viewingTx.created_at.toDate().toLocaleString() : viewingTx.timestamp?.seconds ? viewingTx.timestamp.toDate().toLocaleString() : "N/A"}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "0.5rem" }} />
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", background: "var(--bg-color)", padding: "0.75rem", borderRadius: "10px" }}>
+                <div>
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.7rem", fontWeight: 700, display: "block", textTransform: "uppercase" }}>Buyer Account / PIN</span>
+                  <span style={{ fontFamily: "monospace", fontSize: "0.8rem", display: "block", overflow: "hidden", textOverflow: "ellipsis" }}>{viewingTx.buyer_name ? `${viewingTx.buyer_name} (${viewingTx.buyerId?.slice(0,6)})` : viewingTx.buyerId || "N/A"}</span>
+                  <span style={{ fontWeight: 800, color: "#10B981", fontSize: "0.95rem" }}>PIN: {viewingTx.buyerPin || "------"}</span>
+                </div>
+                <div>
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.7rem", fontWeight: 700, display: "block", textTransform: "uppercase" }}>Seller Account / PIN</span>
+                  <span style={{ fontFamily: "monospace", fontSize: "0.8rem", display: "block", overflow: "hidden", textOverflow: "ellipsis" }}>{viewingTx.seller_masked_name ? `${viewingTx.seller_masked_name} (${viewingTx.sellerId?.slice(0,6)})` : viewingTx.sellerId || "N/A"}</span>
+                  <span style={{ fontWeight: 800, color: "#10B981", fontSize: "0.95rem" }}>PIN: {viewingTx.sellerPin || "------"}</span>
+                </div>
+              </div>
+
+              {viewingTx.disputed && (
+                <div style={{ background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "10px", padding: "0.75rem", display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
+                  <AlertCircle size={18} color="#EF4444" style={{ flexShrink: 0, marginTop: "0.1rem" }} />
+                  <div>
+                    <span style={{ color: "#EF4444", fontWeight: 800, fontSize: "0.85rem", display: "block" }}>DISPUTE STATUS: ACTIVE / FLAGGED</span>
+                    <span style={{ fontSize: "0.85rem", color: "var(--text-main)" }}>Reason: {viewingTx.disputeReason || "No reason specified."}</span>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            <div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "flex-end" }}>
+              <button onClick={() => setViewingTx(null)} className="btn-secondary" style={{ padding: "0.5rem 1.25rem", borderRadius: "10px", fontWeight: 700 }}>
+                Close Audit Log
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

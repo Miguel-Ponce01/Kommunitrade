@@ -158,10 +158,10 @@ export default function Messages() {
           filteredChats.map(chat => (
             <div 
               key={chat.id} 
-              className="glass" 
+              className="chat-row" 
               onClick={() => handleOpenChat(chat)}
               style={{ 
-                borderRadius: '16px', 
+                borderRadius: 'var(--radius-lg)', 
                 padding: '1.25rem', 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -175,7 +175,7 @@ export default function Messages() {
               onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
             >
               {/* Avatar */}
-              <div style={{ width: '48px', height: '48px', background: 'var(--primary-light)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', flexShrink: 0 }}>
+              <div style={{ width: '48px', height: '48px', background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)', flexShrink: 0 }}>
                 <MessageCircle size={24} />
               </div>
 
@@ -198,11 +198,12 @@ export default function Messages() {
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   <span style={{ 
                     fontSize: '0.7rem', 
-                    color: chat.sellerId === currentUser.uid ? 'var(--primary)' : '#10b981', 
-                    fontWeight: 800,
-                    background: chat.sellerId === currentUser.uid ? 'var(--primary-light)' : 'rgba(16,185,129,0.1)',
+                    color: 'var(--text-main)', 
+                    fontWeight: 600,
+                    background: 'var(--bg-color)',
+                    border: '1px solid var(--border-color)',
                     padding: '2px 8px',
-                    borderRadius: '6px',
+                    borderRadius: 'var(--radius-pill)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em'
                   }}>

@@ -233,7 +233,7 @@ export default function LocationModal({ isOpen, onClose, initialLocation, initia
         </div>
 
         <div className="location-modal-footer">
-          <button className="btn-primary" onClick={handleApply}>
+          <button className="button-primary-pill" onClick={handleApply} style={{ width: '100%' }}>
             Apply
           </button>
         </div>

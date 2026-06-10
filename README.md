@@ -158,6 +158,25 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 | Facial Verification | Google Gemini 1.5 Flash (Cloud Function) | Compare government ID photo with selfie securely server-side | Completed |
 | Rating & Feedback System | User input + Bayesian weighting | Buyers rate sellers post-transaction | Completed |
 
+## 6.3 Trust, Safety, and Layout Refactoring (Added in Post-Defense Phase)
+
+To harden the platform and establish a highly secure ecosystem for peer-to-peer trades in Davao City, the following Trust & Safety systems were added:
+
+1. **Double-Sided Verification PIN Handshake**: Protects offline meetup exchanges. Each transaction initializes two random 6-digit PIN codes (Buyer PIN and Seller PIN). During the physical meetup, the seller must input the buyer's PIN and the buyer must input the seller's PIN to complete the trade.
+2. **Reputation Progression & Rewards**: Successful transactions validated by the double PIN handshake reward both buyer and seller with a permanent `+5` points to their `trustScore` (capped at 100).
+3. **Hyperlocal Safety Safe Spot Suggestions**: During checkout, the app automatically determines the midpoint between the buyer's and seller's coordinates, runs a spatial geohash proximity query, and suggests safe meetup locations (parks, precincts, public hubs) near their midpoint.
+4. **Disputes and Violations Reporting**: If a user exhibits bad conduct (e.g. meetup no-shows under Rule 303, listing inaccuracy under Rule 202, counterfeit/receipt forgery under Rule 404), the other party can file a formal dispute. This logs an active issue in the Firestore `disputes` collection.
+5. **Impact & Barter Ledger**: Tracks ecological and financial benefits on user profiles:
+   - *Money Saved (PHP)*: Calculates 100% of barter trade values and 40% of cash retail transaction values.
+   - *Landfill Diversion (kg)*: Estimates 5kg of waste offset per transaction.
+   - *CO2 Reduction (kg)*: Estimates 12kg of CO2 emissions saved per transaction.
+6. **Trust Score Timeline**: Transparent vertical timeline logs each user's history of trust score changes, showing deltas (e.g. `+5` for trades, `-10` for chat flags, `-15` for upheld disputes) and specific rules applied.
+7. **Role-Based Login Guidelines**: A selector on the login interface displays targeted notices outlining roles and codes of conduct for Buyers, Sellers, and general users before authenticating.
+8. **Admin Moderation Portal Overhaul**: Expanded horizontal layout replacing collapsible sidebar navigation, featuring action dashboards for:
+   - *Users Table*: Search, verify identity, and adjust trust scores with rule tags.
+   - *Transactions log*: Audit and inspect verification codes, safe spots, and payments.
+   - *Disputes Panel*: Audit reported cases, Dismiss, or Uphold disputes (applying automatic `-15` trust score penalty).
+
 ---
 
 # 7. FUNCTIONAL REQUIREMENTS (SRS)
@@ -721,6 +740,7 @@ Stores reports submitted by users to flag bad actors during a chat.
 
 | Date | Time | Update |
 |---|---|---|
+| June 6, 2026 | 09:30 PM | **Codebase Cleanup and Hygiene Hardening**: Safely archived and deleted the unrelated `odysseus` sub-project directory and Docker config files (`Dockerfile`, `Dockerfile.dev`, `docker-compose.yml`) from the repository root. Verified that the production build compiler (`npm run build`) works perfectly after cleanup. Updated documentation to reflect the clean and organized repository structure. |
 | June 4, 2026 | 04:50 AM | **Administration, Security, and Git Optimization Overhaul**: Developed isolated system administrator layouts and sidebar navigation. Implemented `AdminRoute` protecting all administrative portal routes. Enhanced admin tables to show user active statuses, average ratings, a "Transactions" monitoring log, and live item/profile page previews. Added user reporting modals in chat that dynamically update user `trustScore` by -10 points. Refactored administrative credentials to load from environment variables (`.env.local`), removed/untracked `admin.json` from version control, untracked compiled `dist/` directory, and configured a dynamic local CLI provisioning script (`create-admin.cjs`). |
 | June 1, 2026 | 02:40 PM | **Roboflow Category Detection Integration**: Integrated client-side Roboflow Serverless Workflows API (`kommunitrade-product-category-detector`) to detect and map listing item categories when online. Mapped predictions to KomuniTrade category IDs to auto-populate form inputs. Configured form resetting logic to automatically clear all fields, tags, smart suggestions, and GPS time marks on listing image deletion. |
 | May 24, 2026 | 01:14 AM | **Post-Defense Hardening & Security Audit**: Migrated identity verification to server-side Cloud Function (`verifyUserIdentity`) using Google Gemini 1.5 Flash API to compare government ID faces vs selfies and write verification flags to Firestore using Admin SDK (threshold ≥65%). Seals all API key leak vectors by proxying Google Vision and DeepSeek requests through server-side functions and deleting the client-side `deepseekService.js`. Implements parallel 8-neighbor geohash scanning to eliminate border boundary discovery misses. Configures advanced Firestore and Storage security rules. Fixes E2EE multi-device key desync via `createUserProfile` key sync on auth state change. Adds chatId-derived decryption fallback and key rotation user messaging. |
@@ -733,4 +753,44 @@ Stores reports submitted by users to flag bad actors during a chat.
 | May 13, 2026 | 06:45 AM | **Bug Fix**: Fixed fatal rendering crash in `ItemDetails.jsx` regarding missing listing price data. |
 | May 12, 2026 | 11:30 PM | **Feature**: Implemented Location Filtering using Geohash to automatically sort and display items based on proximity. |
 | May 12, 2026 | 08:00 PM | **UI/UX**: Overhauled UI with modern festival-inspired color palette, responsive navigation, and language switcher. |
+
+---
+
+# 25. CODEBASE CLEAN CLEANUP AND DIRECTORY HYGIENE
+
+To prevent codebase bloat and protect the repository from external code leakage, an extensive cleanup was executed to isolate and remove all non-KomuniTrade files from the workspace root.
+
+## 25.1 Removed Directories & Configurations
+The following resources were identified as unrelated or redundant and were safely removed from the repository root:
+1. **`odysseus/` (Sub-project Directory)**: A separate Python repository consisting of service deployment configuration, macOS launch scripts, and unrelated service code. This folder has been fully untracked and removed.
+2. **Docker Configuration Files (`Dockerfile`, `Dockerfile.dev`, `docker-compose.yml`)**: Optional Docker setup configurations for the React application. These files have been removed to keep the local workspace clean for browser-native hosting.
+
+## 25.2 Current Active Directory Structure
+The streamlined and purified KomuniTrade repository structure is outlined below:
+```
+KomuniTrade/
+├── .firebase/               # Firebase emulator/hosting local cache
+├── .vscode/                 # Workspace editor settings
+├── dist/                    # Compiled production build directory (generated by npm run build)
+├── functions/               # Firebase Cloud Functions (E2EE/OCR proxy servers)
+├── node_modules/            # Node package dependencies
+├── public/                  # Static assets (images, maps, webp Davao weaves, manifest.json)
+├── scripts/                 # Administration scripts (create-admin.cjs)
+├── src/                     # React project source files
+│   ├── assets/              # Component-specific styles and assets
+│   ├── components/          # Reusable UI components (PIN handshakes, Navbars, Layouts)
+│   ├── contexts/            # React global contexts (useAuth)
+│   ├── pages/               # Top-level page views (Login, Profile, AdminDashboard)
+│   └── utils/               # Helper utilities (geohashing, E2EE cryptos)
+├── DATABASE_NOTES.md        # DB Entity-Relationship modeling documentation
+├── README.md                # Main system documentation & manuscript guide
+├── Documents                # Text-formatted copy of complete system documentation
+├── checklist                # Project Scrum task logs & sprint completions checklist
+├── notes                    # KomuniTrade Defense Live Demo Script
+├── firebase.json            # Firebase CLI deployment specifications
+├── firestore.rules          # Firestore granular security & role rules
+├── storage.rules            # Storage directory security policies
+└── vite.config.js           # Vite server configurations
+```
+
 

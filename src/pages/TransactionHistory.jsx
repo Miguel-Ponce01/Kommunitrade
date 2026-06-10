@@ -74,11 +74,11 @@ export default function TransactionHistory() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Completed': return { bg: '#dcfce7', text: '#166534', icon: <CheckCircle2 size={14} /> };
-      case 'Confirmed': return { bg: '#dbeafe', text: '#1e40af', icon: <CheckCircle2 size={14} /> };
-      case 'Pending Agreement': return { bg: '#fef3c7', text: '#92400e', icon: <Clock size={14} /> };
-      case 'Cancelled': return { bg: '#fee2e2', text: '#991b1b', icon: <XCircle size={14} /> };
-      default: return { bg: '#f3f4f6', text: '#374151', icon: <Clock size={14} /> };
+      case 'Completed': return { bg: 'var(--bg-color)', text: 'var(--text-main)', border: '1px solid var(--border-color)', icon: <CheckCircle2 size={14} /> };
+      case 'Confirmed': return { bg: 'var(--bg-color)', text: 'var(--text-main)', border: '1px solid var(--border-color)', icon: <CheckCircle2 size={14} /> };
+      case 'Pending Agreement': return { bg: 'var(--bg-color)', text: 'var(--text-main)', border: '1px solid var(--border-color)', icon: <Clock size={14} /> };
+      case 'Cancelled': return { bg: 'var(--bg-color)', text: 'var(--accent)', border: '1px solid var(--border-color)', icon: <XCircle size={14} /> };
+      default: return { bg: 'var(--bg-color)', text: 'var(--text-main)', border: '1px solid var(--border-color)', icon: <Clock size={14} /> };
     }
   };
 
@@ -122,18 +122,8 @@ export default function TransactionHistory() {
             <button 
               key={status}
               onClick={() => setStatusFilter(status)}
-              style={{ 
-                padding: '0.5rem 1rem', 
-                borderRadius: '20px', 
-                border: '1px solid',
-                borderColor: statusFilter === status ? 'var(--primary)' : 'var(--border-color)',
-                background: statusFilter === status ? 'var(--primary)' : 'transparent',
-                color: statusFilter === status ? '#fff' : 'var(--text-main)',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s'
-              }}
+              className={statusFilter === status ? "button-primary-pill" : "button-secondary-pill"}
+              style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
             >
               {status}
             </button>
@@ -184,8 +174,9 @@ export default function TransactionHistory() {
                     alignItems: 'center', 
                     gap: '0.4rem', 
                     padding: '0.4rem 0.8rem', 
-                    borderRadius: '20px', 
+                    borderRadius: 'var(--radius-pill)', 
                     background: statusStyle.bg, 
+                    border: statusStyle.border,
                     color: statusStyle.text,
                     fontSize: '0.75rem',
                     fontWeight: 700
@@ -204,8 +195,8 @@ export default function TransactionHistory() {
                    {tx.status !== 'Pending Agreement' && tx.status !== 'Cancelled' && (
                      <button 
                        onClick={() => setSelectedTx(tx)}
-                       className="btn-primary"
-                       style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', width: 'auto', borderRadius: '10px' }}
+                       className="button-primary-pill"
+                       style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem', width: 'auto' }}
                      >
                        View Receipt
                      </button>
