@@ -38,3 +38,6 @@ Thumbs.db
 
 # Firebase configuration cache
 .firebase/
+
+# Local backups
+odysseus_backup/

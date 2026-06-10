@@ -676,6 +676,12 @@ export default function Landing() {
           color: var(--colors-shade-40);
           margin-top: 2px;
         }
+        .zest-design-image {
+          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .zest-design-image:hover {
+          transform: scale(1.04);
+        }
       `}</style>
 
       {/* ── NAVBAR ──────────────────────────────────── */}
@@ -895,17 +901,12 @@ export default function Landing() {
               ))}
             </div>
             <div style={{ position: 'relative' }}>
-              <div style={{ borderRadius: '20px', overflow: 'hidden', background: 'var(--colors-canvas-night-elevated)', padding: '0', textAlign: 'center', height: '350px', border: '1px solid var(--colors-hairline-dark)' }}>
-                <GoogleMap 
-                  center={{ lat: 7.0731, lng: 125.6128 }} 
-                  zoom={13} 
-                  markers={[
-                    { lat: 7.0707, lng: 125.6092, title: 'Barangay 11-B Hotspot' },
-                    { lat: 7.0731, lng: 125.6128, title: 'Davao City Hall Hotspot' },
-                    { lat: 7.0850, lng: 125.6180, title: 'Bajada Comm Activity' },
-                    { lat: 7.0910, lng: 125.6310, title: 'Lanang Student Moving Hub' },
-                    { lat: 7.0650, lng: 125.5990, title: 'Matina Thrift Center' }
-                  ]}
+              <div style={{ borderRadius: '20px', overflow: 'hidden', background: 'var(--colors-canvas-night-elevated)', padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '350px', border: '1px solid var(--colors-hairline-dark)', boxShadow: 'var(--shadow-premium)' }}>
+                <img 
+                  src="/zest_mockup.png" 
+                  alt="Zest Shop Mockup Design" 
+                  className="zest-design-image"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </div>
             </div>
