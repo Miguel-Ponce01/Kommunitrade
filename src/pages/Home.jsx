@@ -16,7 +16,7 @@ export default function Home() {
   const navigate = useNavigate();
   const { lang, setLang, t } = useLanguage();
   const [location, setLocation] = useState(localStorage.getItem('komuni_user_location') || "Davao City");
-  const [radius, setRadius] = useState(20);
+  const [radius, setRadius] = useState(5);
   
   // Resolve coordinates based on initial location
   const initialCoords = resolveLocationCoords(location);

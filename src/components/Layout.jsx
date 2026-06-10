@@ -15,7 +15,8 @@ import {
   Package,
   Sun,
   Moon,
-  MapPin
+  MapPin,
+  PlusCircle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
@@ -165,15 +166,27 @@ export default function Layout() {
             flex-shrink: 0;
             text-decoration: none;
           }
-          /* Removed brand-logo-gradient */
+          .kt-brand-logo {
+            width: 32px;
+            height: 32px;
+            filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+            transition: transform 0.2s ease;
+          }
+          .brand-logo-wrap:hover .kt-brand-logo {
+            transform: rotate(5deg) scale(1.08);
+          }
           .brand-logo-text {
             font-family: 'NeueHaasGrotesk Display', Helvetica, Arial, sans-serif;
-            font-size: 1.25rem;
-            font-weight: 500;
-            color: var(--text-main);
-            letter-spacing: 0;
+            font-size: 1.35rem !important;
+            font-weight: 700 !important;
+            color: #10B981 !important;
+            letter-spacing: 0.5px;
             white-space: nowrap;
-            font-feature-settings: "ss03";
+            transition: color 0.2s;
+            display: block !important;
+          }
+          .brand-logo-wrap:hover .brand-logo-text {
+            color: var(--text-main) !important;
           }
 
           /* Search bar */
@@ -449,6 +462,86 @@ export default function Layout() {
           .main-content {
             height: calc(100vh - 104px) !important;
           }
+
+          /* ── Mobile Bottom Navigation Bar Styles ── */
+          .mobile-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            display: none;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+          }
+
+          .mobile-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.7rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            flex: 1;
+            height: 100%;
+          }
+
+          .mobile-nav-item.active {
+            color: var(--primary);
+          }
+
+          /* Highlight the Sell button dynamically */
+          .mobile-nav-item.sell-btn {
+            position: relative;
+          }
+          
+          .mobile-sell-btn-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+            margin-top: -24px;
+            transition: all 0.2s ease;
+            border: 3px solid var(--card-bg);
+          }
+          
+          .mobile-nav-item.sell-btn:hover .mobile-sell-btn-icon {
+            transform: scale(1.08) translateY(-2px);
+            box-shadow: 0 6px 14px rgba(16, 185, 129, 0.4);
+          }
+
+          @media (max-width: 768px) {
+            .mobile-bottom-nav {
+              display: flex !important;
+            }
+            .app-sidebar {
+              border-bottom: 1px solid var(--border-color);
+            }
+            .nav-tier-bottom {
+              display: none !important;
+            }
+            .main-content {
+              height: calc(100vh - 64px - 64px) !important;
+              padding-bottom: 0 !important;
+            }
+            .premium-nav-items {
+              display: none !important;
+            }
+          }
       `}</style>
 
       {/* ════════════════════════════════════════════
@@ -461,6 +554,7 @@ export default function Layout() {
 
           {/* Brand Logo */}
           <div className="brand-logo-wrap" onClick={() => navigate('/app')}>
+            <img src="/logo.svg" alt="KomuniTrade Logo" className="kt-brand-logo" />
             <span className="brand-logo-text">KOMUNITRADE</span>
           </div>
 
@@ -642,6 +736,43 @@ export default function Layout() {
           </div>
         </div>
       </main>
+
+      {/* ── Mobile Bottom Navigation Bar ── */}
+      <div className="mobile-bottom-nav">
+        <NavLink to="/app" end className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+          <Home size={22} />
+          <span>Home</span>
+        </NavLink>
+
+        <NavLink to="/app/transactions" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+          <Package size={22} />
+          <span>Orders</span>
+        </NavLink>
+
+        <NavLink to="/app/post" className={({ isActive }) => `mobile-nav-item sell-btn ${isActive ? 'active' : ''}`}>
+          <div className="mobile-sell-btn-icon">
+            <PlusCircle size={22} />
+          </div>
+          <span>Sell</span>
+        </NavLink>
+
+        <NavLink to="/app/messages" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+          <MessageCircle size={22} />
+          <span>Messages</span>
+        </NavLink>
+
+        {userProfile?.role === 'admin' ? (
+          <NavLink to="/app/admin" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+            <ShieldCheck size={22} />
+            <span>Admin</span>
+          </NavLink>
+        ) : (
+          <NavLink to="/app/profile" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+            <User size={22} />
+            <span>Profile</span>
+          </NavLink>
+        )}
+      </div>
 
 
       {/* ── Location Modal (from navbar location button) ── */}
