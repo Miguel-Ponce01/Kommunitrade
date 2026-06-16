@@ -120,7 +120,7 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 |-------|------------|
 | Frontend Web Interface | React components, routing, state management, UI/UX |
 | Backend API Server | Firebase Functions, API endpoints, business logic |
-| Authentication Module | Email/password login, session management, security rules |
+| Authentication Module | Multi-factor authentication including Google Sign-in, Email/password login, Phone OTP, session management, and security rules |
 | AI Layer | CNN classifier, OCR extractor, facial verification |
 | Geohash Filtering Engine | Location encoding, proximity queries, spatial filtering |
 | Search Engine | Inverted index, keyword matching, result ranking |
@@ -183,8 +183,8 @@ To harden the platform and establish a highly secure ecosystem for peer-to-peer 
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-01 | User account creation with email + password | High |
-| FR-02 | User login with registered credentials | High |
+| FR-01 | User account creation and login via Email + Password | High |
+| FR-02 | User authentication via Google Sign-in and Phone OTP | High |
 | FR-03 | Upload item images | High |
 | FR-04 | CNN classification within 5 seconds | High |
 | FR-05 | OCR text extraction from images | High |

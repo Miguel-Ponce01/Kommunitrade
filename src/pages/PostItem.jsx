@@ -9,7 +9,6 @@ import { useLanguage } from '../hooks/useLanguage.jsx';
 import { useAuth } from '../contexts/AuthContext';
 import GoogleMap from '../components/GoogleMap';
 import { processListingImage } from '../services/listingProcessor';
-import { loadMobileNet, loadTesseract } from '../services/offlineModels';
 
 export default function PostItem() {
   const { lang, setLang, t } = useLanguage();
@@ -56,19 +55,6 @@ export default function PostItem() {
     setDebugLog(prev => [...prev, { time: new Date().toLocaleTimeString(), message, type }]);
   };
 
-  // Preload offline models in background for offline readiness
-  useEffect(() => {
-    const preload = async () => {
-      addLog("Initializing on-device AI engines...", "primary");
-      try {
-        await Promise.allSettled([loadMobileNet(), loadTesseract()]);
-        addLog("Local CNN + OCR engines ready for offline fallback.", "success");
-      } catch (err) {
-        console.warn("Offline engines failed to preload:", err);
-      }
-    };
-    preload();
-  }, []);
 
   const previewUrlsRef = useRef([]);
   useEffect(() => {

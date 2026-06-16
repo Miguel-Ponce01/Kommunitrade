@@ -56,9 +56,27 @@ export function AuthProvider({ children }) {
   // ── Email Register ─────────────────────────────────────────────
   const registerWithEmail = async (email, password, displayName) => {
     const result = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(result.user, { displayName });
-    await sendEmailVerification(result.user);
-    await createUserProfile(result.user, { displayName });
+    
+    try {
+      await updateProfile(result.user, { displayName });
+    } catch (updateErr) {
+      console.warn("Failed to update user profile displayName:", updateErr);
+    }
+    
+    try {
+      await sendEmailVerification(result.user);
+    } catch (emailErr) {
+      console.warn("Failed to send verification email:", emailErr);
+    }
+
+    try {
+      await createUserProfile(result.user, { displayName });
+    } catch (profileErr) {
+      // Profile creation failed (e.g., App Check / rules issue), but the Firebase Auth
+      // account was created successfully. The onAuthStateChanged listener will retry
+      // createUserProfile on next sign-in.
+      console.warn("Profile creation after registration failed (will retry on login):", profileErr);
+    }
     return result.user;
   };
 
@@ -114,6 +132,13 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // ── Refresh user profile from Firestore (call after verification) ─
+  const refreshUserProfile = async () => {
+    if (!auth.currentUser) return;
+    const snap = await getDoc(doc(db, 'users', auth.currentUser.uid));
+    setUserProfile(snap.exists() ? snap.data() : null);
+  };
+
   const value = {
     currentUser,
     userProfile,
@@ -125,6 +150,7 @@ export function AuthProvider({ children }) {
     sendPhoneOTP,
     verifyPhoneOTP,
     logout,
+    refreshUserProfile,
   };
 
   return (

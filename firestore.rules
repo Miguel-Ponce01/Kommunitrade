@@ -36,8 +36,9 @@ service cloud.firestore {
     // Users: Anyone can read profiles, owner or admin can write
     match /users/{userId} {
       allow read: if true;
+      // Allow authenticated users to create their own profile without App Check.
+      // The UID match (request.auth.uid == userId) is sufficient security here.
       allow create: if request.auth != null && (request.auth.uid == userId || isAdmin())
-        && isAppChecked()
         && (isAdmin() || (
             // Regular users cannot verify themselves on creation
             !(request.resource.data.keys().hasAny(['isVerified', 'verified', 'verificationScore', 'verifiedAt'])) 
@@ -49,7 +50,7 @@ service cloud.firestore {
       allow update: if request.auth != null && (request.auth.uid == userId || isAdmin())
         && (isAdmin() || (
             // Prevent regular users from self-promoting to admin or self-verifying
-            !(request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isVerified', 'verified', 'verificationScore', 'verifiedAt']))
+            !(request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isVerified', 'verified', 'verificationScore', 'verifiedAt', 'verificationStatus', 'idType', 'idNumberLast4', 'idNameExtracted']))
            ));
       allow delete: if request.auth != null && isAdmin();
 

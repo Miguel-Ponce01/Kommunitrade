@@ -7,7 +7,8 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 
 const { processImageWithVisionAndAI } = require('./visionProcessor');
-const { verifyUserFace } = require('./faceVerification');
+const { verifyUserFace, extractIdData } = require('./faceVerification');
+
 
 /**
  * Cloud Function to securely run CNN and OCR analysis on an uploaded item photo
@@ -138,55 +139,107 @@ exports.scheduledTTLCleanup = onSchedule("every 1 hours", async (event) => {
 });
 
 /**
- * Cloud Function to securely verify user identity by comparing base64 ID and Selfie images.
- * Uses the Google Gemini API.
+ * Cloud Function: verify user identity.
+ * Runs Gemini OCR (ID data extraction) and face biometric match in parallel.
+ * On success, writes verification fields to Firestore via Admin SDK only.
+ * Full ID number is NEVER stored — only the last 4 digits (DPA compliance).
  */
 exports.verifyUserIdentity = onCall({ cors: true }, async (request) => {
-  // Enforce authentication check
   if (!request.auth) {
-    throw new HttpsError("unauthenticated", "You must be signed in to verify identity.");
+    throw new HttpsError('unauthenticated', 'You must be signed in to verify identity.');
   }
 
-  const { idImage, selfieImage } = request.data;
+  const { idImage, selfieImage, idType: clientIdType } = request.data;
   if (!idImage || !selfieImage) {
-    throw new HttpsError("invalid-argument", "Missing ID or Selfie image data.");
+    throw new HttpsError('invalid-argument', 'Missing ID or Selfie image data.');
   }
 
-  // Retrieve Gemini API Key (must be configured via functions/.env)
   const geminiApiKey = process.env.GEMINI_API_KEY;
-
   if (!geminiApiKey) {
-    logger.error("Missing backend API credentials for Gemini. Please configure GEMINI_API_KEY environment variable.");
-    throw new HttpsError("failed-precondition", "Service configuration error: Missing backend credentials.");
+    logger.error('Missing GEMINI_API_KEY in environment.');
+    throw new HttpsError('failed-precondition', 'Service configuration error: Missing backend credentials.');
   }
 
   try {
-    logger.info(`Starting biometric verification for user: ${request.auth.uid}`);
+    logger.info(`Starting parallel OCR + face verification for user: ${request.auth.uid}`);
 
-    const verificationResult = await verifyUserFace({
-      idImage,
-      selfieImage,
-      geminiApiKey
+    // Run OCR and face match simultaneously — saves ~5–8 seconds vs sequential
+    const [ocrResult, faceResult] = await Promise.all([
+      extractIdData({ idImage, geminiApiKey }),
+      verifyUserFace({ idImage, selfieImage, geminiApiKey })
+    ]);
+
+    logger.info('OCR result:', {
+      idType:   ocrResult.idType,
+      expired:  ocrResult.expired,
+      readable: ocrResult.isReadable,
+    });
+    logger.info('Face result:', {
+      success: faceResult.success,
+      score:   faceResult.score,
     });
 
-    if (verificationResult.success) {
-      const db = admin.firestore();
-      const userRef = db.collection("users").doc(request.auth.uid);
-      await userRef.update({
-        verified: true,
-        isVerified: true,
-        verificationScore: verificationResult.score,
-        verifiedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      logger.info(`User ${request.auth.uid} successfully verified with score: ${verificationResult.score}`);
-    } else {
-      logger.info(`User ${request.auth.uid} verification failed with score: ${verificationResult.score}`);
+    // Gate 1: Reject expired IDs immediately
+    if (ocrResult.expired) {
+      return {
+        success: false,
+        score: 0,
+        reason: 'The ID document has expired. Please use a valid, non-expired government ID.',
+        ocrData: null,
+      };
     }
 
-    return verificationResult;
+    // Gate 2: Reject unreadable IDs
+    if (ocrResult.isReadable === false) {
+      return {
+        success: false,
+        score: 0,
+        reason: 'The ID photo was too blurry or had too much glare to read. Please retake in good lighting.',
+        ocrData: null,
+      };
+    }
+
+    // Write to Firestore if both gates pass and face matches
+    if (faceResult.success) {
+      const db = admin.firestore();
+      const userRef = db.collection('users').doc(request.auth.uid);
+
+      // Mask the full ID number — store only last 4 digits for audit reference
+      const idNumberLast4 = ocrResult.idNumber
+        ? ocrResult.idNumber.replace(/[\s\-]/g, '').slice(-4)
+        : null;
+
+      await userRef.update({
+        verified:             true,
+        isVerified:           true,
+        verificationStatus:   'VERIFIED',
+        verificationScore:    faceResult.score,
+        verifiedAt:           admin.firestore.FieldValue.serverTimestamp(),
+        // OCR-extracted fields (masked)
+        idType:               ocrResult.idType || clientIdType || null,
+        idNumberLast4,                                  // e.g. "4521" — never full number
+        idNameExtracted:      ocrResult.fullName || null,
+        idBirthDate:          ocrResult.birthDate || null,
+      });
+
+      logger.info(`User ${request.auth.uid} verified — score: ${faceResult.score}, idType: ${ocrResult.idType}`);
+    } else {
+      logger.info(`User ${request.auth.uid} failed verification — score: ${faceResult.score}`);
+    }
+
+    return {
+      success:  faceResult.success,
+      score:    faceResult.score,
+      reason:   faceResult.reason,
+      ocrData: faceResult.success ? {
+        idType:   ocrResult.idType,
+        fullName: ocrResult.fullName,
+      } : null,
+    };
 
   } catch (error) {
-    logger.error("Biometric verification failed:", error);
-    throw new HttpsError("internal", `Verification service error: ${error.message}`);
+    logger.error('Verification pipeline failed:', error);
+    throw new HttpsError('internal', `Verification service error: ${error.message}`);
   }
 });
+

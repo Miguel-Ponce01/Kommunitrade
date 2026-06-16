@@ -8,7 +8,6 @@ import { encodeGeohash, resolveLocationCoords, findNearestBarangay } from '../ut
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import GoogleMap from '../components/GoogleMap';
 import { processListingImage } from '../services/listingProcessor';
-import { loadMobileNet, loadTesseract } from '../services/offlineModels';
 
 export default function EditItem() {
   const { id } = useParams();
@@ -39,19 +38,6 @@ export default function EditItem() {
     setDebugLog(prev => [...prev, { time: new Date().toLocaleTimeString(), message, type }]);
   };
 
-  // Preload offline models in background
-  useEffect(() => {
-    const preload = async () => {
-      addLog("Initializing local AI fallback engines...", "primary");
-      try {
-        await Promise.allSettled([loadMobileNet(), loadTesseract()]);
-        addLog("Local CNN + OCR engines ready for offline fallback.", "success");
-      } catch (err) {
-        console.warn("Offline engines preloading error:", err);
-      }
-    };
-    preload();
-  }, []);
 
   useEffect(() => {
     async function fetchListing() {

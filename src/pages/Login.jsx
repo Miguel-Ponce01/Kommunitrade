@@ -409,7 +409,7 @@ export default function Auth({ onClose }) {
             <div className="verify-icon"><CheckCircle size={48} strokeWidth={1.5} /></div>
             <h3>Check Your Email</h3>
             <p>Click the verification link in your inbox, then come back and sign in.</p>
-            <button className="btn-primary btn-full" onClick={() => navigate("/login")} style={{ marginTop: "1rem" }}>
+            <button className="btn-primary btn-full" onClick={() => { setStep(1); setMode("login"); setError(""); setInfo(""); }} style={{ marginTop: "1rem" }}>
               Go to Sign In <ArrowRight size={16} style={{ marginLeft: 8 }} />
             </button>
             <button className="btn-ghost btn-full" onClick={handleResendEmail} disabled={loading || resendCooldown > 0} style={{ marginTop: "0.5rem" }}>
