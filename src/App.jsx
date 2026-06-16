@@ -22,6 +22,7 @@ const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminPortal = lazy(() => import('./pages/AdminPortal'));
 const DeveloperOptions = lazy(() => import('./pages/DeveloperOptions'));
+const AuthAction = lazy(() => import('./pages/AuthAction'));
 
 // Lightweight full-screen loader shown while a lazy chunk downloads
 function PageLoader() {
@@ -52,6 +53,7 @@ function App() {
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/admin" element={<AdminLogin />} />
+              <Route path="/auth/action" element={<AuthAction />} />
 
               {/* Protected Admin routes (No Layout) */}
               <Route

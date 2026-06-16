@@ -15,6 +15,7 @@ import {
   createUserProfile,
   doc,
   getDoc,
+  applyActionCode,
 } from "../firebase";
 
 const AuthContext = createContext(null);
@@ -94,6 +95,12 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // ── Verify Email Code ──────────────────────────────────────────
+  const verifyEmailCode = async (oobCode) => {
+    await applyActionCode(auth, oobCode);
+    await refreshUserProfile();
+  };
+
   // ── Setup reCAPTCHA for Phone Auth ─────────────────────────────
   const setupRecaptcha = (containerId) => {
     if (window.recaptchaVerifier) {
@@ -149,6 +156,7 @@ export function AuthProvider({ children }) {
     resendVerification,
     sendPhoneOTP,
     verifyPhoneOTP,
+    verifyEmailCode,
     logout,
     refreshUserProfile,
   };

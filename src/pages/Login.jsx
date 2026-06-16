@@ -128,7 +128,7 @@ export default function Auth({ onClose }) {
       "auth/invalid-phone-number": "Please enter a valid phone number with country code (e.g. +63 9xx xxx xxxx).",
       "auth/popup-closed-by-user": "Google sign-in was cancelled.",
     };
-    return map[code] || "Something went wrong. Please try again.";
+    return map[code] || `Error: ${code || "Unknown"}. Please try again. Check console for details.`;
   };
 
   // ── Google ──────────────────────────────────────────────────────
@@ -218,10 +218,7 @@ export default function Auth({ onClose }) {
     setError(""); setLoading(true);
     try {
       await verifyPhoneOTP(otp.trim());
-      setShowSuccess(true);
-      setTimeout(() => {
-        navigate("/app");
-      }, 1800);
+      setStep(3);
     } catch (e) {
       setError(friendlyError(e.code));
     } finally {
@@ -268,78 +265,82 @@ export default function Auth({ onClose }) {
         </div>
 
         {/* Role Selector & Notice */}
-        <div style={{ margin: '0 0 1.5rem 0', background: 'var(--bg-color)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border-color)', textAlign: 'left' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Select Role Perspective</div>
-          <div style={{ display: 'flex', background: 'var(--border-color)', padding: '0.2rem', borderRadius: '8px', gap: '0.2rem', marginBottom: '0.75rem' }}>
-            {['general', 'seller', 'buyer'].map(role => (
-              <button
-                key={role}
-                type="button"
-                onClick={() => setRoleNotice(role)}
-                style={{
-                  flex: 1,
-                  padding: '0.4rem 0.5rem',
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                  textTransform: 'capitalize',
-                  cursor: 'pointer',
-                  background: roleNotice === role ? 'var(--card-bg)' : 'transparent',
-                  color: roleNotice === role ? 'var(--primary)' : 'var(--text-muted)',
-                  boxShadow: roleNotice === role ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {role}
-              </button>
-            ))}
-          </div>
+        {step === 1 && (
+          <div style={{ margin: '0 0 1.5rem 0', background: 'var(--bg-color)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border-color)', textAlign: 'left' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Select Role Perspective</div>
+            <div style={{ display: 'flex', background: 'var(--border-color)', padding: '0.2rem', borderRadius: '8px', gap: '0.2rem', marginBottom: '0.75rem' }}>
+              {['general', 'seller', 'buyer'].map(role => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => setRoleNotice(role)}
+                  style={{
+                    flex: 1,
+                    padding: '0.4rem 0.5rem',
+                    borderRadius: '6px',
+                    border: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    textTransform: 'capitalize',
+                    cursor: 'pointer',
+                    background: roleNotice === role ? 'var(--card-bg)' : 'transparent',
+                    color: roleNotice === role ? 'var(--primary)' : 'var(--text-muted)',
+                    boxShadow: roleNotice === role ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {role}
+                </button>
+              ))}
+            </div>
 
-          {/* Guideline Rules Box */}
-          <div style={{ fontSize: '0.8rem', lineHeight: 1.4, color: 'var(--text-main)' }}>
-            {roleNotice === 'general' && (
-              <div>
-                <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '4px' }}>General Marketplace Rules</strong>
-                • Share neighborhood location securely using Barangay presets.<br/>
-                • Complete all trades in person at designated safe hotspots.<br/>
-                • Maintain positive community code of conduct at all times.
-              </div>
-            )}
-            {roleNotice === 'seller' && (
-              <div>
-                <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '4px' }}>Seller Regulations (Rule 202 & 303)</strong>
-                • Take real photos of your items at physical locations (`timeMark` presence check).<br/>
-                • Accurate descriptions: False quality scales violate Rule 202 and deduct 10% trust.<br/>
-                • Meetup commitment: No-show or late arrivals (Rule 303) deduct 15% trust rating.
-              </div>
-            )}
-            {roleNotice === 'buyer' && (
-              <div>
-                <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '4px' }}>Buyer Guidelines & PIN Handshake</strong>
-                • Punctuality: Be on time for meetups. Rule 303 penalties apply to no-shows.<br/>
-                • Safety check: Always verify the item's condition in person before trade.<br/>
-                • Completed PIN Handshakes award both trading partners with +5% trust rating.
-              </div>
-            )}
-            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic', borderTop: '1px dashed var(--border-color)', paddingTop: '0.4rem', marginTop: '0.5rem' }}>
-              By signing in, you agree to the active regulations. Violations will impact your public trust score.
-            </p>
+            {/* Guideline Rules Box */}
+            <div style={{ fontSize: '0.8rem', lineHeight: 1.4, color: 'var(--text-main)' }}>
+              {roleNotice === 'general' && (
+                <div>
+                  <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '4px' }}>General Marketplace Rules</strong>
+                  • Share neighborhood location securely using Barangay presets.<br/>
+                  • Complete all trades in person at designated safe hotspots.<br/>
+                  • Maintain positive community code of conduct at all times.
+                </div>
+              )}
+              {roleNotice === 'seller' && (
+                <div>
+                  <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '4px' }}>Seller Regulations (Rule 202 & 303)</strong>
+                  • Take real photos of your items at physical locations (`timeMark` presence check).<br/>
+                  • Accurate descriptions: False quality scales violate Rule 202 and deduct 10% trust.<br/>
+                  • Meetup commitment: No-show or late arrivals (Rule 303) deduct 15% trust rating.
+                </div>
+              )}
+              {roleNotice === 'buyer' && (
+                <div>
+                  <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '4px' }}>Buyer Guidelines & PIN Handshake</strong>
+                  • Punctuality: Be on time for meetups. Rule 303 penalties apply to no-shows.<br/>
+                  • Safety check: Always verify the item's condition in person before trade.<br/>
+                  • Completed PIN Handshakes award both trading partners with +5% trust rating.
+                </div>
+              )}
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic', borderTop: '1px dashed var(--border-color)', paddingTop: '0.4rem', marginTop: '0.5rem' }}>
+                By signing in, you agree to the active regulations. Violations will impact your public trust score.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Tabs */}
-        <div className="auth-tabs">
-          <button className={`auth-tab ${tab === "google" ? "active" : ""}`} onClick={() => handleTabChange("google")}>
-            <GoogleIcon /> Google
-          </button>
-          <button className={`auth-tab ${tab === "email" ? "active" : ""}`} onClick={() => handleTabChange("email")}>
-            <Mail size={16} /> Email
-          </button>
-          <button className={`auth-tab ${tab === "phone" ? "active" : ""}`} onClick={() => handleTabChange("phone")}>
-            <Phone size={16} /> Phone
-          </button>
-        </div>
+        {step === 1 && (
+          <div className="auth-tabs">
+            <button className={`auth-tab ${tab === "google" ? "active" : ""}`} onClick={() => handleTabChange("google")}>
+              <GoogleIcon /> Google
+            </button>
+            <button className={`auth-tab ${tab === "email" ? "active" : ""}`} onClick={() => handleTabChange("email")}>
+              <Mail size={16} /> Email
+            </button>
+            <button className={`auth-tab ${tab === "phone" ? "active" : ""}`} onClick={() => handleTabChange("phone")}>
+              <Phone size={16} /> Phone
+            </button>
+          </div>
+        )}
 
         {/* Error / Info */}
         {error && <div className="auth-alert auth-alert-error">{error}</div>}
@@ -499,6 +500,20 @@ export default function Auth({ onClose }) {
               </button>
             </div>
           </form>
+        )}
+
+        {/* PHONE STEP 3: Success */}
+        {tab === "phone" && step === 3 && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '2rem 1rem' }}>
+            <div style={{ width: '80px', height: '80px', background: 'var(--primary-light)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+              <CheckCircle size={40} color="var(--primary)" />
+            </div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '0.5rem', color: 'var(--text-main)' }}>Your phone is verified!</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Thank you for confirming your phone number.</p>
+            <button className="btn-primary btn-full" onClick={() => navigate('/app')} style={{ padding: '0.85rem', borderRadius: '12px' }}>
+              Continue to KomuniTrade <ArrowRight size={16} style={{ marginLeft: 8 }} />
+            </button>
+          </div>
         )}
 
         {/* Footer */}

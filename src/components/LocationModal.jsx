@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, MapPin, ChevronDown, Navigation, Loader2 } from 'lucide-react';
 import '../index.css';
-import { encodeGeohash, resolveLocationCoords, resolveBarangayFromGeohash } from '../utils/geo';
+import { encodeGeohash, resolveLocationCoords, resolveBarangayFromGeohash, findNearestBarangay, BARANGAY_COORDS } from '../utils/geo';
 import GoogleMap from './GoogleMap';
 
 export default function LocationModal({ isOpen, onClose, initialLocation, initialRadius, onApply }) {
@@ -12,6 +12,57 @@ export default function LocationModal({ isOpen, onClose, initialLocation, initia
   const [detectedGeohash, setDetectedGeohash] = useState(null);
   const [resolvedCoords, setResolvedCoords] = useState(initialLocation ? resolveLocationCoords(initialLocation) : { lat: 7.0707, lng: 125.6092 });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [detectedAddress, setDetectedAddress] = useState(null);
+
+  const reverseGeocode = (lat, lng) => {
+    if (window.google && window.google.maps) {
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          setDetectedAddress(results[0].formatted_address);
+        } else {
+          const brgy = findNearestBarangay(lat, lng);
+          setDetectedAddress(`${brgy}, Davao City (Local Resolution)`);
+        }
+      });
+    } else {
+      const brgy = findNearestBarangay(lat, lng);
+      setDetectedAddress(`${brgy}, Davao City (Local Resolution)`);
+    }
+  };
+
+  React.useEffect(() => {
+    if (resolvedCoords) {
+      const gh = encodeGeohash(resolvedCoords.lat, resolvedCoords.lng);
+      setDetectedGeohash(gh);
+      
+      let isResolvedFromGoogle = false;
+      
+      const tryGeocode = (isRetry = false) => {
+        if (isResolvedFromGoogle) return;
+        
+        if (window.google && window.google.maps) {
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode({ location: { lat: resolvedCoords.lat, lng: resolvedCoords.lng } }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+              setDetectedAddress(results[0].formatted_address);
+              isResolvedFromGoogle = true;
+            } else if (isRetry) {
+              const brgy = findNearestBarangay(resolvedCoords.lat, resolvedCoords.lng);
+              setDetectedAddress(`${brgy}, Davao City (Local Resolution)`);
+            }
+          });
+        } else if (isRetry) {
+          const brgy = findNearestBarangay(resolvedCoords.lat, resolvedCoords.lng);
+          setDetectedAddress(`${brgy}, Davao City (Local Resolution)`);
+        }
+      };
+      
+      tryGeocode(false);
+      const timer = setTimeout(() => tryGeocode(true), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   if (!isOpen) return null;
 
@@ -57,6 +108,7 @@ export default function LocationModal({ isOpen, onClose, initialLocation, initia
         setResolvedCoords({ lat: latitude, lng: longitude });
         setLocation(brgy);
         setIsGeolocating(false);
+        reverseGeocode(latitude, longitude);
       },
       (err) => {
         setGeoError("Could not detect location. Please enter it manually.");
@@ -69,8 +121,25 @@ export default function LocationModal({ isOpen, onClose, initialLocation, initia
 
   const handleLocationInput = (val) => {
     setLocation(val);
+    
+    if (val.trim().length >= 3) {
+      const matchedKey = Object.keys(BARANGAY_COORDS).find(k => 
+        k.toLowerCase() === val.trim().toLowerCase()
+      );
+      
+      if (matchedKey) {
+        const coords = BARANGAY_COORDS[matchedKey];
+        setResolvedCoords(coords);
+        const gh = encodeGeohash(coords.lat, coords.lng);
+        setDetectedGeohash(gh);
+        reverseGeocode(coords.lat, coords.lng);
+        return;
+      }
+    }
+    
     setDetectedGeohash(null);
     setResolvedCoords(null);
+    setDetectedAddress(null);
   };
 
   return (
@@ -101,23 +170,49 @@ export default function LocationModal({ isOpen, onClose, initialLocation, initia
             </div>
           </div>
 
-          {/* Geohash display — visible proof of encoding for academic defense */}
-          {detectedGeohash && (
+          {/* Detailed Location info for validation & user clarity */}
+          {(detectedGeohash || resolvedCoords) && (
             <div style={{
-              margin: '0.5rem 0 0.25rem',
-              padding: '0.5rem 0.75rem',
-              background: 'rgba(var(--primary-rgb, 79,70,229), 0.08)',
-              borderRadius: '8px',
-              fontSize: '0.78rem',
-              color: 'var(--primary)',
+              margin: '0.25rem 0 0.5rem',
+              padding: '0.85rem 1rem',
+              background: 'rgba(var(--primary-rgb, 79,70,229), 0.05)',
+              border: '1px solid rgba(var(--primary-rgb, 79,70,229), 0.12)',
+              borderRadius: '12px',
+              fontSize: '0.8rem',
+              color: 'var(--text-main)',
               display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              fontFamily: 'monospace',
-              fontWeight: 700,
+              flexDirection: 'column',
+              gap: '0.5rem',
             }}>
-              <MapPin size={13} />
-              Geohash: <span style={{ letterSpacing: '0.08em' }}>{detectedGeohash}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, color: 'var(--primary)', fontSize: '0.75rem', letterSpacing: '0.05em' }}>
+                <MapPin size={14} />
+                <span>LOCATION TELEMETRY</span>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontFamily: 'monospace' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 'bold' }}>Latitude</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{resolvedCoords?.lat ? resolvedCoords.lat.toFixed(6) : 'N/A'}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 'bold' }}>Longitude</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{resolvedCoords?.lng ? resolvedCoords.lng.toFixed(6) : 'N/A'}</span>
+                </div>
+              </div>
+
+              {detectedGeohash && (
+                <div style={{ display: 'flex', flexDirection: 'column', fontFamily: 'monospace' }}>
+                  <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 'bold' }}>Geohash (Precision 6)</span>
+                  <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '0.85rem', letterSpacing: '0.05em' }}>{detectedGeohash}</span>
+                </div>
+              )}
+
+              {detectedAddress && (
+                <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid rgba(var(--primary-rgb, 79,70,229), 0.1)', paddingTop: '0.4rem', marginTop: '0.1rem' }}>
+                  <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '2px' }}>Resolved Address</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)', lineHeight: 1.4, fontSize: '0.8rem' }}>{detectedAddress}</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -215,6 +310,7 @@ export default function LocationModal({ isOpen, onClose, initialLocation, initia
                 const brgy = resolveBarangayFromGeohash(gh);
                 setLocation(brgy);
                 setDetectedGeohash(gh);
+                reverseGeocode(coords.lat, coords.lng);
               }}
             />
             <button

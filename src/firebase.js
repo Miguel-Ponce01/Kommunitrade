@@ -12,6 +12,7 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   updateProfile,
+  applyActionCode,
 } from "firebase/auth";
 import {
   getFirestore,
@@ -92,6 +93,7 @@ export {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   updateProfile,
+  applyActionCode,
 };
 
 // Firestore helpers
