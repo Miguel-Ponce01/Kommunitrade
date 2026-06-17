@@ -6,7 +6,7 @@ import {
   Smartphone, FileText, Eye
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { functions } from '../firebase';
+import { functions, db, collection, addDoc, serverTimestamp } from '../firebase';
 import { httpsCallable } from 'firebase/functions';
 
 // ─── Philippine ID types with guidance ───────────────────────────────────────
@@ -342,6 +342,19 @@ export default function Verification() {
       // Wall 3: refresh context so PostItem seller gate reflects new verified status
       if (success) {
         await refreshUserProfile();
+        try {
+          await addDoc(collection(db, 'notifications'), {
+            userId: currentUser.uid,
+            type: 'verification',
+            title: 'Identity Verified!',
+            message: 'Congratulations! Your identity has been verified. You can now post listings on the marketplace.',
+            relatedId: 'verification',
+            read: false,
+            createdAt: serverTimestamp()
+          });
+        } catch (notifErr) {
+          console.warn("Failed to create verification notification:", notifErr);
+        }
       }
     } catch (err) {
       console.error('Verification error:', err);

@@ -31,6 +31,7 @@ import {
   updateDoc,
   startAt,
   endAt,
+  limit,
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
@@ -113,6 +114,7 @@ export {
   updateDoc,
   startAt,
   endAt,
+  limit,
 };
 
 // Storage helpers

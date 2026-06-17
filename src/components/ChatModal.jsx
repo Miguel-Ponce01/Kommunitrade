@@ -202,6 +202,19 @@ export default function ChatModal({ isOpen, onClose, item }) {
         buyerId: buyerId
       }, { merge: true });
 
+      // 3. Write notification for recipient
+      const recipientId = currentUser.uid === sellerId ? buyerId : sellerId;
+      const currentUserName = localStorage.getItem('komuni_display_name') || `Agent_${currentUser.uid.substring(0, 6).toUpperCase()}`;
+      await addDoc(collection(db, 'notifications'), {
+        userId: recipientId,
+        type: 'new_message',
+        title: 'New Chat Message',
+        message: `${currentUserName} sent a message regarding "${item.title}".`,
+        relatedId: chatId,
+        read: false,
+        createdAt: serverTimestamp()
+      });
+
       setNewMessage('');
       setIsTyping(true);
       setTimeout(() => {
@@ -348,6 +361,18 @@ export default function ChatModal({ isOpen, onClose, item }) {
         buyerId: buyerId
       }, { merge: true });
 
+      // 5. Write notification for recipient
+      const recipientId = currentUser.uid === sellerId ? buyerId : sellerId;
+      await addDoc(collection(db, 'notifications'), {
+        userId: recipientId,
+        type: 'agreement_proposed',
+        title: 'New Trade Proposed',
+        message: `${currentUserName} proposed a deal for "${item.title}" at ₱${Number(agreedPrice).toLocaleString()}.`,
+        relatedId: txDocRef.id,
+        read: false,
+        createdAt: serverTimestamp()
+      });
+
       setShowCheckout(false);
     } catch (err) {
       console.error("Failed to create agreement:", err);
@@ -381,6 +406,21 @@ export default function ChatModal({ isOpen, onClose, item }) {
         ...prev,
         [txId]: { ...prev[txId], status: 'Confirmed' }
       }));
+
+      // Write notification for proposal sender
+      const txData = proposalTxs[txId];
+      if (txData) {
+        const recipientId = currentUser.uid === txData.sellerId ? txData.buyerId : txData.sellerId;
+        await addDoc(collection(db, 'notifications'), {
+          userId: recipientId,
+          type: 'agreement_accepted',
+          title: 'Trade Proposal Accepted!',
+          message: `Your proposed agreement for "${txData.item_name}" has been accepted. Meetup details and PINs are ready.`,
+          relatedId: txId,
+          read: false,
+          createdAt: serverTimestamp()
+        });
+      }
     } catch (err) {
       console.error("Failed to accept agreement:", err);
       alert("Error confirming transaction.");
@@ -408,6 +448,21 @@ export default function ChatModal({ isOpen, onClose, item }) {
         ...prev,
         [txId]: { ...prev[txId], status: 'Cancelled' }
       }));
+
+      // Write notification for proposal sender
+      const txData = proposalTxs[txId];
+      if (txData) {
+        const recipientId = currentUser.uid === txData.sellerId ? txData.buyerId : txData.sellerId;
+        await addDoc(collection(db, 'notifications'), {
+          userId: recipientId,
+          type: 'agreement_declined',
+          title: 'Trade Proposal Declined',
+          message: `Your proposed agreement for "${txData.item_name}" was declined.`,
+          relatedId: txId,
+          read: false,
+          createdAt: serverTimestamp()
+        });
+      }
     } catch (err) {
       console.error("Failed to decline agreement:", err);
       alert("Error declining transaction.");
