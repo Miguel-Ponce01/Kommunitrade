@@ -4,11 +4,16 @@ const sharp = require('sharp');
 const { logger } = require('firebase-functions');
 
 // Initialize Google Vision Client
-// Vision API authenticates using ADC or GOOGLE_APPLICATION_CREDENTIALS / API Key from emulator/production env
 let visionClient;
 try {
-  // If credential file exists, use it, else default initialize
-  visionClient = new vision.ImageAnnotatorClient();
+  // Use the API key provided in the .env file
+  const visionApiKey = process.env.GOOGLE_VISION_API_KEY;
+  if (visionApiKey) {
+    visionClient = new vision.ImageAnnotatorClient({ apiKey: visionApiKey });
+  } else {
+    // Fallback to Application Default Credentials
+    visionClient = new vision.ImageAnnotatorClient();
+  }
 } catch (err) {
   logger.error("Failed to initialize Vision Annotator client:", err);
 }
@@ -43,7 +48,10 @@ async function processImageWithVisionAndAI({ imageUrl, imageBuffer, userHint }) 
   // 2. Call Google Cloud Vision (label detection + text detection)
   if (!visionClient) {
     // Fallback if client isn't loaded
-    visionClient = new vision.ImageAnnotatorClient();
+    const visionApiKey = process.env.GOOGLE_VISION_API_KEY;
+    visionClient = visionApiKey 
+      ? new vision.ImageAnnotatorClient({ apiKey: visionApiKey })
+      : new vision.ImageAnnotatorClient();
   }
 
   logger.info("Executing Google Cloud Vision API call...");
@@ -64,48 +72,98 @@ async function processImageWithVisionAndAI({ imageUrl, imageBuffer, userHint }) 
   const topLabel = cnnDetections.length > 0 ? cnnDetections[0].label : "Unnamed Item";
   const ocrTextCombined = ocrTexts.length > 0 ? ocrTexts[0] : "";
 
-  // 3. Call DeepSeek API
-  if (!DEEPSEEK_API_KEY) {
-    throw new Error("Missing DEEPSEEK_API_KEY environment variable.");
+  // 3. Call DeepSeek API with Gemini Fallback
+  let aiResult;
+  let useGemini = false;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+
+  if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY === "your_deepseek_key_here") {
+    logger.warn("DeepSeek API key is missing or default. Routing to Gemini fallback directly...");
+    useGemini = true;
   }
 
-  const aiPrompt = buildAIPrompt(cnnDetections, ocrTexts, userHint);
+  if (!useGemini) {
+    try {
+      const aiPrompt = buildAIPrompt(cnnDetections, ocrTexts, userHint);
+      logger.info("Sending prompt to DeepSeek API...");
+      const deepseekResponse = await axios.post(
+        'https://api.deepseek.com/chat/completions',
+        {
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a precise listing intelligence agent. Output ONLY valid JSON.',
+            },
+            {
+              role: 'user',
+              content: aiPrompt,
+            },
+          ],
+          temperature: 0.3,
+          response_format: { type: 'json_object' }
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 15000 // 15s timeout
+        }
+      );
 
-  logger.info("Sending prompt to DeepSeek API...");
-  const deepseekResponse = await axios.post(
-    'https://api.deepseek.com/chat/completions',
-    {
-      model: 'deepseek-chat',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a precise listing intelligence agent. Output ONLY valid JSON.',
-        },
-        {
-          role: 'user',
-          content: aiPrompt,
-        },
-      ],
-      temperature: 0.3,
-      response_format: { type: 'json_object' }
-    },
-    {
-      headers: {
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      timeout: 15000 // 15s timeout
+      let content = deepseekResponse.data.choices[0].message.content.trim();
+      if (content.startsWith("```json")) {
+        content = content.replace(/^```json\n?/, "").replace(/```$/, "").trim();
+      } else if (content.startsWith("```")) {
+        content = content.replace(/^```\n?/, "").replace(/```$/, "").trim();
+      }
+
+      aiResult = JSON.parse(content);
+    } catch (dsError) {
+      logger.error("DeepSeek API call failed:", dsError.message);
+      if (dsError.response) {
+        logger.error(`DeepSeek returned status ${dsError.response.status}:`, dsError.response.data);
+      }
+      
+      if (geminiApiKey) {
+        logger.info("Initiating fallback to Gemini 1.5 Flash...");
+        useGemini = true;
+      } else {
+        throw new Error(`DeepSeek failed and no GEMINI_API_KEY is available: ${dsError.message}`);
+      }
     }
-  );
-
-  let content = deepseekResponse.data.choices[0].message.content.trim();
-  if (content.startsWith("```json")) {
-    content = content.replace(/^```json\n?/, "").replace(/```$/, "").trim();
-  } else if (content.startsWith("```")) {
-    content = content.replace(/^```\n?/, "").replace(/```$/, "").trim();
   }
 
-  const aiResult = JSON.parse(content);
+  if (useGemini) {
+    if (!geminiApiKey) {
+      throw new Error("Both DeepSeek and Gemini API keys are un configured or failing.");
+    }
+    try {
+      logger.info("Sending listing refinement prompt to Gemini 1.5 Flash...");
+      const aiPrompt = buildAIPrompt(cnnDetections, ocrTexts, userHint);
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+
+      const response = await axios.post(
+        geminiUrl,
+        {
+          contents: [{
+            parts: [
+              { text: aiPrompt }
+            ]
+          }],
+          generationConfig: { responseMimeType: 'application/json' }
+        },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      const raw = response.data.candidates[0].content.parts[0].text.trim();
+      aiResult = JSON.parse(raw);
+    } catch (geminiError) {
+      logger.error("Gemini 1.5 Flash fallback failed:", geminiError.message);
+      throw new Error(`Listing analysis failed on both DeepSeek and Gemini: ${geminiError.message}`);
+    }
+  }
 
   return {
     success: true,

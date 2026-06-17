@@ -140,11 +140,29 @@ function StepDot({ index, current, label }) {
 }
 
 // ─── Live Camera component ────────────────────────────────────────────────────
-function LiveCamera({ facingMode = 'environment', overlayType = 'card', onCapture, onError }) {
+function LiveCamera({ facingMode = 'environment', overlayType = 'card', onCapture, onError, autoCaptureStart = false, autoCaptureSeconds = 10 }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [camError, setCamError] = useState(null);
+  const [countdown, setCountdown] = useState(null);
+
+  useEffect(() => {
+    if (autoCaptureStart && ready && countdown === null) {
+      setCountdown(autoCaptureSeconds);
+    } else if (!autoCaptureStart) {
+      setCountdown(null);
+    }
+  }, [autoCaptureStart, ready, autoCaptureSeconds, countdown]);
+
+  useEffect(() => {
+    if (countdown === null || countdown <= 0) return;
+    const t = setTimeout(() => {
+      if (countdown === 1) handleCapture();
+      setCountdown(countdown - 1);
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
 
   const startCamera = useCallback(async () => {
     setCamError(null);
@@ -249,9 +267,10 @@ function LiveCamera({ facingMode = 'environment', overlayType = 'card', onCaptur
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <div style={{
                   width: '55%', paddingBottom: '65%',
-                  border: '2px solid rgba(16,185,129,0.9)',
+                  border: '3px dashed rgba(16,185,129,0.9)',
                   borderRadius: '50%',
-                  boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)',
+                  boxShadow: '0 0 0 9999px rgba(0,0,0,0.65)',
+                  animation: 'pulse 2s infinite'
                 }} />
                 <p style={{ position: 'absolute', bottom: 12, color: 'white', fontSize: '0.75rem', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
                   CENTER YOUR FACE
@@ -262,7 +281,7 @@ function LiveCamera({ facingMode = 'environment', overlayType = 'card', onCaptur
         )}
       </div>
 
-      {ready && !camError && (
+      {ready && !camError && countdown === null && (
         <button
           onClick={handleCapture}
           className="btn-primary"
@@ -270,6 +289,11 @@ function LiveCamera({ facingMode = 'environment', overlayType = 'card', onCaptur
         >
           <Camera size={20} /> Capture Photo
         </button>
+      )}
+      {ready && !camError && countdown !== null && (
+        <div style={{ width: '100%', height: '50px', borderRadius: '14px', fontSize: '1.2rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary)', color: 'white' }}>
+          Capturing in {countdown}s...
+        </div>
       )}
     </div>
   );
@@ -578,11 +602,9 @@ export default function Verification() {
               <LiveCamera
                 facingMode="user"
                 overlayType="face"
+                autoCaptureStart={livenesDone}
+                autoCaptureSeconds={10}
                 onCapture={dataUrl => {
-                  if (!livenesDone) {
-                    setError('Please complete the liveness challenge first (check the box above).');
-                    return;
-                  }
                   setError(null);
                   setSelfieSnapshot(dataUrl);
                 }}

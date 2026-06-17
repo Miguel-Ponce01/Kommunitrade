@@ -16,12 +16,14 @@ import {
   Sun,
   Moon,
   MapPin,
-  PlusCircle
+  PlusCircle,
+  Bell
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import { useStore } from '../hooks/useStore';
+import { db, collection, query, where, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, orderBy, limit } from '../firebase';
 import { CATEGORIES } from '../data/mockData';
 import LocationModal from './LocationModal';
 
@@ -36,6 +38,11 @@ export default function Layout() {
   const { currentUser, logout, userProfile } = useAuth();
   const { isOffline, setOffline } = useStore();
   const categoryMenuRef = useRef(null);
+
+  // Real-time Notification States
+  const [notifications, setNotifications] = useState([]);
+  const [showNotificationPopover, setShowNotificationPopover] = useState(false);
+  const notificationRef = useRef(null);
 
   // Location state — read from localStorage so it syncs with Home page
   const [navLocation, setNavLocation] = useState(
@@ -55,16 +62,76 @@ export default function Layout() {
     setHeaderCategoryVal(params.get('category') || 'All');
   }, [routerLocation.search]);
 
-  // Close category dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (categoryMenuRef.current && !categoryMenuRef.current.contains(e.target)) {
         setShowCategoryMenu(false);
       }
+      if (notificationRef.current && !notificationRef.current.contains(e.target)) {
+        setShowNotificationPopover(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Subscribe to real-time user notifications from Firestore
+  useEffect(() => {
+    if (!currentUser) return;
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', currentUser.uid),
+      orderBy('createdAt', 'desc'),
+      limit(15)
+    );
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setNotifications(list);
+    }, (err) => {
+      console.warn("Failed to subscribe to notifications:", err);
+    });
+    return unsub;
+  }, [currentUser]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleNotificationClick = async (notif) => {
+    // Mark as read
+    try {
+      const notifRef = doc(db, 'notifications', notif.id);
+      await updateDoc(notifRef, { read: true });
+    } catch (err) {
+      console.warn("Failed to mark notification as read:", err);
+    }
+    
+    setShowNotificationPopover(false);
+    
+    // Redirect based on type
+    if (notif.type === 'new_message') {
+      navigate('/app/messages');
+    } else if (notif.type && notif.type.startsWith('agreement')) {
+      navigate('/app/transactions');
+    } else if (notif.type === 'verification') {
+      navigate('/app/profile');
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const unreadList = notifications.filter(n => !n.read);
+      await Promise.all(
+        unreadList.map(notif => 
+          updateDoc(doc(db, 'notifications', notif.id), { read: true })
+        )
+      );
+    } catch (err) {
+      console.warn("Failed to mark all as read:", err);
+    }
+  };
 
   useEffect(() => {
     const handleOnline = () => setOffline(false);
@@ -609,6 +676,124 @@ export default function Layout() {
               <MessageCircle size={21} />
               <span>Messages</span>
             </NavLink>
+
+            {/* Notifications Bell */}
+            <div style={{ position: 'relative' }} ref={notificationRef}>
+              <button 
+                className={`theme-toggle-btn ${showNotificationPopover ? 'active' : ''}`} 
+                onClick={() => setShowNotificationPopover(v => !v)} 
+                title="Notifications"
+                style={{ position: 'relative' }}
+              >
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Bell size={21} />
+                  {unreadCount > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      background: '#ef4444',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '16px',
+                      height: '16px',
+                      fontSize: '0.65rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      border: '2px solid var(--card-bg)',
+                      boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)'
+                    }}>
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
+                <span>Alerts</span>
+              </button>
+
+              {/* Popover */}
+              {showNotificationPopover && (
+                <div className="glass-card" style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  right: 0,
+                  width: '320px',
+                  maxHeight: '400px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--card-bg)',
+                  zIndex: 600
+                }}>
+                  {/* Popover Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-main)' }}>Notifications</span>
+                    {unreadCount > 0 && (
+                      <button 
+                        onClick={handleMarkAllAsRead} 
+                        style={{ background: 'none', border: 'none', color: '#10b981', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Popover Body */}
+                  <div className="status-pills" style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0', display: 'flex', flexDirection: 'column' }}>
+                    {notifications.length === 0 ? (
+                      <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <Bell size={32} style={{ opacity: 0.15, margin: '0 auto 0.75rem' }} />
+                        <p style={{ margin: 0, fontSize: '0.85rem' }}>No notifications yet.</p>
+                      </div>
+                    ) : (
+                      notifications.map(notif => (
+                        <div 
+                          key={notif.id}
+                          onClick={() => handleNotificationClick(notif)}
+                          style={{
+                            padding: '0.85rem 1.1rem',
+                            borderBottom: '1px solid var(--border-color)',
+                            cursor: 'pointer',
+                            background: notif.read ? 'transparent' : 'rgba(16, 185, 129, 0.04)',
+                            transition: 'background 0.2s',
+                            position: 'relative',
+                            textAlign: 'left'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border-color)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = notif.read ? 'transparent' : 'rgba(16, 185, 129, 0.04)'; }}
+                        >
+                          {!notif.read && (
+                            <span style={{
+                              position: 'absolute',
+                              left: '6px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: '50%',
+                              background: '#10b981'
+                            }} />
+                          )}
+                          <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)', marginBottom: '2px' }}>
+                            {notif.title}
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.35 }}>
+                            {notif.message}
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            {notif.createdAt?.toDate ? new Date(notif.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Dark / Light Mode Toggle */}
             <button className="theme-toggle-btn" onClick={toggleTheme} title="Toggle theme">

@@ -41,15 +41,15 @@ async function verifyUserFace({ idImage, selfieImage, geminiApiKey }) {
         parts: [
           {
             text:
-              'You are a biometric verification system. Compare the face in ' +
-              'Image 1 (government-issued ID photo) with the face in Image 2 ' +
-              '(live selfie). Carefully analyse facial features: eye shape and ' +
+              'You are a biometric verification system. Compare the primary face in ' +
+              'Image 1 (government-issued ID photo) with the primary face in Image 2 ' +
+              '(live selfie). Ignore any other background faces. Carefully analyse facial features: eye shape and ' +
               'spacing, nose bridge and tip, mouth width, jawline, and overall ' +
               'face structure. Account for lighting differences, angles, and ' +
               'aging. Determine if both images are of the same person. ' +
               'Respond ONLY with valid JSON containing exactly these keys: ' +
               '"isMatch" (boolean), "confidenceScore" (integer 0–100), ' +
-              '"reason" (one sentence in English).'
+              '"reason" (a detailed English sentence explaining specifically which landmarks matched or why it failed).'
           },
           { inlineData: { mimeType: idMime,      data: cleanedId } },
           { inlineData: { mimeType: selfieMime,   data: cleanedSelfie } }
@@ -98,13 +98,13 @@ async function extractIdData({ idImage, geminiApiKey }) {
             text:
               'You are an OCR engine specialised in Philippine government-issued ' +
               'identity documents. Extract all readable text fields from this ID ' +
-              'image and return ONLY valid JSON with these exact keys:\n' +
+              'image. Handle any glare or partial obstruction gracefully. Return ONLY valid JSON with these exact keys:\n' +
               '- "fullName": string (as printed on the card, surname first if visible)\n' +
               '- "birthDate": string in YYYY-MM-DD format, or null if not found\n' +
-              '- "idNumber": string (the primary ID number, including hyphens/spaces as printed)\n' +
+              '- "idNumber": string (the primary ID number exactly as printed, do not omit any characters, hyphens or spaces)\n' +
               '- "idType": one of ["PhilSys","Passport","DriversLicense","UMID","SSS","PRC","Voters","TIN","GSIS","PhilHealth","Other"]\n' +
               '- "expiryDate": string in YYYY-MM-DD format, or null if not found or no expiry\n' +
-              '- "isReadable": boolean — true if the ID text is clear enough to extract, false if too blurry/glared\n' +
+              '- "isReadable": boolean — true if the ID text is clear enough to extract reliably, false if it is entirely illegible or mostly cut off\n' +
               'If a field cannot be determined, use null. Do not guess.'
           },
           { inlineData: { mimeType: idMime, data: cleanedId } }
