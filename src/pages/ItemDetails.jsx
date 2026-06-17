@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, MapPin, Clock, Loader2, AlertCircle, Shield, X } from 'lucide-react';
+import { ArrowLeft, MessageCircle, MapPin, Clock, Loader2, AlertCircle, Shield, X, Star } from 'lucide-react';
 import { db, doc, getDoc, collection, getDocs } from '../firebase';
 import ChatModal from '../components/ChatModal';
 import GoogleMap from '../components/GoogleMap';
@@ -192,9 +192,7 @@ export default function ItemDetails() {
           <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: "'Inter', sans-serif" }}>
             {seller?.displayName || "Anonymous Seller"}
             {(seller?.verified || seller?.isVerified || item.verified) && (
-              <span title="Verified Identity" style={{ color: 'var(--text-main)', display: 'inline-flex' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-              </span>
+              <Star size={16} fill="#F59E0B" color="#F59E0B" style={{ flexShrink: 0 }} title="Verified Trader (Guaranteed 100 Baseline)" />
             )}
           </div>
           

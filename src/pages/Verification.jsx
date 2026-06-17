@@ -115,6 +115,28 @@ async function compressFromImg(imgElement, maxKB = 600) {
   return dataUrl;
 }
 
+// Compress a File object from input[type="file"] to base64 jpeg under size limit
+function compressFileToBase64(file, maxKB = 600) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = async () => {
+        try {
+          const dataUrl = await compressFromImg(img, maxKB);
+          resolve(dataUrl);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.onerror = () => reject(new Error('Failed to load image file.'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 // ─── Step indicator ───────────────────────────────────────────────────────────
 function StepDot({ index, current, label }) {
   const done = index < current;
@@ -211,8 +233,18 @@ function LiveCamera({ facingMode = 'environment', overlayType = 'card', onCaptur
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', background: '#000', aspectRatio: overlayType === 'card' ? '16/10' : '4/3' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <div style={{
+        position: 'relative',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        background: '#000',
+        aspectRatio: overlayType === 'card' ? '16/10' : '1/1',
+        maxHeight: '260px',
+        margin: '0 auto',
+        width: '100%',
+        maxWidth: overlayType === 'card' ? '100%' : '260px'
+      }}>
         {camError ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '2rem', color: '#ef4444', textAlign: 'center', minHeight: '220px' }}>
             <AlertTriangle size={32} />
@@ -266,11 +298,10 @@ function LiveCamera({ facingMode = 'environment', overlayType = 'card', onCaptur
             {ready && overlayType === 'face' && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <div style={{
-                  width: '55%', paddingBottom: '65%',
+                  width: '70%', height: '70%',
                   border: '3px dashed rgba(16,185,129,0.9)',
                   borderRadius: '50%',
                   boxShadow: '0 0 0 9999px rgba(0,0,0,0.65)',
-                  animation: 'pulse 2s infinite'
                 }} />
                 <p style={{ position: 'absolute', bottom: 12, color: 'white', fontSize: '0.75rem', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
                   CENTER YOUR FACE
@@ -317,6 +348,51 @@ export default function Verification() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null); // { success, score, reason } | null
   const [error, setError] = useState(null);
+
+  // Gallery file upload tab mode & instruction popup state variables
+  const [idInputMode, setIdInputMode] = useState('camera'); // 'camera' or 'gallery'
+  const [showIdInstructions, setShowIdInstructions] = useState(false);
+  const [showSelfieInstructions, setShowSelfieInstructions] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // Trigger overlays automatically on step changes
+  useEffect(() => {
+    if (step === 2) {
+      setShowIdInstructions(true);
+    } else if (step === 3) {
+      setShowSelfieInstructions(true);
+    }
+  }, [step]);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload an image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = async () => {
+        try {
+          const compressed = await compressFromImg(img, 600);
+          setIdSnapshot(compressed);
+          setError(null);
+        } catch (err) {
+          console.error('Compression error:', err);
+          setIdSnapshot(event.target.result); // Fallback to raw data url
+        }
+      };
+      img.src = event.target.result;
+    };
+    reader.onerror = () => {
+      setError('Failed to read file.');
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Wall 2: warn about emulator in dev
   const isDevEmulator = import.meta.env.DEV;
@@ -380,6 +456,19 @@ export default function Verification() {
     }
   }, [step]);
 
+  // Show instructions modals when steps load
+  useEffect(() => {
+    if (step === 2 && !idSnapshot) {
+      setShowIdInstructions(true);
+    }
+  }, [step, idSnapshot]);
+
+  useEffect(() => {
+    if (step === 3 && !selfieSnapshot) {
+      setShowSelfieInstructions(true);
+    }
+  }, [step, selfieSnapshot]);
+
   const cardStyle = {
     background: 'var(--card-bg)',
     border: '1px solid var(--border-color)',
@@ -391,6 +480,114 @@ export default function Verification() {
 
   return (
     <div className="animate-fade-in" style={{ padding: '1.5rem 1rem', maxWidth: '540px', margin: '0 auto', paddingBottom: '5rem' }}>
+
+      {/* ID Instructions Modal */}
+      {showIdInstructions && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+        }}>
+          <div style={{
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '24px',
+            padding: '2rem',
+            maxWidth: '440px',
+            width: '100%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+          }} className="animate-fade-in">
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", margin: '0 0 1rem', color: 'var(--text-main)' }}>
+              ID Scanning Guidelines
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+              Please follow these quick tips to ensure your document passes our automatic verification system:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+              {[
+                { icon: '☀️', title: 'Avoid Glare & Reflections', desc: 'Find indirect, even lighting. Reflections on plastic ID cards can make text unreadable.' },
+                { icon: '🔍', title: 'Sharp & Readable Text', desc: 'Ensure your camera is in focus and the details (like name and ID number) are not blurry.' },
+                { icon: '📦', title: 'Fit Inside the Frame', desc: 'Align the corners of your ID within the brackets. Keep all parts of the card visible.' }
+              ].map(({ icon, title, desc }) => (
+                <div key={title} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>{icon}</span>
+                  <div>
+                    <h4 style={{ margin: '0 0 2px', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{title}</h4>
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowIdInstructions(false)}
+              className="btn-primary"
+              style={{ width: '100%', height: '48px', borderRadius: '12px', fontWeight: 800, fontSize: '0.9rem' }}
+            >
+              Ready to Scan
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Selfie Instructions Modal */}
+      {showSelfieInstructions && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+        }}>
+          <div style={{
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '24px',
+            padding: '2rem',
+            maxWidth: '440px',
+            width: '100%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+          }} className="animate-fade-in">
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", margin: '0 0 1rem', color: 'var(--text-main)' }}>
+              Selfie Scanning Guidelines
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+              Please follow these steps for the biometric facial match:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+              {[
+                { icon: '💡', title: 'Even Lighting', desc: 'Ensure your face is well-lit from the front. Avoid backlit situations or strong shadows.' },
+                { icon: '😐', title: 'Neutral Face', desc: 'Look directly at the camera with a natural face. Keep your face centered in the oval guide.' },
+                { icon: '🔄', title: 'Liveness Check', desc: 'Look at the prompt and check the box to confirm you completed the challenge before scanning.' }
+              ].map(({ icon, title, desc }) => (
+                <div key={title} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>{icon}</span>
+                  <div>
+                    <h4 style={{ margin: '0 0 2px', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{title}</h4>
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowSelfieInstructions(false)}
+              className="btn-primary"
+              style={{ width: '100%', height: '48px', borderRadius: '12px', fontWeight: 800, fontSize: '0.9rem' }}
+            >
+              Ready for Selfie Scan
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -549,21 +746,100 @@ export default function Verification() {
         </div>
       )}
 
-      {/* ── STEP 2: ID CAMERA ───────────────────────────────────────── */}
+      {/* ── STEP 2: ID SUBMISSION ───────────────────────────────────── */}
       {step === 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }} className="animate-fade-in">
           {!idSnapshot ? (
             <div style={cardStyle}>
-              <h2 style={{ margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 800 }}>Scan Your {selectedId?.label}</h2>
+              <h2 style={{ margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 800 }}>Submit Your {selectedId?.label}</h2>
               <p style={{ margin: '0 0 1rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                Hold your ID flat and steady. Avoid glare and shadows.
+                Choose how you want to submit your ID.
               </p>
-              <LiveCamera
-                facingMode="environment"
-                overlayType="card"
-                onCapture={dataUrl => setIdSnapshot(dataUrl)}
-                onError={msg => setError(msg)}
-              />
+
+              {/* Mode Selector Tabs */}
+              <div style={{ display: 'flex', background: 'var(--bg-color)', borderRadius: '12px', padding: '4px', marginBottom: '1.25rem', border: '1px solid var(--border-color)' }}>
+                <button
+                  type="button"
+                  onClick={() => setIdInputMode('camera')}
+                  style={{
+                    flex: 1,
+                    padding: '0.6rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    background: idInputMode === 'camera' ? 'var(--card-bg)' : 'transparent',
+                    color: idInputMode === 'camera' ? 'var(--primary)' : 'var(--text-muted)',
+                    boxShadow: idInputMode === 'camera' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
+                  }}
+                >
+                  Live Camera Scan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIdInputMode('gallery')}
+                  style={{
+                    flex: 1,
+                    padding: '0.6rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    background: idInputMode === 'gallery' ? 'var(--card-bg)' : 'transparent',
+                    color: idInputMode === 'gallery' ? 'var(--primary)' : 'var(--text-muted)',
+                    boxShadow: idInputMode === 'gallery' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
+                  }}
+                >
+                  Upload from Gallery
+                </button>
+              </div>
+
+              {idInputMode === 'camera' ? (
+                <LiveCamera
+                  facingMode="environment"
+                  overlayType="card"
+                  onCapture={dataUrl => setIdSnapshot(dataUrl)}
+                  onError={msg => setError(msg)}
+                />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div 
+                    style={{
+                      border: '2px dashed var(--border-color)',
+                      borderRadius: '16px',
+                      padding: '2.5rem 1.5rem',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      background: 'var(--bg-color)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      transition: 'all 0.2s',
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                  >
+                    <FileText size={40} color="var(--text-muted)" />
+                    <div>
+                      <span style={{ fontWeight: 700, color: 'var(--primary)' }}>Click to upload ID image</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Supports JPG, JPEG, and PNG images</span>
+                    <input 
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div style={cardStyle}>
@@ -571,7 +847,7 @@ export default function Verification() {
               <img
                 src={idSnapshot}
                 alt="ID capture"
-                style={{ width: '100%', borderRadius: '12px', objectFit: 'cover', maxHeight: '240px' }}
+                style={{ width: '100%', borderRadius: '12px', objectFit: 'cover', maxHeight: '220px' }}
               />
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
                 <button className="btn-secondary" onClick={() => setIdSnapshot(null)} style={{ flex: 1, height: '46px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
@@ -583,11 +859,6 @@ export default function Verification() {
               </div>
             </div>
           )}
-          {error && (
-            <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid #ef4444', borderRadius: '12px', padding: '0.75rem 1rem', color: '#ef4444', fontSize: '0.82rem', display: 'flex', gap: '0.5rem' }}>
-              <XCircle size={16} style={{ flexShrink: 0 }} /> {error}
-            </div>
-          )}
         </div>
       )}
 
@@ -596,14 +867,23 @@ export default function Verification() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }} className="animate-fade-in">
           {!selfieSnapshot ? (
             <div style={cardStyle}>
-              <h2 style={{ margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 800 }}>Take a Selfie</h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                <h2 style={{ margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 800 }}>Take a Selfie</h2>
+                <button
+                  onClick={() => setShowSelfieInstructions(true)}
+                  style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="Show tips"
+                >
+                  <Info size={18} />
+                </button>
+              </div>
 
               {/* Liveness challenge */}
-              <div style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(59,130,246,0.08))', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '14px', padding: '1rem', marginBottom: '1rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>
+              <div style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(59,130,246,0.08))', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '14px', padding: '0.75rem', marginBottom: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
                   Liveness Challenge
                 </div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '8px' }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '6px' }}>
                   {livenessChallenge}
                 </div>
                 <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
@@ -630,7 +910,7 @@ export default function Verification() {
               <img
                 src={selfieSnapshot}
                 alt="Selfie capture"
-                style={{ width: '100%', borderRadius: '12px', objectFit: 'cover', maxHeight: '300px' }}
+                style={{ width: '100%', borderRadius: '12px', objectFit: 'contain', maxHeight: '220px', background: '#000' }}
               />
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
                 <button className="btn-secondary" onClick={() => { setSelfieSnapshot(null); setLivenessDone(false); }} style={{ flex: 1, height: '46px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>

@@ -32,13 +32,14 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const { userProfile, loading } = useAuth();
   
-  const [activeTab, setActiveTab] = useState("users"); // users | listings | feedback | reports | transactions | disputes
+  const [activeTab, setActiveTab] = useState("users"); // users | listings | feedback | reports | transactions | disputes | trustLogs
   const [usersList, setUsersList] = useState([]);
   const [listingsList, setListingsList] = useState([]);
   const [feedbackList, setFeedbackList] = useState([]);
   const [reportsList, setReportsList] = useState([]);
   const [transactionsList, setTransactionsList] = useState([]);
   const [disputesList, setDisputesList] = useState([]);
+  const [trustLogsList, setTrustLogsList] = useState([]);
   
   const [dbLoading, setDbLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -103,6 +104,16 @@ export default function AdminDashboard() {
       const disputes = disputesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       disputes.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
       setDisputesList(disputes);
+
+      // 7. Trust Logs
+      const trustLogsSnap = await getDocs(collection(db, "trust_logs"));
+      const trustLogs = trustLogsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      trustLogs.sort((a, b) => {
+        const timeA = a.timestamp?.seconds || 0;
+        const timeB = b.timestamp?.seconds || 0;
+        return timeB - timeA;
+      });
+      setTrustLogsList(trustLogs);
     } catch (e) {
       console.error("Failed to fetch admin dashboard collections:", e);
     } finally {
@@ -123,17 +134,37 @@ export default function AdminDashboard() {
     const nextVerified = !targetUser.verified;
     try {
       const userRef = doc(db, "users", targetUser.id);
+      const nextScore = nextVerified ? 100 : 0;
       await updateDoc(userRef, {
         verified: nextVerified,
         isVerified: nextVerified,
-        verificationScore: nextVerified ? 100 : 0
+        verificationScore: nextVerified ? 100 : 0,
+        trustScore: nextScore
       });
+
+      // Write trust log
+      const changeAmount = nextVerified ? 100 : -100;
+      await addDoc(collection(db, "trust_logs"), {
+        userId: targetUser.id,
+        change: changeAmount,
+        newScore: nextScore,
+        event: nextVerified ? "Verification Approved" : "Verification Revoked",
+        ruleApplied: "Rule 101: General Conduct",
+        reason: nextVerified 
+          ? "Identity verification badge approved by admin." 
+          : "Identity verification badge revoked by admin.",
+        timestamp: serverTimestamp()
+      });
+
       // Update local state
       setUsersList(usersList.map(u => 
         u.id === targetUser.id 
-          ? { ...u, verified: nextVerified, isVerified: nextVerified, verificationScore: nextVerified ? 100 : 0 }
+          ? { ...u, verified: nextVerified, isVerified: nextVerified, verificationScore: nextVerified ? 100 : 0, trustScore: nextScore }
           : u
       ));
+
+      // Refresh data to show new log in tab
+      fetchData();
     } catch (e) {
       alert("Failed to update verification: " + e.message);
     }
@@ -423,6 +454,19 @@ export default function AdminDashboard() {
     (d.reporterAlias || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const filteredTrustLogs = trustLogsList.filter(log => {
+    const user = usersList.find(u => u.id === log.userId) || {};
+    const matchTerm = searchTerm.toLowerCase();
+    return (
+      (user.displayName || "").toLowerCase().includes(matchTerm) ||
+      (user.email || "").toLowerCase().includes(matchTerm) ||
+      (log.userId || "").toLowerCase().includes(matchTerm) ||
+      (log.event || "").toLowerCase().includes(matchTerm) ||
+      (log.ruleApplied || "").toLowerCase().includes(matchTerm) ||
+      (log.reason || "").toLowerCase().includes(matchTerm)
+    );
+  });
+
   const actionBtnStyle = {
     border: "1px solid var(--border-color)",
     background: "var(--card-bg)",
@@ -696,6 +740,13 @@ export default function AdminDashboard() {
               <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#F59E0B', width: '8px', height: '8px', borderRadius: '50%' }}></span>
             )}
           </button>
+          <button 
+            className={`admin-tab-btn ${activeTab === "trustLogs" ? "active" : ""}`} 
+            onClick={() => { setActiveTab("trustLogs"); setSearchTerm(""); }}
+            style={tabButtonStyle(activeTab === "trustLogs")}
+          >
+            <Activity size={15} /> Trust Logs
+          </button>
         </div>
 
         {/* Search Bar */}
@@ -945,12 +996,12 @@ export default function AdminDashboard() {
 
           {/* REPORTS PANEL */}
           {activeTab === "reports" && (
-            <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "800px" }}>
+            <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "850px" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid var(--border-color)", textAlign: "left" }}>
-                  <th style={thStyle}>Reported User ID</th>
-                  <th style={thStyle}>Reporter ID</th>
-                  <th style={thStyle}>Reason</th>
+                  <th style={thStyle}>Reported Member</th>
+                  <th style={thStyle}>Filer (Reporter)</th>
+                  <th style={thStyle}>Reason & Details</th>
                   <th style={thStyle}>Status</th>
                   <th style={thStyle} className="text-right">Actions</th>
                 </tr>
@@ -961,44 +1012,68 @@ export default function AdminDashboard() {
                     <td colSpan={5} style={{ textAlign: "center", padding: "3rem 0", color: "var(--text-muted)" }}>No active reports.</td>
                   </tr>
                 ) : (
-                  filteredReports.map((report) => (
-                    <tr key={report.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
-                      <td style={tdStyle}>
-                        <div style={{ fontFamily: "monospace", fontSize: "0.85rem", color: "#EF4444", fontWeight: 700 }}>{report.reportedUserId?.slice(0, 12)}...</div>
-                      </td>
-                      <td style={tdStyle}>
-                        <div style={{ fontFamily: "monospace", fontSize: "0.85rem", color: "var(--text-muted)" }}>{report.reporterId?.slice(0, 8)}...</div>
-                      </td>
-                      <td style={tdStyle}>
-                        <span style={{ fontWeight: 800, color: "var(--text-main)" }}>{report.reason}</span>
-                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
-                          {report.timestamp ? report.timestamp.toDate().toLocaleString() : 'Recent'}
-                        </div>
-                      </td>
-                      <td style={tdStyle}>
-                        <span style={{ padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.7rem", fontWeight: 700, background: "rgba(239, 68, 68, 0.1)", color: "#EF4444" }}>
-                          {report.status?.toUpperCase() || 'ACTIVE'}
-                        </span>
-                      </td>
-                      <td style={tdStyle} className="text-right">
-                        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-                          <button 
-                            onClick={() => handleDismissReport(report.id)} 
-                            style={actionBtnStyle}
-                          >
-                            Dismiss Report
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteUser(report.reportedUserId)} 
-                            style={actionBtnDangerStyle}
-                            title="Ban/Delete User"
-                          >
-                            <Trash2 size={13} /> Ban Reported User
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  filteredReports.map((report) => {
+                    const reportedUser = usersList.find(u => u.id === report.reportedUserId) || {};
+                    const reporter = usersList.find(u => u.id === report.reporterId) || {};
+                    return (
+                      <tr key={report.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                        <td style={tdStyle}>
+                          <div>
+                            <div style={{ fontWeight: 800, color: "var(--text-main)", fontSize: "0.95rem" }}>
+                              {reportedUser.displayName || "Unknown User"}
+                            </div>
+                            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.1rem" }}>
+                              {reportedUser.email || "No Email"}
+                            </div>
+                            <div style={{ fontFamily: "monospace", fontSize: "0.75rem", color: "#EF4444", fontWeight: 700, marginTop: "0.25rem" }}>
+                              UID: {report.reportedUserId?.slice(0, 12)}...
+                            </div>
+                          </div>
+                        </td>
+                        <td style={tdStyle}>
+                          <div>
+                            <div style={{ fontWeight: 800, color: "var(--text-main)", fontSize: "0.95rem" }}>
+                              {reporter.displayName || "Unknown User"}
+                            </div>
+                            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.1rem" }}>
+                              {reporter.email || "No Email"}
+                            </div>
+                            <div style={{ fontFamily: "monospace", fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                              UID: {report.reporterId?.slice(0, 12)}...
+                            </div>
+                          </div>
+                        </td>
+                        <td style={tdStyle}>
+                          <span style={{ fontWeight: 800, color: "var(--text-main)" }}>{report.reason}</span>
+                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+                            {report.timestamp ? report.timestamp.toDate().toLocaleString() : 'Recent'}
+                          </div>
+                        </td>
+                        <td style={tdStyle}>
+                          <span style={{ padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.7rem", fontWeight: 700, background: "rgba(239, 68, 68, 0.1)", color: "#EF4444" }}>
+                            {report.status?.toUpperCase() || 'ACTIVE'}
+                          </span>
+                        </td>
+                        <td style={tdStyle} className="text-right">
+                          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+                            <button 
+                              onClick={() => handleDismissReport(report.id)} 
+                              style={actionBtnStyle}
+                            >
+                              Dismiss Report
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteUser(report.reportedUserId)} 
+                              style={actionBtnDangerStyle}
+                              title="Ban/Delete User"
+                            >
+                              <Trash2 size={13} /> Ban Reported User
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -1166,6 +1241,79 @@ export default function AdminDashboard() {
                       </td>
                     </tr>
                   ))
+                )}
+              </tbody>
+            </table>
+          )}
+
+          {/* TRUST LOGS PANEL */}
+          {activeTab === "trustLogs" && (
+            <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "850px" }}>
+              <thead>
+                <tr style={{ borderBottom: "2px solid var(--border-color)", textAlign: "left" }}>
+                  <th style={thStyle}>Date & Time</th>
+                  <th style={thStyle}>Recipient Member</th>
+                  <th style={thStyle}>Event</th>
+                  <th style={thStyle}>Rule Applied</th>
+                  <th style={thStyle}>Score Delta</th>
+                  <th style={thStyle}>Result Score</th>
+                  <th style={thStyle}>Details / Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTrustLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: "center", padding: "3rem 0", color: "var(--text-muted)" }}>No trust rating logs match your search.</td>
+                  </tr>
+                ) : (
+                  filteredTrustLogs.map((log) => {
+                    const user = usersList.find(u => u.id === log.userId) || {};
+                    const isPositive = log.change > 0;
+                    const logTime = log.timestamp?.toDate ? log.timestamp.toDate().toLocaleString() : log.timestamp || 'Recent';
+                    return (
+                      <tr key={log.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                        <td style={tdStyle}>
+                          <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>{logTime}</span>
+                        </td>
+                        <td style={tdStyle}>
+                          <div>
+                            <div style={{ fontWeight: 800, color: "var(--text-main)", fontSize: "0.95rem" }}>
+                              {user.displayName || "Unknown User"}
+                            </div>
+                            <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.1rem" }}>
+                              {user.email || "No Email"}
+                            </div>
+                            <div style={{ fontFamily: "monospace", fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                              UID: {log.userId?.slice(0, 12)}...
+                            </div>
+                          </div>
+                        </td>
+                        <td style={tdStyle}>
+                          <span style={{ fontWeight: 700, color: "var(--text-main)" }}>{log.event}</span>
+                        </td>
+                        <td style={tdStyle}>
+                          <span style={{ padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.7rem", fontWeight: 800, background: "var(--primary-light)", color: "var(--primary)" }}>
+                            {log.ruleApplied || "General"}
+                          </span>
+                        </td>
+                        <td style={tdStyle}>
+                          <span style={{ fontWeight: 900, fontSize: "1.1rem", color: isPositive ? "#10B981" : "#EF4444" }}>
+                            {isPositive ? `+${log.change}` : log.change}%
+                          </span>
+                        </td>
+                        <td style={tdStyle}>
+                          <span style={{ fontWeight: 800, color: getTrustColor(log.newScore) }}>
+                            {log.newScore ?? 100}%
+                          </span>
+                        </td>
+                        <td style={tdStyle}>
+                          <p style={{ fontSize: "0.85rem", color: "var(--text-main)", maxWidth: "350px", wordBreak: "break-word", margin: 0, lineHeight: 1.4 }}>
+                            {log.reason}
+                          </p>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

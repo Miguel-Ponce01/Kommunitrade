@@ -451,8 +451,11 @@ export default function Profile() {
             </div>
           ) : (
             <>
-              <h2 className="heading-xl" style={{ margin: '0 0 0.5rem' }}>
+              <h2 className="heading-xl" style={{ margin: '0 0 0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
                 {displayName}
+                {(profileData?.verified || profileData?.isVerified) && (
+                  <Star size={20} fill="#F59E0B" color="#F59E0B" style={{ flexShrink: 0 }} title="Verified Trader (Guaranteed 100 Baseline)" />
+                )}
               </h2>
               <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
                 {userBio}

@@ -215,11 +215,23 @@ exports.verifyUserIdentity = onCall({ cors: true }, async (request) => {
         verificationStatus:   'VERIFIED',
         verificationScore:    faceResult.score,
         verifiedAt:           admin.firestore.FieldValue.serverTimestamp(),
+        trustScore:           100,
         // OCR-extracted fields (masked)
         idType:               ocrResult.idType || clientIdType || null,
         idNumberLast4,                                  // e.g. "4521" — never full number
         idNameExtracted:      ocrResult.fullName || null,
         idBirthDate:          ocrResult.birthDate || null,
+      });
+
+      // Write initial baseline log to trust_logs
+      await db.collection('trust_logs').add({
+        userId: request.auth.uid,
+        change: 100,
+        newScore: 100,
+        event: 'Verification Initial Baseline',
+        ruleApplied: 'Verification Bonus',
+        reason: 'User successfully completed government identity verification.',
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
       });
 
       logger.info(`User ${request.auth.uid} verified — score: ${faceResult.score}, idType: ${ocrResult.idType}`);

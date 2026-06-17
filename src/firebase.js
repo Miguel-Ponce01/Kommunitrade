@@ -145,7 +145,7 @@ export const createUserProfile = async (user, extraData = {}) => {
       phoneNumber: user.phoneNumber || null,
       photoURL: user.photoURL || null,
       barangay: isAdminAccount ? "Central Office" : "",
-      trustScore: 100,
+      trustScore: isAdminAccount ? 100 : 0,
       verified: isAdminAccount ? true : false,
       publicKeyJwk: publicKeyJwk, // register public key for E2EE
       createdAt: serverTimestamp(),

@@ -249,8 +249,19 @@ export default function ChatModal({ isOpen, onClose, item }) {
       const peerRef = doc(db, 'users', peerId);
       const peerSnap = await getDoc(peerRef);
       if (peerSnap.exists()) {
-        const currentScore = peerSnap.data().trustScore ?? 100;
-        await updateDoc(peerRef, { trustScore: Math.max(0, currentScore - 10) });
+        const currentScore = peerSnap.data().trustScore ?? 0;
+        const nextScore = Math.max(0, currentScore - 10);
+        await updateDoc(peerRef, { trustScore: nextScore });
+
+        await addDoc(collection(db, 'trust_logs'), {
+          userId: peerId,
+          change: -10,
+          newScore: nextScore,
+          event: 'Report Penalty',
+          ruleApplied: 'Rule 101: General Conduct',
+          reason: `Reported by user for: "${reportReason}"`,
+          timestamp: serverTimestamp()
+        });
       }
 
       setIsReporting(false);
