@@ -134,16 +134,18 @@ export default function AdminDashboard() {
     const nextVerified = !targetUser.verified;
     try {
       const userRef = doc(db, "users", targetUser.id);
-      const nextScore = nextVerified ? 100 : 0;
+      const nextScore = nextVerified ? 30 : 0;
+      const nextStatus = nextVerified ? "VERIFIED" : "UNVERIFIED";
       await updateDoc(userRef, {
         verified: nextVerified,
         isVerified: nextVerified,
         verificationScore: nextVerified ? 100 : 0,
-        trustScore: nextScore
+        trustScore: nextScore,
+        verificationStatus: nextStatus
       });
 
       // Write trust log
-      const changeAmount = nextVerified ? 100 : -100;
+      const changeAmount = nextVerified ? 30 : -(targetUser.trustScore || 30);
       await addDoc(collection(db, "trust_logs"), {
         userId: targetUser.id,
         change: changeAmount,
@@ -153,13 +155,24 @@ export default function AdminDashboard() {
         reason: nextVerified 
           ? "Identity verification badge approved by admin." 
           : "Identity verification badge revoked by admin.",
-        timestamp: serverTimestamp()
+        timestamp: serverTimestamp(),
+        uid: targetUser.id,
+        action: nextVerified ? "identity_verification" : "identity_revocation",
+        points: changeAmount,
+        createdAt: serverTimestamp()
       });
 
       // Update local state
       setUsersList(usersList.map(u => 
         u.id === targetUser.id 
-          ? { ...u, verified: nextVerified, isVerified: nextVerified, verificationScore: nextVerified ? 100 : 0, trustScore: nextScore }
+          ? { 
+              ...u, 
+              verified: nextVerified, 
+              isVerified: nextVerified, 
+              verificationScore: nextVerified ? 100 : 0, 
+              trustScore: nextScore,
+              verificationStatus: nextStatus
+            }
           : u
       ));
 
@@ -824,8 +837,8 @@ export default function AdminDashboard() {
                           <span style={{ padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.7rem", fontWeight: 700, ...getRoleBadgeStyle(user.role) }}>
                             {(user.role || "user").toUpperCase()}
                           </span>
-                          <span style={{ padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.7rem", fontWeight: 700, ...getVerifyBadgeStyle(user.verified || user.isVerified) }}>
-                            {(user.verified || user.isVerified) ? "VERIFIED" : "UNVERIFIED"}
+                          <span style={{ padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.7rem", fontWeight: 700, ...getVerifyBadgeStyle(user.verified || user.isVerified, user.verificationStatus) }}>
+                            {user.verificationStatus === "PENDING_REVIEW" ? "PENDING REVIEW" : (user.verified || user.isVerified) ? "VERIFIED" : "UNVERIFIED"}
                           </span>
                         </div>
                       </td>
@@ -856,7 +869,7 @@ export default function AdminDashboard() {
                             style={(user.verified || user.isVerified) ? actionBtnDangerStyle : actionBtnSuccessStyle}
                           >
                             {(user.verified || user.isVerified) ? <UserX size={13} /> : <UserCheck size={13} />}
-                            {(user.verified || user.isVerified) ? "Revoke Badge" : "Verify Identity"}
+                            {user.verificationStatus === "PENDING_REVIEW" ? "Approve Verification" : (user.verified || user.isVerified) ? "Revoke Badge" : "Verify Identity"}
                           </button>
                           <button 
                             onClick={() => handleDeleteUser(user.id)} 
@@ -1654,9 +1667,8 @@ function getRoleBadgeStyle(role = "user") {
   return { background: "rgba(59, 130, 246, 0.1)", color: "#3B82F6" };
 }
 
-function getVerifyBadgeStyle(verified) {
-  if (verified) {
-    return { background: "rgba(16, 185, 129, 0.1)", color: "#10B981" };
-  }
+function getVerifyBadgeStyle(verified, status) {
+  if (verified || status === "VERIFIED") return { background: "rgba(16, 185, 129, 0.1)", color: "#10B981" };
+  if (status === "PENDING_REVIEW") return { background: "rgba(245, 158, 11, 0.15)", color: "#F59E0B" };
   return { background: "var(--border-color)", color: "var(--text-muted)" };
 }

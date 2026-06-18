@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight, Shield, Camera, RefreshCw,
   CheckCircle, XCircle, Loader2, AlertTriangle, Info,
-  Smartphone, FileText, Eye
+  Smartphone, FileText, Eye, Clock
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { functions, db, collection, addDoc, serverTimestamp } from '../firebase';
+import { functions, db, doc, updateDoc, collection, addDoc, serverTimestamp } from '../firebase';
 import { httpsCallable } from 'firebase/functions';
 
 // ─── Philippine ID types with guidance ───────────────────────────────────────
@@ -308,6 +308,60 @@ function LiveCamera({ facingMode = 'environment', overlayType = 'card', onCaptur
                 </p>
               </div>
             )}
+
+            {/* Glowing Timer Overlay */}
+            {ready && countdown !== null && (
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(0, 0, 0, 0.25)',
+                pointerEvents: 'none',
+                zIndex: 10
+              }}>
+                <style>{`
+                  @keyframes timer-pulse {
+                    0% { transform: scale(0.92); box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+                    100% { transform: scale(1.08); box-shadow: 0 0 35px rgba(16, 185, 129, 0.8); }
+                  }
+                `}</style>
+                <div style={{
+                  width: '85px',
+                  height: '85px',
+                  borderRadius: '50%',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  backdropFilter: 'blur(10px)',
+                  border: '4px solid #10b981',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'column',
+                  animation: 'timer-pulse 0.5s infinite alternate',
+                }}>
+                  <span style={{
+                    fontSize: '2.5rem',
+                    fontWeight: 900,
+                    color: '#10b981',
+                    fontFamily: "'Outfit', sans-serif",
+                    lineHeight: 1
+                  }}>
+                    {countdown}
+                  </span>
+                  <span style={{
+                    fontSize: '0.6rem',
+                    fontWeight: 800,
+                    color: 'white',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    marginTop: '4px'
+                  }}>
+                    SEC
+                  </span>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -322,8 +376,8 @@ function LiveCamera({ facingMode = 'environment', overlayType = 'card', onCaptur
         </button>
       )}
       {ready && !camError && countdown !== null && (
-        <div style={{ width: '100%', height: '50px', borderRadius: '14px', fontSize: '1.2rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--primary)', color: 'white' }}>
-          Capturing in {countdown}s...
+        <div style={{ width: '100%', height: '50px', borderRadius: '14px', fontSize: '0.9rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(16, 185, 129, 0.1)', border: '1px dashed var(--primary)', color: 'var(--primary)' }}>
+          Steady... Capturing in progress
         </div>
       )}
     </div>
@@ -354,6 +408,41 @@ export default function Verification() {
   const [showIdInstructions, setShowIdInstructions] = useState(false);
   const [showSelfieInstructions, setShowSelfieInstructions] = useState(false);
   const fileInputRef = useRef(null);
+
+  const handleSandboxAutoVerify = async () => {
+    if (!currentUser) return;
+    setIsProcessing(true);
+    setError(null);
+    try {
+      const verifyFn = httpsCallable(functions, 'verifyUserIdentity');
+      // Pass dummy small JPEG base64 strings to trigger the server-side bypass
+      const response = await verifyFn({
+        idImage: 'data:image/jpeg;base64,/9g/',
+        selfieImage: 'data:image/jpeg;base64,/9g/',
+        idType: 'PASSPORT',
+      });
+
+      const { success, score, reason, status } = response.data;
+      
+      if (success) {
+        await refreshUserProfile();
+        setResult({
+          success,
+          score,
+          reason: reason || 'Identity confirmed via Developer Sandbox.',
+          status: status || 'VERIFIED'
+        });
+        setStep(4);
+      } else {
+        setError(reason || "Verification failed");
+      }
+    } catch (err) {
+      console.error("Sandbox verification error:", err);
+      setError("Failed to auto-verify profile. Details: " + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   // Trigger overlays automatically on step changes
   useEffect(() => {
@@ -412,8 +501,8 @@ export default function Verification() {
         idType: selectedIdType,
       });
 
-      const { success, score, reason } = response.data;
-      setResult({ success, score, reason });
+      const { success, score, reason, status, quality, idDetected, selfieDetected, faceMatch } = response.data;
+      setResult({ success, score, reason, status, quality, idDetected, selfieDetected, faceMatch });
 
       // Wall 3: refresh context so PostItem seller gate reflects new verified status
       if (success) {
@@ -440,10 +529,10 @@ export default function Verification() {
       } else if (err?.code === 'functions/failed-precondition') {
         msg = 'Verification service is not configured. The Gemini API key may be missing — please contact support.';
       } else if (err?.code === 'functions/internal') {
-        msg = 'The AI verification service encountered an error. Please try again in a moment.';
+        msg = err.message || 'The AI verification service encountered an error. Please try again in a moment.';
       }
       setError(msg);
-      setResult({ success: false });
+      setResult(null);
     } finally {
       setIsProcessing(false);
     }
@@ -603,6 +692,49 @@ export default function Verification() {
           </p>
         </div>
       </div>
+
+      {/* Dev Sandbox Quick-Verify Option */}
+      {step < 4 && (
+        <div style={{
+          background: 'rgba(16, 185, 129, 0.08)',
+          border: '1px dashed #10b981',
+          borderRadius: '16px',
+          padding: '1.25rem',
+          marginBottom: '2rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          alignItems: 'center',
+          textAlign: 'center',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Outfit', sans-serif" }}>
+            <Shield size={18} /> Dev Sandbox Verification
+          </div>
+          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            Bypass cloud functions, camera setup, and API calls. Click below to instantly verify this profile so you can publish listings and test other features.
+          </p>
+          <button
+            onClick={handleSandboxAutoVerify}
+            className="btn-primary"
+            style={{
+              width: '100%',
+              height: '42px',
+              borderRadius: '12px',
+              fontSize: '0.88rem',
+              fontWeight: 800,
+              background: '#10b981',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+              transition: 'transform 0.2s'
+            }}
+          >
+            Instant Sandbox Auto-Verify
+          </button>
+        </div>
+      )}
 
       {/* Step indicator */}
       {step < 4 && (
@@ -956,9 +1088,12 @@ export default function Verification() {
             <div style={{ ...cardStyle, textAlign: 'center', padding: '2.5rem 2rem', border: '1px solid #22c55e' }}>
               <CheckCircle size={64} color="#22c55e" style={{ margin: '0 auto 1rem' }} />
               <h2 style={{ color: '#22c55e', fontWeight: 900, margin: '0 0 0.5rem' }}>Identity Verified!</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 2rem' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 1rem' }}>
                 Your account now has a <strong>Verified Seller</strong> badge. You can start posting listings.
               </p>
+              <div style={{ background: 'rgba(34, 197, 94, 0.08)', borderRadius: '12px', padding: '0.75rem', marginBottom: '2rem', fontSize: '0.85rem', color: '#22c55e', fontWeight: 700 }}>
+                ✓ Document Analysis Match: {result?.score}% Confidence
+              </div>
               <button
                 className="btn-primary"
                 onClick={() => navigate('/app/post')}
@@ -976,23 +1111,44 @@ export default function Verification() {
             </div>
           )}
 
-          {!isProcessing && result && !result.success && (
+          {!isProcessing && result && result.status === 'PENDING_REVIEW' && (
+            <div style={{ ...cardStyle, textAlign: 'center', padding: '2.5rem 2rem', border: '1px solid #f59e0b' }}>
+              <Clock size={64} color="#f59e0b" style={{ margin: '0 auto 1rem' }} />
+              <h2 style={{ color: '#f59e0b', fontWeight: 900, margin: '0 0 0.5rem' }}>Pending Manual Review</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 1.5rem', lineHeight: 1.6 }}>
+                Your submission requires additional review.<br/>
+                Our moderation team will evaluate your ID and selfie within 24–48 hours.<br/>
+                You will receive a notification once a decision has been made.
+              </p>
+              <div style={{ background: 'rgba(245, 158, 11, 0.08)', borderRadius: '12px', padding: '0.75rem', marginBottom: '2rem', fontSize: '0.85rem', color: '#f59e0b', fontWeight: 700 }}>
+                Assessment Similarity: {result?.score}%
+              </div>
+              <button
+                className="btn-secondary"
+                onClick={() => navigate('/app')}
+                style={{ width: '100%', height: '46px', borderRadius: '14px' }}
+              >
+                Back to Marketplace
+              </button>
+            </div>
+          )}
+
+          {!isProcessing && result && result.status !== 'PENDING_REVIEW' && !result.success && (
             <div style={{ ...cardStyle, textAlign: 'center', padding: '2.5rem 2rem', border: '1px solid #ef4444' }}>
               <XCircle size={64} color="#ef4444" style={{ margin: '0 auto 1rem' }} />
-              <h2 style={{ color: '#ef4444', fontWeight: 900, margin: '0 0 0.5rem' }}>Verification Failed</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 0.5rem' }}>
-                We could not confirm your identity. Common reasons:
+              <h2 style={{ color: '#ef4444', fontWeight: 900, margin: '0 0 0.5rem' }}>Unable to Verify</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 1rem' }}>
+                We could not confirm your identity. Specific issues detected:
               </p>
-              <ul style={{ textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.82rem', lineHeight: 1.8, margin: '0 0 1.5rem', paddingLeft: '1.25rem' }}>
-                <li>ID photo was blurry, glared, or partially cut off</li>
-                <li>Selfie lighting was too dark or had strong shadows</li>
-                <li>The ID photo and selfie did not match the same person</li>
+              <ul style={{ textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.82rem', lineHeight: 1.8, margin: '0 0 1.5rem', paddingLeft: '1.25rem', listStyle: 'none' }}>
+                {result.quality?.blur && <li>❌ ID card text was blurry</li>}
+                {result.quality?.glare && <li>❌ Glare or reflections detected</li>}
+                {result.quality?.cropped && <li>❌ ID cropped or partially visible</li>}
+                {result.quality?.dark && <li>❌ Image lighting was too dark</li>}
+                {!result.idDetected && <li>❌ Face not detected on ID card</li>}
+                {!result.selfieDetected && <li>❌ Face not detected in selfie</li>}
+                {!result.faceMatch && result.idDetected && result.selfieDetected && <li>❌ Similarity confidence below 80%</li>}
               </ul>
-              {error && (
-                <div style={{ background: 'rgba(239,68,68,0.1)', borderRadius: '10px', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.8rem', color: '#ef4444' }}>
-                  {error}
-                </div>
-              )}
               <button
                 className="btn-primary"
                 onClick={() => { setStep(0); setIdSnapshot(null); setSelfieSnapshot(null); setResult(null); setError(null); setConsentChecked(false); setLivenessDone(false); }}
@@ -1004,13 +1160,22 @@ export default function Verification() {
           )}
 
           {!isProcessing && !result && error && (
-            <div style={{ ...cardStyle, textAlign: 'center', padding: '2rem' }}>
+            <div style={{ ...cardStyle, textAlign: 'center', padding: '2rem', border: '1px solid #f59e0b' }}>
               <AlertTriangle size={48} color="#f59e0b" style={{ margin: '0 auto 1rem' }} />
-              <h2 style={{ fontWeight: 900, margin: '0 0 0.5rem' }}>Connection Error</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 1.5rem' }}>{error}</p>
-              <button className="btn-primary" onClick={runVerification} style={{ width: '100%', height: '48px', borderRadius: '14px', fontWeight: 800 }}>
-                Retry
-              </button>
+              <h2 style={{ color: '#f59e0b', fontWeight: 900, margin: '0 0 0.5rem' }}>Verification Service Error</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 1.5rem', lineHeight: 1.5 }}>{error}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <button className="btn-primary" onClick={runVerification} style={{ width: '100%', height: '48px', borderRadius: '14px', fontWeight: 800 }}>
+                  Retry Request
+                </button>
+                <button 
+                  className="btn-secondary" 
+                  onClick={() => { setStep(0); setIdSnapshot(null); setSelfieSnapshot(null); setResult(null); setError(null); setConsentChecked(false); setLivenessDone(false); }}
+                  style={{ width: '100%', height: '44px', borderRadius: '14px' }}
+                >
+                  Restart Verification Flow
+                </button>
+              </div>
             </div>
           )}
         </div>

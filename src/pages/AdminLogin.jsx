@@ -6,7 +6,6 @@ import { useAuth } from "../contexts/AuthContext";
 import "../index.css";
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || "admin@komunitrade.com";
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "admin123";
 const ADMIN_DISPLAY_NAME = import.meta.env.VITE_ADMIN_DISPLAY_NAME || "System Admin";
 
 export default function AdminLogin() {
@@ -30,34 +29,10 @@ export default function AdminLogin() {
     setError("");
     setLoading(true);
 
-    // Initial check against environment credentials
-    if (email.trim().toLowerCase() !== ADMIN_EMAIL.toLowerCase() || password !== ADMIN_PASSWORD) {
-      setError("Unauthorized access. Invalid developer/admin credentials.");
-      setLoading(false);
-      return;
-    }
-
     try {
-      let user;
-      try {
-        // Attempt login first
-        const result = await signInWithEmailAndPassword(auth, email, password);
-        user = result.user;
-      } catch (authError) {
-        // Only auto-provision if the account truly doesn't exist yet
-        if (authError.code === "auth/user-not-found") {
-          console.log("Admin account not found. Auto-provisioning...");
-          const result = await createUserWithEmailAndPassword(auth, email, password);
-          user = result.user;
-          await createUserProfile(user, { displayName: ADMIN_DISPLAY_NAME });
-        } else if (authError.code === "auth/invalid-credential" || authError.code === "auth/wrong-password") {
-          setError("Incorrect access passkey. Please check your credentials.");
-          setLoading(false);
-          return;
-        } else {
-          throw authError;
-        }
-      }
+      // Attempt login directly via Firebase Authentication
+      const result = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const user = result.user;
 
       // Sync/validate profile structure in Firestore
       await createUserProfile(user, { displayName: ADMIN_DISPLAY_NAME });
@@ -67,9 +42,13 @@ export default function AdminLogin() {
       setTimeout(() => {
         navigate("/admin/dashboard");
       }, 1800);
-    } catch (e) {
-      console.error("Admin login process failed:", e);
-      setError(e.message || "An authentication error occurred. Please try again.");
+    } catch (authError) {
+      console.error("Admin login process failed:", authError);
+      if (authError.code === "auth/user-not-found" || authError.code === "auth/invalid-credential" || authError.code === "auth/wrong-password") {
+        setError("Unauthorized access. Invalid developer/admin credentials. Please ensure the admin account has been provisioned using 'node scripts/create-admin.cjs'.");
+      } else {
+        setError(authError.message || "An authentication error occurred. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

@@ -18,7 +18,8 @@ import {
   Briefcase,
   Star,
   Shield,
-  MessageCircle
+  MessageCircle,
+  LogOut
 } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
 import { db, auth, collection, query, where, onSnapshot, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from '../firebase';
@@ -33,7 +34,7 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState('inventory');
   const queryParams = new URLSearchParams(location.search);
   const uidParam = queryParams.get('uid');
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const targetUid = uidParam || (currentUser ? currentUser.uid : null);
   const isOwnProfile = !uidParam || (currentUser && uidParam === currentUser.uid);
 
@@ -74,10 +75,16 @@ export default function Profile() {
     const unsubLogs = onSnapshot(qLogs, (snapshot) => {
       const logs = snapshot.docs.map(doc => {
         const data = doc.data();
+        const parseTimestamp = (val) => {
+          if (!val) return new Date().toLocaleString();
+          if (val.toDate) return val.toDate().toLocaleString();
+          const d = new Date(val);
+          return isNaN(d.getTime()) ? String(val) : d.toLocaleString();
+        };
         return {
           id: doc.id,
           ...data,
-          timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toLocaleString() : new Date().toLocaleString()
+          timestamp: parseTimestamp(data.timestamp)
         };
       });
       // Sort descending
@@ -576,7 +583,26 @@ export default function Profile() {
                   onClick={handleShare}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
-                  <Share2 size={18} /> SHARE
+                  <Share2 size={18} /> SHARE PROFILE
+                </button>
+                <button 
+                  className="button-secondary-pill" 
+                  onClick={() => navigate('/app/settings')}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  <Settings size={18} /> {t('sett_title')}
+                </button>
+                <button 
+                  className="button-secondary-pill" 
+                  onClick={async () => {
+                    if (window.confirm(t('sett_signout_confirm') || 'Are you sure you want to log out?')) {
+                      await logout();
+                      navigate('/');
+                    }
+                  }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#EF4444', borderColor: '#FCA5A5' }}
+                >
+                  <LogOut size={18} /> {t('sett_sign_out')}
                 </button>
               </>
             ) : (

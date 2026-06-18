@@ -3,6 +3,17 @@ import { X, CheckCircle, MapPin, Calendar, Clock, Download, ShieldCheck } from '
 import { useAuth } from '../contexts/AuthContext';
 import { db, doc, updateDoc, addDoc, collection, getDoc, serverTimestamp } from '../firebase';
 
+const formatReceiptDate = (val) => {
+  if (!val) return "";
+  try {
+    const d = val.toDate ? val.toDate() : new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    return d.toLocaleString();
+  } catch (e) {
+    return String(val);
+  }
+};
+
 export default function TransactionReceipt({ transaction, onClose }) {
   const receiptRef = useRef(null);
   const { currentUser } = useAuth();
@@ -384,7 +395,7 @@ export default function TransactionReceipt({ transaction, onClose }) {
                 <div>
                   <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Reference No.</div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 900, fontFamily: "'Outfit', sans-serif", color: '#0f172a', letterSpacing: '1px' }}>{transaction.reference_number}</div>
-                  <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.2rem' }}>Generated: {new Date(transaction.created_at).toLocaleString()}</div>
+                  <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.2rem' }}>Generated: {formatReceiptDate(transaction.created_at)}</div>
                 </div>
              </div>
 

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.28.0",
+    "@google/genai": "^2.8.0",
     "firebase": "^12.13.0",
     "genkit": "^1.37.0",
     "lucide-react": "^0.363.0",

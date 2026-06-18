@@ -21,6 +21,103 @@ try {
 // DeepSeek API Configuration
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
+// Extract top class recursively from Roboflow response
+function extractTopClass(obj) {
+  let topClass = null;
+  let maxConfidence = -1;
+
+  function traverse(node) {
+    if (!node || typeof node !== 'object') return;
+    
+    if (typeof node.class === 'string' && typeof node.confidence === 'number') {
+      if (node.confidence > maxConfidence) {
+        maxConfidence = node.confidence;
+        topClass = node.class;
+      }
+    }
+    
+    for (const key in node) {
+      if (Object.prototype.hasOwnProperty.call(node, key)) {
+        traverse(node[key]);
+      }
+    }
+  }
+
+  traverse(obj);
+  return topClass;
+}
+
+// Map Roboflow category labels to KomuniTrade category IDs
+function mapRoboflowCategory(className) {
+  if (!className) return 'Other';
+  const c = className.toLowerCase().trim();
+  
+  if (c.includes('electronic') || c.includes('phone') || c.includes('laptop') || c.includes('computer') || c.includes('gadget') || c.includes('camera') || c.includes('watch') || c.includes('smartwatch') || c.includes('wearable')) {
+    return 'Electronics';
+  }
+  if (c.includes('cloth') || c.includes('shirt') || c.includes('pants') || c.includes('shoe') || c.includes('dress') || c.includes('apparel')) {
+    return 'Clothing';
+  }
+  if (c.includes('book') || c.includes('school') || c.includes('media') || c.includes('textbook')) {
+    return 'Books & Media';
+  }
+  if (c.includes('furniture') || c.includes('chair') || c.includes('table') || c.includes('sofa') || c.includes('bed')) {
+    return 'Furniture';
+  }
+  if (c.includes('home') || c.includes('living') || c.includes('appliance') || c.includes('kitchen') || c.includes('decor') || c.includes('fan') || c.includes('refrigerator') || c.includes('microwave') || c.includes('oven') || c.includes('washing machine')) {
+    return 'Appliances';
+  }
+  if (c.includes('vehicle') || c.includes('car') || c.includes('motor') || c.includes('bike') || c.includes('cycle') || c.includes('automotive')) {
+    return 'Automotive';
+  }
+  
+  const mapping = {
+    'electronics': 'Electronics',
+    'home & living': 'Appliances',
+    'books & school': 'Books & Media',
+    'clothing': 'Clothing',
+    'furniture': 'Furniture',
+    'vehicles': 'Automotive',
+    'appliances': 'Appliances'
+  };
+  
+  return mapping[c] || 'Other';
+}
+
+// Call Roboflow category detector workflow API securely server-side
+async function callRoboflowCategoryDetector(base64Image) {
+  const apiKey = process.env.ROBOFLOW_API_KEY;
+  if (!apiKey) {
+    logger.warn("ROBOFLOW_API_KEY is missing in backend environment.");
+    return null;
+  }
+  try {
+    const response = await axios.post(
+      'https://serverless.roboflow.com/anthons-workspace/workflows/kommunitrade-product-category-detector-1780295212880',
+      {
+        api_key: apiKey,
+        inputs: {
+          image: {
+            type: "base64",
+            value: base64Image
+          }
+        }
+      },
+      { timeout: 10000 } // 10s timeout
+    );
+    
+    const result = response.data;
+    const topClass = extractTopClass(result);
+    return {
+      className: topClass,
+      category: mapRoboflowCategory(topClass)
+    };
+  } catch (error) {
+    logger.warn("Roboflow Category Detector failed:", error.message);
+    return null;
+  }
+}
+
 async function processImageWithVisionAndAI({ imageUrl, imageBuffer, userHint }) {
   // 1. Prepare image for Vision API and compress using sharp
   let processedBuffer;
@@ -45,7 +142,7 @@ async function processImageWithVisionAndAI({ imageUrl, imageBuffer, userHint }) 
     processedBuffer = imageBuffer || Buffer.from((await axios.get(imageUrl, { responseType: 'arraybuffer' })).data);
   }
 
-  // 2. Call Google Cloud Vision (label detection + text detection)
+  // 2. Call Google Cloud Vision and Roboflow in parallel
   if (!visionClient) {
     // Fallback if client isn't loaded
     const visionApiKey = process.env.GOOGLE_VISION_API_KEY;
@@ -54,20 +151,22 @@ async function processImageWithVisionAndAI({ imageUrl, imageBuffer, userHint }) 
       : new vision.ImageAnnotatorClient();
   }
 
-  logger.info("Executing Google Cloud Vision API call...");
-  const [labelResult, textResult] = await Promise.all([
-    visionClient.labelDetection({ image: { content: processedBuffer.toString('base64') } }),
-    visionClient.textDetection({ image: { content: processedBuffer.toString('base64') } }),
+  logger.info("Executing Google Cloud Vision and Roboflow API calls...");
+  const base64Image = processedBuffer.toString('base64');
+  const [labelResult, textResult, rfResult] = await Promise.all([
+    visionClient.labelDetection({ image: { content: base64Image } }),
+    visionClient.textDetection({ image: { content: base64Image } }),
+    callRoboflowCategoryDetector(base64Image)
   ]);
 
-  const cnnDetections = labelResult[0].labelAnnotations.map(label => ({
+  const labelAnnotations = labelResult[0]?.labelAnnotations || [];
+  const cnnDetections = labelAnnotations.map(label => ({
     label: label.description.toLowerCase(),
     confidence: label.score,
   }));
 
-  const ocrTexts = textResult[0].textAnnotations
-    ? textResult[0].textAnnotations.map(t => t.description)
-    : [];
+  const textAnnotations = textResult[0]?.textAnnotations || [];
+  const ocrTexts = textAnnotations.map(t => t.description);
 
   const topLabel = cnnDetections.length > 0 ? cnnDetections[0].label : "Unnamed Item";
   const ocrTextCombined = ocrTexts.length > 0 ? ocrTexts[0] : "";
@@ -151,8 +250,7 @@ async function processImageWithVisionAndAI({ imageUrl, imageBuffer, userHint }) 
             parts: [
               { text: aiPrompt }
             ]
-          }],
-          generationConfig: { responseMimeType: 'application/json' }
+          }]
         },
         { headers: { 'Content-Type': 'application/json' } }
       );
@@ -162,6 +260,26 @@ async function processImageWithVisionAndAI({ imageUrl, imageBuffer, userHint }) 
     } catch (geminiError) {
       logger.error("Gemini 1.5 Flash fallback failed:", geminiError.message);
       throw new Error(`Listing analysis failed on both DeepSeek and Gemini: ${geminiError.message}`);
+    }
+  }
+
+  let title = aiResult.title || topLabel || "Unnamed Item";
+  let category = aiResult.category || "Other";
+  let tagsList = Array.isArray(aiResult.tags) ? aiResult.tags : [];
+
+  if (rfResult) {
+    const { className, category: roboflowCategory } = rfResult;
+    if (roboflowCategory && roboflowCategory !== 'Other') {
+      category = roboflowCategory;
+    }
+    if (className) {
+      if (title === "Unnamed Item" || !title) {
+        title = className.charAt(0).toUpperCase() + className.slice(1);
+      }
+      if (!tagsList.includes(className.toLowerCase())) {
+        tagsList.push(className.toLowerCase());
+      }
+      tagsList = tagsList.slice(0, 5);
     }
   }
 
@@ -180,9 +298,9 @@ async function processImageWithVisionAndAI({ imageUrl, imageBuffer, userHint }) 
     deepseek: {
       success: true,
       data: {
-        title: aiResult.title || topLabel || "Unnamed Item",
-        category: aiResult.category || "Other",
-        tags: Array.isArray(aiResult.tags) ? aiResult.tags : [],
+        title: title,
+        category: category,
+        tags: tagsList,
         suggestedPrice: Number(aiResult.suggestedPrice) || 0
       }
     }

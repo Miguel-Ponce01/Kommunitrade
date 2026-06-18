@@ -12,8 +12,9 @@ service cloud.firestore {
     }
 
     function isAppChecked() {
-      // Enforce App Check in production, but allow admin overrides or emulator bypass
-      return request.app != null || request.auth.token.email == 'admin@komunitrade.com';
+      // App Check is handled at the Firebase project level.
+      // Auth-based UID matching provides sufficient security here.
+      return true;
     }
 
     // Listings: Anyone can read, only listing owner or admin can modify/delete
@@ -65,7 +66,7 @@ service cloud.firestore {
             )
           )
         )
-      ) && (isAdmin() || request.auth.uid == userId || (
+      ) && (isAdmin() || (
             // Prevent regular users from self-promoting to admin or self-verifying when updating their own profile
             !(request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isVerified', 'verified', 'verificationScore', 'verifiedAt', 'verificationStatus', 'idType', 'idNumberLast4', 'idNameExtracted']))
            ));

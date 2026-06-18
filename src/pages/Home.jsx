@@ -90,10 +90,20 @@ export default function Home() {
         mergedListings.sort((a, b) => b.rawDate - a.rawDate);
 
         // Map to display format
-        const displayListings = mergedListings.map(item => ({
-          ...item,
-          createdAt: item.createdAt?.toDate ? "Just now" : item.createdAt
-        }));
+        const displayListings = mergedListings.map(item => {
+          let isRecent = false;
+          if (item.createdAt) {
+            const date = item.createdAt.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
+            if (!isNaN(date.getTime())) {
+              const diffMs = Date.now() - date.getTime();
+              isRecent = diffMs >= 0 && diffMs < 5 * 60 * 1000;
+            }
+          }
+          return {
+            ...item,
+            createdAt: isRecent ? "Just now" : item.createdAt
+          };
+        });
 
         setListings(displayListings);
         initializeSearchIndex(displayListings);

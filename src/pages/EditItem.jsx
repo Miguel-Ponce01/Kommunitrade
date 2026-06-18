@@ -2,10 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Camera, Loader2, Save, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, Check, TrendingUp } from 'lucide-react';
 import { MOCK_BARANGAYS, CATEGORIES } from '../data/mockData';
-import { db, auth, storage, doc, getDoc, updateDoc } from '../firebase';
+import { db, storage, doc, getDoc, updateDoc } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from '../firebase';
 import { encodeGeohash, resolveLocationCoords, findNearestBarangay } from '../utils/geo';
 import { useLanguage } from '../hooks/useLanguage.jsx';
+import { useAuth } from '../contexts/AuthContext';
 import GoogleMap from '../components/GoogleMap';
 import { processListingImage } from '../services/listingProcessor';
 
@@ -13,6 +14,7 @@ export default function EditItem() {
   const { id } = useParams();
   const { lang, setLang, t } = useLanguage();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [previewUrl, setPreviewUrl] = useState(null);
   const [imageFile, setImageFile] = useState(null); // actual File for Storage upload
   const [isPublishing, setIsPublishing] = useState(false);
@@ -41,6 +43,7 @@ export default function EditItem() {
 
   useEffect(() => {
     async function fetchListing() {
+      if (!currentUser) return;
       try {
         const docRef = doc(db, 'listings', id);
         const docSnap = await getDoc(docRef);
@@ -49,7 +52,7 @@ export default function EditItem() {
           const data = docSnap.data();
           
           // Permission check
-          if (auth.currentUser && auth.currentUser.uid !== data.sellerId) {
+          if (currentUser.uid !== data.sellerId) {
             alert("You don't have permission to edit this listing.");
             navigate('/app/profile');
             return;
@@ -76,7 +79,7 @@ export default function EditItem() {
       }
     }
     fetchListing();
-  }, [id, navigate]);
+  }, [id, navigate, currentUser]);
 
   // Revoke previous blob URL to prevent memory leaks
   useEffect(() => {
@@ -116,38 +119,36 @@ export default function EditItem() {
     setAnalysisProgress('Running AI analysis (OCR + CNN)...');
     
     try {
-      addLog("Compressing image client-side...", "primary");
-      const { compressImage } = await import('../utils/imageCompression');
-      const compressedFile = await compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.8 });
-
       addLog("Analyzing image content securely...", "primary");
-      const result = await processListingImage(compressedFile, id, category || null);
+      const result = await processListingImage(file, id, category || null);
       
-      if (result.ocr.success && result.ocr.text) {
+      if (result?.ocr?.success && result.ocr.text) {
         addLog(`Extracted text: ${result.ocr.text.substring(0, 30)}...`, "primary");
         if (!description) {
           setDescription(result.ocr.text);
         }
       }
       
-      if (result.cnn.success && result.cnn.topPrediction) {
+      if (result?.cnn?.success && result.cnn.topPrediction) {
         const topLabelName = result.cnn.topPrediction.label || result.cnn.topPrediction.className || "object";
         const topConf = result.cnn.topPrediction.confidence || result.cnn.topPrediction.probability || 0;
         addLog(`Detected object: ${topLabelName} (${Math.round(topConf * 100)}%)`, "success");
       }
       
-      addLog("DeepSeek Smart Advisor recommendation loaded securely!", "success");
-      
-      // Auto-fill fields with AI optimized results
-      setTitle(result.deepseek.data.title);
-      setCategory(result.deepseek.data.category);
-      setTags(result.deepseek.data.tags);
-      if (result.deepseek.data.suggestedPrice > 0) {
-        setPrice(result.deepseek.data.suggestedPrice.toString());
-        addLog(`Suggested Price: ₱${result.deepseek.data.suggestedPrice}`, "success");
+      if (result?.deepseek?.data) {
+        addLog("DeepSeek Smart Advisor recommendation loaded securely!", "success");
+        
+        // Auto-fill fields with AI optimized results
+        setTitle(result.deepseek.data.title || '');
+        setCategory(result.deepseek.data.category || '');
+        setTags(result.deepseek.data.tags || []);
+        if (result.deepseek.data.suggestedPrice > 0) {
+          setPrice(result.deepseek.data.suggestedPrice.toString());
+          addLog(`Suggested Price: ₱${result.deepseek.data.suggestedPrice}`, "success");
+        }
       }
       
-      if (result.processedOffline) {
+      if (result?.processedOffline) {
         addLog("Offline mode active: Modifications queued locally.", "success");
       }
       
@@ -208,7 +209,6 @@ export default function EditItem() {
       return;
     }
 
-    const currentUser = auth.currentUser;
     if (!currentUser) return;
 
     const coords = timeMark

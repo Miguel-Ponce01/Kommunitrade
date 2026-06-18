@@ -21,6 +21,14 @@ export default function TransactionHistory() {
   useEffect(() => {
     if (!currentUser) return;
     
+    // Helper to safely parse created_at into ISO string
+    const parseDateToISO = (val) => {
+      if (!val) return new Date().toISOString();
+      if (val.toDate) return val.toDate().toISOString();
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+    };
+
     // 1. Subscribe to seller transactions
     const qSeller = query(
       collection(db, 'transactions'),
@@ -32,7 +40,7 @@ export default function TransactionHistory() {
         return {
           id: doc.id,
           ...data,
-          created_at: data.created_at?.toDate ? data.created_at.toDate().toISOString() : new Date().toISOString()
+          created_at: parseDateToISO(data.created_at)
         };
       });
       setSellerTxs(txs);
@@ -49,7 +57,7 @@ export default function TransactionHistory() {
         return {
           id: doc.id,
           ...data,
-          created_at: data.created_at?.toDate ? data.created_at.toDate().toISOString() : new Date().toISOString()
+          created_at: parseDateToISO(data.created_at)
         };
       });
       setBuyerTxs(txs);

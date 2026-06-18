@@ -785,7 +785,10 @@ export default function Layout() {
                             {notif.message}
                           </div>
                           <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                            {notif.createdAt?.toDate ? new Date(notif.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                            {(() => {
+                              const d = notif.createdAt?.toDate ? notif.createdAt.toDate() : (notif.createdAt ? new Date(notif.createdAt) : null);
+                              return d && !isNaN(d.getTime()) ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now';
+                            })()}
                           </div>
                         </div>
                       ))
