@@ -33,6 +33,38 @@ exports.processListingImage = onCall({ cors: true }, async (request) => {
       userHint: request.data.userHint || null
     });
 
+    // Write prediction log to Firestore
+    try {
+      const db = admin.firestore();
+      const predictionRef = db.collection('ai_predictions').doc();
+      const predictionId = predictionRef.id;
+
+      await predictionRef.set({
+        predictionId,
+        uid: request.auth.uid,
+        imageUrl: imageUrl || null,
+        imageBase64Size: imageBase64 ? imageBase64.length : 0,
+        roboflowCategory: result.deepseek?.data?.roboflowCategory || null,
+        roboflowConfidence: result.deepseek?.data?.roboflowConfidence || null,
+        aiCategory: result.deepseek?.data?.category || null,
+        aiSubcategory: result.deepseek?.data?.subcategory || null,
+        aiTitle: result.deepseek?.data?.title || null,
+        aiTags: result.deepseek?.data?.tags || [],
+        ocrText: result.ocr?.text || '',
+        confidenceNotes: result.deepseek?.data?.confidenceNotes || null,
+        userHint: request.data.userHint || null,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        listingId: null,
+        finalCategory: null,
+        finalTitle: null,
+        finalTags: null
+      });
+
+      result.predictionId = predictionId;
+    } catch (logErr) {
+      logger.error("Failed to write to ai_predictions Firestore collection:", logErr.message);
+    }
+
     return result;
   } catch (error) {
     logger.error("Listing image processing failed:", error.message);
@@ -164,27 +196,7 @@ exports.verifyUserIdentity = onCall({ cors: true }, async (request) => {
   try {
     logger.info(`Starting unified AI-assisted identity verification for user: ${request.auth.uid}`);
 
-    let unifiedResult;
-    if (process.env.FUNCTIONS_EMULATOR === 'true' || (geminiApiKey && geminiApiKey.startsWith('AQ.'))) {
-      logger.info('Emulator or placeholder key detected: returning simulated verification success.');
-      unifiedResult = {
-        verified: true,
-        confidence: 95,
-        faceMatch: true,
-        idDetected: true,
-        selfieDetected: true,
-        quality: { blur: false, glare: false, cropped: false, dark: false },
-        idType: clientIdType || 'PASSPORT',
-        extractedData: {
-          fullName: request.auth.token.name || 'Test User',
-          idNumber: '1234-5678-9999',
-          birthDate: '1995-01-01'
-        },
-        reason: 'Simulated verification success for development/testing.'
-      };
-    } else {
-      unifiedResult = await verifyIdentityUnified({ idImage, selfieImage, geminiApiKey });
-    }
+    const unifiedResult = await verifyIdentityUnified({ idImage, selfieImage, geminiApiKey });
 
     logger.info('Unified result:', {
       verified:       unifiedResult.verified,

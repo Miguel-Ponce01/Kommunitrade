@@ -1587,6 +1587,20 @@ export default function AdminDashboard() {
                 </div>
               )}
 
+              {viewingTx.status === "Cancelled" && (
+                <div style={{ background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "10px", padding: "0.75rem", display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
+                  <AlertCircle size={18} color="#EF4444" style={{ flexShrink: 0, marginTop: "0.1rem" }} />
+                  <div>
+                    <span style={{ color: "#EF4444", fontWeight: 800, fontSize: "0.85rem", display: "block" }}>CANCELLATION DETAILS</span>
+                    <span style={{ fontSize: "0.85rem", color: "var(--text-main)", display: "block" }}>Reason: {viewingTx.cancelReason || "No reason specified."}</span>
+                    {viewingTx.cancelComments && (
+                      <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontStyle: "italic", display: "block", marginTop: "0.2rem" }}>"{viewingTx.cancelComments}"</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+
             </div>
 
             <div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "flex-end" }}>

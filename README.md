@@ -1,12 +1,84 @@
-KomuniTrade: Complete System Documentation
+# KomuniTrade: Smart Hyperlocal Marketplace
 
-Trade Smart Within Your Community
-
-# KomuniTrade: Complete System Documentation
-
-## Trade Smart Within Your Community
+### A Hyperlocal Peer-to-Peer Trading System
+**Developed by**: Anthon Miguel Ponce 
 
 ---
+
+# QUICK START GUIDE: LOCAL DEVELOPMENT & SETUP
+
+### 1. Prerequisites
+- **Node.js**: Version 20.x or higher
+- **Firebase CLI**: Global installation (`npm install -g firebase-tools`)
+
+### 2. Installation & Setup
+1. Clone the repository and install frontend dependencies:
+   ```bash
+   npm install
+   ```
+2. Navigate to the functions directory and install backend dependencies:
+   ```bash
+   cd functions
+   npm install
+   cd ..
+   ```
+3. Set up your environment variables. Create a `.env` file inside the `functions` folder with the following variables:
+   ```env
+   # Firebase Cloud Functions Environment variables
+   RECAPTCHA_SECRET_KEY="your_recaptcha_key"
+   GEMINI_API_KEY="your_gemini_api_key"
+   GEMINI_MODEL="gemini-3.5-flash"
+   GOOGLE_VISION_API_KEY="your_vision_api_key"
+   DEEPSEEK_API_KEY="your_deepseek_api_key"
+   ROBOFLOW_API_KEY="your_roboflow_api_key"
+   ```
+
+### 3. Running Locally
+- Run the React development server:
+  ```bash
+  npm run dev
+  ```
+- Run the Firebase Cloud Functions and Firestore Emulator Suite:
+  ```bash
+  firebase emulators:start
+  ```
+
+---
+
+# USER MANUAL: HOW TO USE KOMUNITRADE
+
+### 1. AI-Powered Hyperlocal Posting
+- Click **"Post Item"** on the navigation bar.
+- Upload a product photo.
+- **Smart Category & Metadata Layer**: The **Roboflow Workflow** (`detect-and-classify`) runs in parallel with **Google Cloud Vision OCR**. 
+  - If Roboflow returns category confidence **>= 0.65**, we trust the Roboflow category.
+  - If confidence is low, the pipeline falls back to the **DeepSeek/Gemini** LLM category.
+  - Google Cloud Vision extracts the text to auto-populate the title, description, tags, suggested price, and food expiry days (if classified as food).
+- Click **"Publish"** to list your item.
+
+### 2. E2EE Negotiation & Deal Finalization
+- View an item and click **"Chat with Seller"**. Your messages are fully **End-to-End Encrypted (ECDH P-256 + AES-GCM)**.
+- Once you negotiate a deal, click **"Finalize Agreement"** to propose meetup details. The system automatically calculates the mid-point between buyer and seller and suggests **safe meetup hotspots** near your center.
+- The partner can Accept (which locks the listing and sets `isSold: true`) or Decline.
+
+### 3. Double PIN Handshake Meetup
+- Once confirmed, the receipt displays your unique **Verification PIN**.
+- During the physical meetup, exchange and input each other's PINs to complete the trade. Success grants a permanent `+5` points to both users' trust scores.
+
+### 4. Deal Cancellation Protocol
+- If you need to cancel a confirmed agreement before meeting, open the Transaction Receipt and click **"Cancel Confirmed Deal"**.
+- Select a cancellation reason and describe the details.
+- **System Impact**:
+  - The transaction status changes to `'Cancelled'`.
+  - The listing is automatically restored (`isSold: false`) and goes back to the active marketplace.
+  - A penalty of **-5 trust points** is deducted from your score to prevent spam cancellations.
+  - An E2EE system notice is pushed to the chat, and the partner receives a push notification explaining the cancellation reason.
+
+### 5. Admin Moderation & Auditing
+- System administrators can access the **Admin Moderation Portal** to verify user identities, adjust trust scores, resolve disputes, and audit cancelled transactions to view cancellation reasons and comments.
+
+---
+
 
 # 1. EXECUTIVE SUMMARY
 

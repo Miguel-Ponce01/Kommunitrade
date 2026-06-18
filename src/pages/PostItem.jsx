@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Loader2, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, Check, TrendingUp, PlusCircle, Shield, AlertTriangle, XCircle } from 'lucide-react';
 import { MOCK_BARANGAYS, CATEGORIES } from '../data/mockData';
-import { db, auth, storage, collection, addDoc, serverTimestamp } from '../firebase';
+import { db, auth, storage, collection, addDoc, serverTimestamp, doc, updateDoc } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from '../firebase';
 import { encodeGeohash, resolveLocationCoords, findNearestBarangay } from '../utils/geo';
 import { useLanguage } from '../hooks/useLanguage.jsx';
@@ -40,9 +40,16 @@ export default function PostItem() {
   const [timeMark, setTimeMark] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
   const [tags, setTags] = useState([]);
+  const getTomorrowDateString = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  };
+  const [foodExpiryDate, setFoodExpiryDate] = useState(getTomorrowDateString());
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState('');
+  const [predictionId, setPredictionId] = useState(null);
   const [generatedData, setGeneratedData] = useState({
     title: '',
     category: '',
@@ -108,6 +115,9 @@ export default function PostItem() {
       await new Promise(r => setTimeout(r, 1000)); // Smooth transition delay
 
       if (result?.deepseek?.data) {
+        if (result.predictionId) {
+          setPredictionId(result.predictionId);
+        }
         addLog("AI Smart Advisor recommendations loaded!", "success");
         setGeneratedData({
           title: result.deepseek.data.title || '',
@@ -119,10 +129,18 @@ export default function PostItem() {
         setCategory(result.deepseek.data.category || '');
         setTags(result.deepseek.data.tags || []);
 
+        if (result.deepseek.data.category === 'Food') {
+          const days = Number(result.deepseek.data.foodExpiryDays) || 1;
+          const d = new Date();
+          d.setDate(d.getDate() + days);
+          setFoodExpiryDate(d.toISOString().split('T')[0]);
+          addLog(`Suggested Food Expiration: ${days} day(s) from now`, "success");
+        }
+
         if (result.deepseek.data.suggestedPrice > 0) {
           setPrice(result.deepseek.data.suggestedPrice.toString());
           addLog(`Suggested Price: ₱${result.deepseek.data.suggestedPrice}`, "success");
-        } else if (result.deepseek.data.category === 'Electronics') {
+        } else if (result.deepseek.data.category === 'Electronics' || result.deepseek.data.category === 'Electronic') {
           setPrice('500');
         }
       }
@@ -171,6 +189,9 @@ export default function PostItem() {
       }
 
       if (result?.deepseek?.data) {
+        if (result.predictionId) {
+          setPredictionId(result.predictionId);
+        }
         // Auto-fill fields with AI optimized results securely generated
         addLog("DeepSeek Smart Advisor recommendation loaded!", "success");
         setGeneratedData({
@@ -180,13 +201,22 @@ export default function PostItem() {
         });
 
         setTitle(prev => prev || result.deepseek.data.title || '');
-        setCategory(prev => prev || result.deepseek.data.category || '');
+        const finalCategory = prev => prev || result.deepseek.data.category || '';
+        setCategory(finalCategory);
         setTags(prev => prev.length ? prev : (result.deepseek.data.tags || []));
+
+        if (result.deepseek.data.category === 'Food') {
+          const days = Number(result.deepseek.data.foodExpiryDays) || 1;
+          const d = new Date();
+          d.setDate(d.getDate() + days);
+          setFoodExpiryDate(d.toISOString().split('T')[0]);
+          addLog(`Suggested Food Expiration: ${days} day(s) from now`, "success");
+        }
 
         if (result.deepseek.data.suggestedPrice > 0) {
           if (!price) setPrice(result.deepseek.data.suggestedPrice.toString());
           addLog(`Suggested Price: ₱${result.deepseek.data.suggestedPrice}`, "success");
-        } else if (!price && result.deepseek.data.category === 'Electronics') {
+        } else if (!price && (result.deepseek.data.category === 'Electronics' || result.deepseek.data.category === 'Electronic')) {
           setPrice('500'); // Fallback suggest
         }
       }
@@ -332,7 +362,7 @@ export default function PostItem() {
 
       const finalImageUrl = imageUrls[0] || "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&q=80&w=300";
 
-      await addDoc(collection(db, 'listings'), {
+      const listingDocRef = await addDoc(collection(db, 'listings'), {
         title,
         price: parseFloat(price),
         isNegotiable,
@@ -351,10 +381,29 @@ export default function PostItem() {
         verified: userProfile?.verified || userProfile?.isVerified || false,
         imageUrls: imageUrls,
         imageUrl: finalImageUrl,
-        expiresAt: new Date(Date.now() + (7 * 24) * 60 * 60 * 1000).toISOString(),
+        expiresAt: category === 'Food'
+          ? new Date(foodExpiryDate + 'T23:59:59').toISOString()
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         createdAt: serverTimestamp(),
         isSold: false
       });
+
+      // Update feedback loop prediction log
+      if (predictionId) {
+        try {
+          await updateDoc(doc(db, 'ai_predictions', predictionId), {
+            listingId: listingDocRef.id,
+            finalTitle: title,
+            finalCategory: category,
+            finalTags: tags,
+            updatedAt: serverTimestamp()
+          });
+          addLog("Prediction feedback loop updated successfully.", "success");
+        } catch (updateErr) {
+          console.error("Feedback loop update failed:", updateErr);
+        }
+      }
+
 
       showAlert(t('post_success_msg'), "Success", "success", () => {
         navigate('/app');
@@ -568,6 +617,35 @@ export default function PostItem() {
                     </div>
                   </div>
                 </div>
+
+                {/* Food Expiration Selector (Only shown if category is Food) */}
+                {category === 'Food' && (
+                  <div className="form-group animate-fade-in" style={{
+                    padding: '1.25rem',
+                    background: 'rgba(16, 185, 129, 0.04)',
+                    border: '1px dashed var(--primary)',
+                    borderRadius: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem'
+                  }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                      <Sparkles size={16} color="var(--primary)" /> Best / Consume Before Date
+                    </label>
+                    <input 
+                      type="date" 
+                      className="premium-input" 
+                      style={{ background: 'var(--card-bg)' }}
+                      min={getTomorrowDateString()}
+                      value={foodExpiryDate} 
+                      onChange={(e) => setFoodExpiryDate(e.target.value)} 
+                      required
+                    />
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Since this listing is for a food item, it will automatically expire and be archived on the selected date to maintain freshness.
+                    </p>
+                  </div>
+                )}
 
                 {/* Grid: Price and Negotiability */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', alignItems: 'end' }}>

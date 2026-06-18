@@ -409,40 +409,7 @@ export default function Verification() {
   const [showSelfieInstructions, setShowSelfieInstructions] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleSandboxAutoVerify = async () => {
-    if (!currentUser) return;
-    setIsProcessing(true);
-    setError(null);
-    try {
-      const verifyFn = httpsCallable(functions, 'verifyUserIdentity');
-      // Pass dummy small JPEG base64 strings to trigger the server-side bypass
-      const response = await verifyFn({
-        idImage: 'data:image/jpeg;base64,/9g/',
-        selfieImage: 'data:image/jpeg;base64,/9g/',
-        idType: 'PASSPORT',
-      });
 
-      const { success, score, reason, status } = response.data;
-      
-      if (success) {
-        await refreshUserProfile();
-        setResult({
-          success,
-          score,
-          reason: reason || 'Identity confirmed via Developer Sandbox.',
-          status: status || 'VERIFIED'
-        });
-        setStep(4);
-      } else {
-        setError(reason || "Verification failed");
-      }
-    } catch (err) {
-      console.error("Sandbox verification error:", err);
-      setError("Failed to auto-verify profile. Details: " + err.message);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   // Trigger overlays automatically on step changes
   useEffect(() => {
@@ -693,48 +660,7 @@ export default function Verification() {
         </div>
       </div>
 
-      {/* Dev Sandbox Quick-Verify Option */}
-      {step < 4 && (
-        <div style={{
-          background: 'rgba(16, 185, 129, 0.08)',
-          border: '1px dashed #10b981',
-          borderRadius: '16px',
-          padding: '1.25rem',
-          marginBottom: '2rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem',
-          alignItems: 'center',
-          textAlign: 'center',
-          boxShadow: 'var(--shadow-sm)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Outfit', sans-serif" }}>
-            <Shield size={18} /> Dev Sandbox Verification
-          </div>
-          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            Bypass cloud functions, camera setup, and API calls. Click below to instantly verify this profile so you can publish listings and test other features.
-          </p>
-          <button
-            onClick={handleSandboxAutoVerify}
-            className="btn-primary"
-            style={{
-              width: '100%',
-              height: '42px',
-              borderRadius: '12px',
-              fontSize: '0.88rem',
-              fontWeight: 800,
-              background: '#10b981',
-              border: 'none',
-              color: 'white',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
-              transition: 'transform 0.2s'
-            }}
-          >
-            Instant Sandbox Auto-Verify
-          </button>
-        </div>
-      )}
+
 
       {/* Step indicator */}
       {step < 4 && (

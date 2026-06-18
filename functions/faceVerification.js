@@ -30,7 +30,7 @@ const safeJsonParse = (text) => {
 };
 
 // ─── Configurable Gemini Model ───────────────────────────────────────────────
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 
 const GEMINI_URL = (key) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
@@ -88,7 +88,10 @@ async function verifyIdentityUnified({ idImage, selfieImage, geminiApiKey }) {
             { inlineData: { mimeType: idMime,      data: cleanedId } },
             { inlineData: { mimeType: selfieMime,   data: cleanedSelfie } }
           ]
-        }]
+        }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
       },
       { headers: { 'Content-Type': 'application/json' }, timeout: 30000 }
     );

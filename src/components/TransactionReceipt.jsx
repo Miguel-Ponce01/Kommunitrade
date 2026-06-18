@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { X, CheckCircle, MapPin, Calendar, Clock, Download, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, doc, updateDoc, addDoc, collection, getDoc, serverTimestamp } from '../firebase';
+import { encryptMessage } from '../utils/crypto';
 
 const formatReceiptDate = (val) => {
   if (!val) return "";
@@ -26,6 +27,12 @@ export default function TransactionReceipt({ transaction, onClose }) {
   const [disputeComments, setDisputeComments] = useState('');
   const [submittingDispute, setSubmittingDispute] = useState(false);
   const [submittingVerification, setSubmittingVerification] = useState(false);
+
+  // Cancellation States
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('Change of mind');
+  const [cancelComments, setCancelComments] = useState('');
+  const [submittingCancel, setSubmittingCancel] = useState(false);
 
   const isSeller = currentUser?.uid === transaction?.sellerId;
   const isBuyer = currentUser?.uid === transaction?.buyerId;
@@ -129,6 +136,100 @@ export default function TransactionReceipt({ transaction, onClose }) {
       alert('Failed to raise dispute: ' + err.message);
     } finally {
       setSubmittingDispute(false);
+    }
+  };
+
+  const handleCancelTransactionConfirmed = async (e) => {
+    e.preventDefault();
+    setSubmittingCancel(true);
+    try {
+      const txRef = doc(db, 'transactions', transaction.id);
+      
+      // 1. Update Transaction status
+      await updateDoc(txRef, {
+        status: 'Cancelled',
+        cancelledBy: currentUser.uid,
+        cancelReason: cancelReason,
+        cancelComments: cancelComments,
+        cancelledAt: serverTimestamp()
+      });
+
+      // 2. Restore Listing status
+      if (transaction.listingId) {
+        const listingRef = doc(db, 'listings', transaction.listingId);
+        await updateDoc(listingRef, { isSold: false });
+      }
+
+      // 3. Deduct 5 Trust Score Points from cancelling user
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const currentScore = userSnap.data().trustScore ?? 0;
+        const nextScore = Math.max(0, currentScore - 5);
+        await updateDoc(userRef, { trustScore: nextScore });
+
+        await addDoc(collection(db, 'trust_logs'), {
+          userId: currentUser.uid,
+          change: -5,
+          newScore: nextScore,
+          event: 'Cancellation Penalty',
+          ruleApplied: 'Rule 303: Meetup Reliability',
+          reason: `Cancelled confirmed deal for item: "${transaction.item_name}"`,
+          timestamp: serverTimestamp()
+        });
+      }
+
+      // 4. Send E2EE System Message
+      const chatId = [transaction.buyerId, transaction.sellerId, transaction.listingId].sort().join('_');
+      const peerId = currentUser.uid === transaction.sellerId ? transaction.buyerId : transaction.sellerId;
+      const peerSnap = await getDoc(doc(db, 'users', peerId));
+      let peerPublicKey = null;
+      if (peerSnap.exists()) {
+        const peerData = peerSnap.data();
+        peerPublicKey = peerData.publicKeyJwk;
+      }
+
+      const currentUserName = localStorage.getItem('komuni_display_name') || 'Partner';
+      const cancelText = `[System] Confirmed Deal Cancelled by ${currentUserName}. Reason: ${cancelReason}. Details: ${cancelComments}`;
+      
+      let finalMsgText = cancelText;
+      let isEncrypted = false;
+      if (peerPublicKey) {
+        try {
+          finalMsgText = await encryptMessage(cancelText, peerPublicKey, chatId);
+          isEncrypted = true;
+        } catch (encryptErr) {
+          console.error("E2EE Encryption of cancellation failed:", encryptErr);
+        }
+      }
+
+      await addDoc(collection(db, 'chats', chatId, 'messages'), {
+        text: finalMsgText,
+        senderId: currentUser.uid,
+        senderAlias: 'System Notice',
+        timestamp: serverTimestamp(),
+        isEncrypted: isEncrypted
+      });
+
+      // 5. Send Notification
+      await addDoc(collection(db, 'notifications'), {
+        userId: peerId,
+        type: 'agreement_cancelled',
+        title: 'Deal Cancelled',
+        message: `The deal for "${transaction.item_name}" has been cancelled by the partner. Reason: ${cancelReason}`,
+        relatedId: transaction.id,
+        read: false,
+        createdAt: serverTimestamp()
+      });
+
+      alert('Deal cancelled successfully. Trust score adjusted.');
+      setShowCancelModal(false);
+      if (onClose) onClose();
+    } catch (err) {
+      console.error(err);
+      alert('Error cancelling deal: ' + err.message);
+    } finally {
+      setSubmittingCancel(false);
     }
   };
 
@@ -365,6 +466,18 @@ export default function TransactionReceipt({ transaction, onClose }) {
               </div>
             )}
 
+            {transaction.status === 'Confirmed' && (isBuyer || isSeller) && (
+              <div style={{ textAlign: 'center', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setShowCancelModal(true)}
+                  style={{ background: '#FEE2E2', border: '1px solid #FCA5A5', color: '#B91C1C', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: '0.5rem 1.25rem', borderRadius: '8px', width: 'fit-content', transition: 'all 0.2s' }}
+                >
+                  Cancel Confirmed Deal
+                </button>
+              </div>
+            )}
+
             {/* DISPUTE TRIGGER SECTION */}
             {(transaction.status === 'Confirmed' || transaction.status === 'Completed') && (isBuyer || isSeller) && !transaction.disputed && (
               <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
@@ -468,6 +581,58 @@ export default function TransactionReceipt({ transaction, onClose }) {
                 <button type="button" onClick={() => setShowDisputeModal(false)} className="btn-secondary" style={{ padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem' }}>Cancel</button>
                 <button type="submit" className="btn-primary" style={{ background: '#ef4444', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 800, width: 'auto' }} disabled={submittingDispute}>
                   {submittingDispute ? 'Filing...' : 'File Dispute'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Cancel Modal Overlay */}
+      {showCancelModal && (
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="panel animate-slide-up" style={{ width: '100%', maxWidth: '400px', padding: '2rem', color: 'var(--text-main)', background: 'var(--card-bg)', borderRadius: '16px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, marginBottom: '0.5rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem', textAlign: 'center' }}>
+              Cancel Confirmed Deal
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+              Canceling this confirmed deal will return the item to the active marketplace, but will deduct <strong>5 trust points</strong> from your score as penalty.
+            </p>
+            
+            <form onSubmit={handleCancelTransactionConfirmed} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'left' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>Cancellation Reason</label>
+                <select 
+                  className="form-control" 
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)', outline: 'none' }}
+                  required 
+                  value={cancelReason} 
+                  onChange={(e) => setCancelReason(e.target.value)}
+                >
+                  <option value="Change of mind">Change of mind</option>
+                  <option value="Item no longer needed">Item no longer needed</option>
+                  <option value="Scheduling conflict">Scheduling conflict</option>
+                  <option value="Partner unresponsive">Partner unresponsive</option>
+                  <option value="Incorrect details on listing">Incorrect details on listing</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>Detailed Reason (Required)</label>
+                <textarea 
+                  className="form-control"
+                  style={{ width: '100%', height: '80px', resize: 'none', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none' }}
+                  placeholder="Explain why you are canceling this transaction..."
+                  required
+                  value={cancelComments}
+                  onChange={(e) => setCancelComments(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowCancelModal(false)} className="btn-secondary" style={{ padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem' }}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ background: '#ef4444', border: 'none', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 800, width: 'auto' }} disabled={submittingCancel}>
+                  {submittingCancel ? 'Canceling Deal...' : 'Cancel Deal'}
                 </button>
               </div>
             </form>
