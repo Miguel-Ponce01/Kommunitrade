@@ -17,7 +17,8 @@ import {
   Moon,
   MapPin,
   PlusCircle,
-  Bell
+  Bell,
+  X
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
@@ -81,16 +82,21 @@ export default function Layout() {
     if (!currentUser) return;
     const q = query(
       collection(db, 'notifications'),
-      where('userId', '==', currentUser.uid),
-      orderBy('createdAt', 'desc'),
-      limit(15)
+      where('userId', '==', currentUser.uid)
     );
     const unsub = onSnapshot(q, (snapshot) => {
       const list = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      setNotifications(list);
+      // Sort in-memory to bypass composite index requirements
+      list.sort((a, b) => {
+        const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+        const dbVal = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+        return dbVal - da;
+      });
+      // Cap at 10 items as requested by user
+      setNotifications(list.slice(0, 10));
     }, (err) => {
       console.warn("Failed to subscribe to notifications:", err);
     });
@@ -712,86 +718,102 @@ export default function Layout() {
                 <span>Alerts</span>
               </button>
 
-              {/* Popover */}
+              {/* Modal Overlay (Replacing Popover) */}
               {showNotificationPopover && (
-                <div className="glass-card" style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 8px)',
-                  right: 0,
-                  width: '320px',
-                  maxHeight: '400px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--card-bg)',
-                  zIndex: 600
-                }}>
-                  {/* Popover Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>
-                    <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-main)' }}>Notifications</span>
-                    {unreadCount > 0 && (
-                      <button 
-                        onClick={handleMarkAllAsRead} 
-                        style={{ background: 'none', border: 'none', color: '#10b981', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
-                      >
-                        Mark all as read
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Popover Body */}
-                  <div className="status-pills" style={{ overflowY: 'auto', flex: 1, padding: '0.5rem 0', display: 'flex', flexDirection: 'column' }}>
-                    {notifications.length === 0 ? (
-                      <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        <Bell size={32} style={{ opacity: 0.15, margin: '0 auto 0.75rem' }} />
-                        <p style={{ margin: 0, fontSize: '0.85rem' }}>No notifications yet.</p>
+                <div 
+                  className="rules-modal-overlay" 
+                  onClick={() => setShowNotificationPopover(false)}
+                  style={{ zIndex: 3000 }}
+                >
+                  <div 
+                    className="rules-modal-content" 
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ maxWidth: '480px', maxHeight: '80vh' }}
+                  >
+                    {/* Modal Header */}
+                    <div className="rules-modal-header" style={{ padding: '1.5rem 2rem 1.1rem', borderBottom: '1px solid var(--border-color)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <Bell size={22} style={{ color: 'var(--primary)' }} />
+                        <h2 className="rules-modal-title" style={{ fontSize: '1.4rem' }}>Notifications</h2>
                       </div>
-                    ) : (
-                      notifications.map(notif => (
-                        <div 
-                          key={notif.id}
-                          onClick={() => handleNotificationClick(notif)}
-                          style={{
-                            padding: '0.85rem 1.1rem',
-                            borderBottom: '1px solid var(--border-color)',
-                            cursor: 'pointer',
-                            background: notif.read ? 'transparent' : 'rgba(16, 185, 129, 0.04)',
-                            transition: 'background 0.2s',
-                            position: 'relative',
-                            textAlign: 'left'
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border-color)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = notif.read ? 'transparent' : 'rgba(16, 185, 129, 0.04)'; }}
+                      <button className="rules-modal-close" onClick={() => setShowNotificationPopover(false)} aria-label="Close">
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    {/* Modal Body */}
+                    <div className="rules-document-body" style={{ padding: '1.5rem 2rem', overflowY: 'auto', background: 'var(--bg-color)', gap: '1rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {notifications.length === 0 ? (
+                          <div style={{ padding: '3.5rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            <Bell size={40} style={{ opacity: 0.15, margin: '0 auto 1rem' }} />
+                            <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500 }}>No notifications yet.</p>
+                          </div>
+                        ) : (
+                          notifications.map(notif => (
+                            <div 
+                              key={notif.id}
+                              onClick={() => handleNotificationClick(notif)}
+                              style={{
+                                padding: '1.1rem',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '16px',
+                                cursor: 'pointer',
+                                background: notif.read ? 'var(--card-bg)' : 'rgba(16, 185, 129, 0.03)',
+                                borderColor: notif.read ? 'var(--border-color)' : 'rgba(16, 185, 129, 0.15)',
+                                transition: 'all 0.2s ease',
+                                position: 'relative',
+                                textAlign: 'left'
+                              }}
+                              onMouseEnter={(e) => { 
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.borderColor = 'var(--primary)';
+                              }}
+                              onMouseLeave={(e) => { 
+                                e.currentTarget.style.transform = 'none';
+                                e.currentTarget.style.borderColor = notif.read ? 'var(--border-color)' : 'rgba(16, 185, 129, 0.15)';
+                              }}
+                            >
+                              {!notif.read && (
+                                <span style={{
+                                  position: 'absolute',
+                                  right: '12px',
+                                  top: '12px',
+                                  width: '8px',
+                                  height: '8px',
+                                  borderRadius: '50%',
+                                  background: '#10b981'
+                                }} />
+                              )}
+                              <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-main)', marginBottom: '4px', paddingRight: '15px' }}>
+                                {notif.title}
+                              </div>
+                              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                                {notif.message}
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '8px', fontWeight: 600, display: 'flex', justifyContent: 'flex-end' }}>
+                                {(() => {
+                                  const d = notif.createdAt?.toDate ? notif.createdAt.toDate() : (notif.createdAt ? new Date(notif.createdAt) : null);
+                                  return d && !isNaN(d.getTime()) ? d.toLocaleString() : 'Just now';
+                                })()}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Modal Footer */}
+                    {unreadCount > 0 && (
+                      <div className="rules-modal-footer" style={{ padding: '1.25rem 2rem' }}>
+                        <button 
+                          onClick={handleMarkAllAsRead} 
+                          className="rules-agree-btn"
+                          style={{ background: 'var(--primary)', boxShadow: '0 8px 16px -4px rgba(16, 185, 129, 0.3)' }}
                         >
-                          {!notif.read && (
-                            <span style={{
-                              position: 'absolute',
-                              left: '6px',
-                              top: '50%',
-                              transform: 'translateY(-50%)',
-                              width: '6px',
-                              height: '6px',
-                              borderRadius: '50%',
-                              background: '#10b981'
-                            }} />
-                          )}
-                          <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)', marginBottom: '2px' }}>
-                            {notif.title}
-                          </div>
-                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.35 }}>
-                            {notif.message}
-                          </div>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                            {(() => {
-                              const d = notif.createdAt?.toDate ? notif.createdAt.toDate() : (notif.createdAt ? new Date(notif.createdAt) : null);
-                              return d && !isNaN(d.getTime()) ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now';
-                            })()}
-                          </div>
-                        </div>
-                      ))
+                          Mark All as Read
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

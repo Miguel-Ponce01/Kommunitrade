@@ -48,6 +48,7 @@ export default function Settings() {
   const [exactLocation, setExactLocation] = useState(false);
   const [isSavingPrivacy, setIsSavingPrivacy] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [successModal, setSuccessModal] = useState(null); // { title: string, message: string }
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -81,10 +82,10 @@ export default function Settings() {
       await updateDoc(userRef, {
         phoneNumber: phoneNumber
       });
-      alert("Phone number updated in Firebase!");
+      setSuccessModal({ title: "Phone Number Updated", message: "Your phone number has been updated successfully." });
     } catch (error) {
       console.error("Error updating phone number:", error);
-      alert("Failed to update phone number.");
+      setSuccessModal({ title: "Update Failed", message: "Failed to update phone number. Please try again." });
     } finally {
       setIsSavingPhone(false);
     }
@@ -101,10 +102,10 @@ export default function Settings() {
         tradingMode: tradingMode,
         savedSpots: savedSpots
       });
-      alert("Trading preferences updated in Firebase!");
+      setSuccessModal({ title: "Preferences Saved", message: "Your default trading mode and meetup spots have been saved." });
     } catch (error) {
       console.error("Error updating preferences:", error);
-      alert("Failed to update preferences.");
+      setSuccessModal({ title: "Update Failed", message: "Failed to update preferences. Please try again." });
     } finally {
       setIsSavingPrefs(false);
     }
@@ -125,10 +126,10 @@ export default function Settings() {
           sms: notifySMS
         }
       });
-      alert("Notification preferences updated in Firebase!");
+      setSuccessModal({ title: "Notifications Saved", message: "Your notification settings have been successfully saved." });
     } catch (error) {
       console.error("Error updating notifications:", error);
-      alert("Failed to update notifications.");
+      setSuccessModal({ title: "Update Failed", message: "Failed to update notification settings. Please try again." });
     } finally {
       setIsSavingNotifications(false);
     }
@@ -142,10 +143,10 @@ export default function Settings() {
       await updateDoc(userRef, {
         exactLocation: exactLocation
       });
-      alert("Privacy preferences updated in Firebase!");
+      setSuccessModal({ title: "Privacy Saved", message: "Your location privacy preferences have been updated." });
     } catch (error) {
       console.error("Error updating privacy:", error);
-      alert("Failed to update privacy settings.");
+      setSuccessModal({ title: "Update Failed", message: "Failed to update privacy preferences. Please try again." });
     } finally {
       setIsSavingPrivacy(false);
     }
@@ -797,6 +798,32 @@ export default function Settings() {
                 {t('sett_sign_out')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Save Success Modal */}
+      {successModal && (
+        <div className="location-modal-overlay" onClick={() => setSuccessModal(null)} style={{ zIndex: 3000 }}>
+          <div className="auth-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center', padding: '2.5rem 2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10B981', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                <Check size={32} />
+              </div>
+            </div>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '0.5rem', fontFamily: "'Outfit', sans-serif" }}>
+              {successModal.title}
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+              {successModal.message}
+            </p>
+            <button 
+              onClick={() => setSuccessModal(null)} 
+              className="btn-primary" 
+              style={{ width: '100%', padding: '0.85rem 1.5rem', borderRadius: '14px', fontWeight: 700, fontSize: '0.95rem' }}
+            >
+              Great
+            </button>
           </div>
         </div>
       )}

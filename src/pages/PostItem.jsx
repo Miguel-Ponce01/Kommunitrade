@@ -158,18 +158,23 @@ export default function PostItem() {
 
       setAnalysisProgress('Scan complete! Advancing to details...');
       setScanStep(4); // Success step
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise(r => setTimeout(r, 600));
 
-      // Automatically advance to Step 2
+      // Clear the overlay FIRST, then advance step so the dark overlay
+      // is fully removed before Step 2 paints (fixes blank black screen)
+      setIsAnalyzing(false);
+      setScanStep(0);
+      await new Promise(r => setTimeout(r, 80)); // flush React paint
       setCurrentStep(2);
 
     } catch (err) {
       console.error("Unified scan failed:", err);
       addLog(`Scan failed: ${err.message}`, "error");
-      setAnalysisProgress('Scan failed.');
-    } finally {
+      setAnalysisProgress('Scan failed. You can fill in details manually.');
       setIsAnalyzing(false);
       setScanStep(0);
+      // Advance to Step 2 even on failure so the user isn't stuck
+      setCurrentStep(2);
     }
   };
 
