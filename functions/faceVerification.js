@@ -30,7 +30,7 @@ const safeJsonParse = (text) => {
 };
 
 // ─── Configurable Gemini Model ───────────────────────────────────────────────
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 const GEMINI_URL = (key) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
@@ -46,9 +46,9 @@ async function verifyIdentityUnified({ idImage, selfieImage, geminiApiKey }) {
 
   const modelCandidates = [...new Set([
     GEMINI_MODEL,
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-pro'
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-flash-latest'
   ])];
 
   let response;

@@ -17,7 +17,7 @@ envContent.split('\n').forEach(line => {
 });
 
 const key = env.GEMINI_API_KEY;
-const model = env.GEMINI_MODEL || "gemini-2.0-flash";
+const model = env.GEMINI_MODEL || "gemini-2.5-flash";
 console.log(`Using model: ${model}`);
 console.log(`Using API key: ${key.substring(0, 10)}...`);
 const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
