@@ -1,7 +1,25 @@
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
-const key = process.env.GEMINI_API_KEY || "YOUR_GEMINI_API_KEY_HERE";
-const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+// Load functions/.env
+const envPath = path.join(__dirname, 'functions', '.env');
+const envContent = fs.readFileSync(envPath, 'utf8');
+const env = {};
+envContent.split('\n').forEach(line => {
+  const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+  if (match) {
+    let value = match[2] || '';
+    if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+    else if (value.startsWith("'") && value.endsWith("'")) value = value.slice(1, -1);
+    env[match[1]] = value.trim();
+  }
+});
+
+const key = env.GEMINI_API_KEY;
+const model = env.GEMINI_MODEL || "gemini-2.0-flash";
+console.log(`Using model: ${model}`);
+console.log(`Using API key: ${key.substring(0, 10)}...`);
 const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
 
 async function run() {

@@ -8,7 +8,9 @@
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "serve": "npm run serve --prefix functions"
+    "serve": "npm run serve --prefix functions",
+    "extract": "node C:\\Users\\MYPC\\.gemini\\antigravity-ide\\brain\\97ad6701-8965-4c9a-b59d-fe118a083443\\scratch\\extract_manuscript.js",
+    "test-gemini": "node test_gemini.js"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.28.0",
