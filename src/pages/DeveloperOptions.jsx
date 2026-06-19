@@ -228,12 +228,12 @@ export default function DeveloperOptions() {
     const services = [
       { id: "react", name: "Vite React Frontend", check: () => "OK" },
       { id: "firebase", name: "Firebase Auth & Firestore", check: () => "Connected" },
-      { id: "tensorflow", name: "TensorFlow.js MobileNet v2", check: () => "Model Active" },
-      { id: "tesseract", name: "Tesseract.js OCR", check: () => "Ready" },
+      { id: "tensorflow", name: "TensorFlow.js (Stubbed)", check: () => "Stubbed — Cloud AI handles analysis" },
+      { id: "tesseract", name: "Tesseract.js (Stubbed)", check: () => "Stubbed — Google Vision handles OCR" },
       { id: "google_vision", name: "Google Cloud Vision OCR", check: () => "API Connection Active" },
       { id: "roboflow", name: "Roboflow Workflows API", check: () => "Model Active (detect-and-classify)" },
-      { id: "gemini", name: "Google Gemini 1.5 Flash", check: () => "Biometric Endpoint Online" },
-      { id: "deepseek", name: "DeepSeek Chat Proxy", check: () => "Proxy Online" },
+      { id: "gemini", name: "Google Gemini 2.5 Flash", check: () => "Primary AI Endpoint Online" },
+      { id: "deepseek", name: "DeepSeek Chat API", check: () => "Deprecated — Replaced by Gemini" },
       { id: "geohash", name: "Geohash Proximity Engine", check: () => "BASE32 encoding active" },
       { id: "inverted_index", name: "In-Memory Inverted Index", check: () => "Index structures ready" }
     ];
@@ -575,9 +575,9 @@ export default function DeveloperOptions() {
                   <h4 style={{ margin: "0 0 0.75rem", fontWeight: 800, fontSize: "0.95rem", color: "var(--text-main)" }}>AI/ML Pipeline Stack</h4>
                   <ul style={{ margin: 0, padding: 0, listStyle: "none", fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                     <li>• <strong>Computer Vision:</strong> Roboflow Workflows Serverless API</li>
-                    <li>• <strong>Local Classifier:</strong> MobileNet v2 via TensorFlow.js CDN</li>
-                    <li>• <strong>OCR Extractor:</strong> Tesseract.js (Edge) + Google Vision API</li>
-                    <li>• <strong>LLM Suggestions:</strong> DeepSeek Chat + Google Gemini 1.5 Flash</li>
+                    <li>• <strong>Local Classifier:</strong> Stubbed — Cloud AI (Gemini 2.5 Flash + Roboflow)</li>
+                    <li>• <strong>OCR Extractor:</strong> Google Cloud Vision API (Server-side)</li>
+                    <li>• <strong>LLM Suggestions:</strong> Google Gemini 2.5 Flash (Primary Engine)</li>
                   </ul>
                 </div>
                 <div style={{ background: "var(--bg-main)", padding: "1.25rem", borderRadius: "14px", border: "1px solid var(--border-color)" }}>
@@ -616,12 +616,12 @@ export default function DeveloperOptions() {
                 {[
                   { id: "react", label: "React Frontend core", type: "Core App" },
                   { id: "firebase", label: "Cloud Firestore", type: "Storage & Sync" },
-                  { id: "tensorflow", label: "TensorFlow.js CDN", type: "Local Image Classifier" },
-                  { id: "tesseract", label: "Tesseract.js Engine", type: "Edge Local OCR" },
+                  { id: "tensorflow", label: "TensorFlow.js (Stubbed)", type: "Local Image Classifier" },
+                  { id: "tesseract", label: "Tesseract.js (Stubbed)", type: "Edge Local OCR" },
                   { id: "google_vision", label: "Google Cloud Vision", type: "Precision OCR API" },
                   { id: "roboflow", label: "Roboflow Workflows", type: "CNN Category Detector" },
-                  { id: "gemini", label: "Google Gemini 1.5", type: "Biometric Selfie API" },
-                  { id: "deepseek", label: "DeepSeek LLM Proxy", type: "Smart Suggestion Engine" },
+                  { id: "gemini", label: "Google Gemini 2.5 Flash", type: "Primary AI Engine" },
+                  { id: "deepseek", label: "DeepSeek (Deprecated)", type: "Replaced by Gemini" },
                   { id: "geohash", label: "Geohash Calculator", type: "Proximity Location API" },
                   { id: "inverted_index", label: "In-Memory Indexer", type: "Search Engine Core" }
                 ].map((serv) => {
@@ -656,15 +656,15 @@ export default function DeveloperOptions() {
                   {
                     num: "1",
                     title: "Automatically Classify Uploaded Items",
-                    tech: "Roboflow Workflow (Primary) + TensorFlow.js MobileNet v2 (Fallback)",
-                    desc: "Upload item photo -> parallel Roboflow category matching. If confidence is below 0.65, system falls back to lightweight MobileNet v2 classifier.",
+                    tech: "Roboflow Workflows (Primary) + Google Gemini 2.5 Flash (Fallback Parser)",
+                    desc: "Upload item photo → Roboflow serverless API runs category detection. If confidence is below 0.65, Gemini 2.5 Flash multimodal analysis determines the final category from the image itself.",
                     status: "Operational"
                   },
                   {
                     num: "2",
                     title: "Extract Text & Auto-Populate Details",
-                    tech: "Tesseract.js (Edge OCR) + Google Vision OCR + DeepSeek Chat API",
-                    desc: "Extracts receipt text, labels, or title keywords. The DeepSeek proxy formats details into suggested title, tags, description, and suggested pricing.",
+                    tech: "Google Cloud Vision OCR (Server-side) + Google Gemini 2.5 Flash (LLM Parser)",
+                    desc: "Google Vision extracts text labels and OCR strings from the item photo. Gemini 2.5 Flash then synthesizes the visual content, labels, and OCR into a structured title, category, tags, and suggested price.",
                     status: "Operational"
                   },
                   {
@@ -684,7 +684,7 @@ export default function DeveloperOptions() {
                   {
                     num: "5",
                     title: "Verify Seller Biometric Identity",
-                    tech: "Google Gemini 1.5 Flash Multimodal Endpoint",
+                    tech: "Google Gemini 2.5 Flash Multimodal Endpoint",
                     desc: "Compares government-issued ID card photo with face selfie inside Cloud Function proxy. Threshold set to >= 65% match similarity for verification badges.",
                     status: "Operational"
                   },

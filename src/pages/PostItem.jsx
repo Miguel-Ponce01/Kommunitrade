@@ -579,7 +579,7 @@ export default function PostItem() {
                 </div>
                 <div>
                   <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', fontWeight: 900 }}>Select Item Photos</h3>
-                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Upload up to 4 photos. On-device MobileNet AI will analyze content instantly.</p>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Upload up to 4 photos. Our cloud AI (Gemini 2.0 + Google Vision) will analyze content automatically.</p>
                 </div>
                 <button type="button" className="btn-primary" onClick={triggerFileInput} style={{ width: 'auto', padding: '0.75rem 2rem', borderRadius: '100px' }}>
                   Choose Files

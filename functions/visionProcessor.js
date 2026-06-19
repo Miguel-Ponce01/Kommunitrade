@@ -22,7 +22,7 @@ try {
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
 // Gemini API Configuration
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 // Extract top class and confidence recursively from Roboflow response
 function extractTopClass(obj) {
@@ -242,8 +242,8 @@ async function processImageWithVisionAndAI({ imageUrl, imageBuffer, userHint }) 
     
     // Valid model candidates only
     const modelCandidates = [
-      GEMINI_MODEL || 'gemini-2.0-flash',
-      'gemini-1.5-flash'
+      GEMINI_MODEL || 'gemini-2.5-flash',
+      'gemini-2.0-flash'
     ];
 
     let lastError = null;

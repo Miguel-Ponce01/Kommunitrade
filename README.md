@@ -27,9 +27,8 @@
    # Firebase Cloud Functions Environment variables
    RECAPTCHA_SECRET_KEY="your_recaptcha_key"
    GEMINI_API_KEY="your_gemini_api_key"
-   GEMINI_MODEL="gemini-3.5-flash"
+   GEMINI_MODEL="gemini-2.5-flash"
    GOOGLE_VISION_API_KEY="your_vision_api_key"
-   DEEPSEEK_API_KEY="your_deepseek_api_key"
    ROBOFLOW_API_KEY="your_roboflow_api_key"
    ```
 
