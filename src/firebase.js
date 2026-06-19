@@ -74,8 +74,8 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
 
-// Connect to Functions emulator in local development mode
-if (import.meta.env.DEV) {
+// Connect to Functions emulator in local development mode only if configured
+if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === "true") {
   connectFunctionsEmulator(functions, "localhost", 5001);
 }
 

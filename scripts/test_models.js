@@ -21,8 +21,7 @@ console.log("Using API Key:", apiKey.substring(0, 10) + "...");
 const models = [
   'gemini-1.5-flash',
   'gemini-2.0-flash',
-  'gemini-2.5-flash',
-  'gemini-3.5-flash'
+  'gemini-1.5-pro'
 ];
 
 async function testModel(model) {

@@ -90,6 +90,13 @@ export default function PostItem() {
       const listingId = `${currentUser.uid}_${Date.now()}`;
       const result = await processListingImage(file, listingId, category || null);
 
+      if (result?.apiHealth) {
+        const { googleVision, roboflow, gemini } = result.apiHealth;
+        addLog(`API Diagnostics: Vision [${googleVision}] • Roboflow [${roboflow}] • Gemini [${gemini}]`, "primary");
+        if (googleVision === 'FAILED') addLog(`Vision Err: ${result.apiHealth.googleVisionError || 'unknown'}`, "error");
+        if (gemini === 'FAILED') addLog(`Gemini Err: ${result.apiHealth.geminiError || 'unknown'}`, "error");
+      }
+
       if (result?.ocr?.success && result.ocr.text) {
         addLog(`Extracted text: ${result.ocr.text.substring(0, 30)}...`, "primary");
       }
@@ -177,6 +184,13 @@ export default function PostItem() {
       const listingId = `${currentUser.uid}_${Date.now()}`;
       // Use 'file' directly as it is already compressed from handleFileChange
       const result = await processListingImage(file, listingId, category || null);
+
+      if (result?.apiHealth) {
+        const { googleVision, roboflow, gemini } = result.apiHealth;
+        addLog(`API Diagnostics: Vision [${googleVision}] • Roboflow [${roboflow}] • Gemini [${gemini}]`, "primary");
+        if (googleVision === 'FAILED') addLog(`Vision Err: ${result.apiHealth.googleVisionError || 'unknown'}`, "error");
+        if (gemini === 'FAILED') addLog(`Gemini Err: ${result.apiHealth.geminiError || 'unknown'}`, "error");
+      }
 
       if (result?.ocr?.success && result.ocr.text) {
         addLog(`Extracted text: ${result.ocr.text.substring(0, 30)}...`, "primary");

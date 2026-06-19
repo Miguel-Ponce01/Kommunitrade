@@ -22,7 +22,7 @@ try {
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
 // Gemini API Configuration
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
 // Extract top class and confidence recursively from Roboflow response
 function extractTopClass(obj) {
@@ -76,7 +76,23 @@ function mapRoboflowCategory(className) {
   if (c.includes('waste') || c.includes('recycle') || c.includes('recyclable') || c.includes('scrap') || c.includes('carton') || c.includes('plastic') || c.includes('metal')) {
     return 'Waste';
   }
-  if (c.includes('food') || c.includes('drink') || c.includes('meal') || c.includes('fresh') || c.includes('bread') || c.includes('chicken') || c.includes('fruit') || c.includes('vegetable')) {
+  const foodKeywords = [
+    'food', 'drink', 'beverage', 'meal', 'fresh', 'bread', 'chicken', 'fruit', 'vegetable', 'vegetables',
+    'bouillon', 'garni', 'loaf', 'nut', 'nuts', 'baguette', 'croissant', 'chicory', 'cabbage', 'potato', 'potatoes',
+    'strawberry', 'strawberries', 'tart', 'apple', 'orange', 'banana', 'egg', 'beef', 'beer', 'butter', 'cheese',
+    'chocolate', 'coconut', 'corn', 'cucumber', 'eggplant', 'fish', 'garlic', 'pineapple', 'tomato', 'avocado',
+    'broccoli', 'cauliflower', 'durian', 'snack', 'candy', 'lechon', 'burger', 'sandwich', 'pizza', 'rice',
+    'noodle', 'pasta', 'soup', 'stew', 'milk', 'yogurt', 'cream', 'sauce', 'spices', 'herb', 'herbs', 'wine',
+    'cider', 'champagne', 'juice', 'tea', 'coffee', 'espresso', 'cookie', 'cookies', 'muffin', 'pastry',
+    'biscuit', 'pie', 'pudding', 'donut', 'bun', 'roll', 'ham', 'bacon', 'sausage', 'pork', 'turkey', 'duck',
+    'lamb', 'shrimp', 'crab', 'lobster', 'oyster', 'mussel', 'clam', 'squid', 'octopus', 'tuna', 'salmon',
+    'onion', 'ginger', 'chili', 'pear', 'peach', 'plum', 'cherry', 'grape', 'berry', 'berries', 'lemon', 'lime',
+    'mango', 'papaya', 'melon', 'watermelon', 'fig', 'date', 'apricot', 'raisin', 'currant', 'almond', 'walnut',
+    'pecan', 'cashew', 'pistachio', 'peanut', 'hazelnut', 'chestnut', 'bean', 'beans', 'pea', 'peas', 'lentil',
+    'tofu', 'soy', 'honey', 'maple', 'jam', 'jelly', 'marmalade', 'mustard', 'ketchup', 'mayonnaise', 'hummus',
+    'pesto', 'salsa', 'guacamole', 'curry', 'gravy', 'dressing', 'dip', 'spread', 'water', 'olive', 'olives'
+  ];
+  if (foodKeywords.some(kw => c.includes(kw))) {
     return 'Food';
   }
   if (c.includes('service') || c.includes('repair') || c.includes('plumb') || c.includes('clean') || c.includes('tutor') || c.includes('labor')) {
@@ -169,133 +185,125 @@ async function processImageWithVisionAndAI({ imageUrl, imageBuffer, userHint }) 
   }
 
   // 2. Call Google Cloud Vision and Roboflow in parallel
-  if (!visionClient) {
-    // Fallback if client isn't loaded
-    const visionApiKey = process.env.GOOGLE_VISION_API_KEY;
-    visionClient = visionApiKey 
-      ? new vision.ImageAnnotatorClient({ apiKey: visionApiKey })
-      : new vision.ImageAnnotatorClient();
-  }
+  let cnnDetections = [];
+  let ocrTexts = [];
+  let visionSuccess = false;
+  let visionError = null;
 
   logger.info("Executing Google Cloud Vision and Roboflow API calls...");
   const base64Image = processedBuffer.toString('base64');
-  const [labelResult, textResult, rfResult] = await Promise.all([
-    visionClient.labelDetection({ image: { content: base64Image } }),
-    visionClient.textDetection({ image: { content: base64Image } }),
+
+  const visionPromise = (async () => {
+    try {
+      if (!visionClient) {
+        // Fallback if client isn't loaded
+        const visionApiKey = process.env.GOOGLE_VISION_API_KEY;
+        visionClient = visionApiKey 
+          ? new vision.ImageAnnotatorClient({ apiKey: visionApiKey })
+          : new vision.ImageAnnotatorClient();
+      }
+      const [labelResult, textResult] = await Promise.all([
+        visionClient.labelDetection({ image: { content: base64Image } }),
+        visionClient.textDetection({ image: { content: base64Image } })
+      ]);
+
+      const labelAnnotations = labelResult[0]?.labelAnnotations || [];
+      cnnDetections = labelAnnotations.map(label => ({
+        label: label.description.toLowerCase(),
+        confidence: label.score,
+      }));
+
+      const textAnnotations = textResult[0]?.textAnnotations || [];
+      ocrTexts = textAnnotations.map(t => t.description);
+      visionSuccess = true;
+    } catch (visionErr) {
+      logger.warn("Google Cloud Vision API call failed, continuing with fallback path:", visionErr.message);
+      visionError = visionErr.message;
+      visionSuccess = false;
+    }
+  })();
+
+  const [_, rfResult] = await Promise.all([
+    visionPromise,
     callRoboflowCategoryDetector(base64Image, imageUrl)
   ]);
-
-  const labelAnnotations = labelResult[0]?.labelAnnotations || [];
-  const cnnDetections = labelAnnotations.map(label => ({
-    label: label.description.toLowerCase(),
-    confidence: label.score,
-  }));
-
-  const textAnnotations = textResult[0]?.textAnnotations || [];
-  const ocrTexts = textAnnotations.map(t => t.description);
 
   const topLabel = cnnDetections.length > 0 ? cnnDetections[0].label : "Unnamed Item";
   const ocrTextCombined = ocrTexts.length > 0 ? ocrTexts[0] : "";
 
-  // 3. Call DeepSeek API with Gemini Fallback
-  let aiResult;
-  let useGemini = false;
+  // 3. Call Google Gemini API directly as primary
+  let aiResult = null;
+  let geminiSuccess = false;
+  let geminiErrorMsg = null;
   const geminiApiKey = process.env.GEMINI_API_KEY;
 
-  if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY === "your_deepseek_key_here") {
-    logger.warn("DeepSeek API key is missing or default. Routing to Gemini fallback directly...");
-    useGemini = true;
-  }
+  if (geminiApiKey) {
+    const aiPrompt = buildAIPrompt(cnnDetections, ocrTexts, userHint);
+    
+    // Valid model candidates only
+    const modelCandidates = [
+      GEMINI_MODEL || 'gemini-2.0-flash',
+      'gemini-1.5-flash'
+    ];
 
-  if (!useGemini) {
-    try {
-      const aiPrompt = buildAIPrompt(cnnDetections, ocrTexts, userHint);
-      logger.info("Sending prompt to DeepSeek API...");
-      const deepseekResponse = await axios.post(
-        'https://api.deepseek.com/chat/completions',
-        {
-          model: 'deepseek-chat',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a precise listing intelligence agent. Output ONLY valid JSON.',
-            },
-            {
-              role: 'user',
-              content: aiPrompt,
-            },
-          ],
-          temperature: 0.3,
-          response_format: { type: 'json_object' }
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-            'Content-Type': 'application/json',
+    let lastError = null;
+    for (const model of modelCandidates) {
+      try {
+        logger.info(`Sending listing refinement prompt to Gemini (${model}) as primary parser...`);
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+
+        const response = await axios.post(
+          geminiUrl,
+          {
+            contents: [{
+              parts: [
+                { text: aiPrompt },
+                { inlineData: { mimeType: "image/jpeg", data: base64Image } }
+              ]
+            }],
+            generationConfig: {
+              responseMimeType: "application/json"
+            }
           },
-          timeout: 15000 // 15s timeout
+          { headers: { 'Content-Type': 'application/json' }, timeout: 20000 }
+        );
+
+        const raw = response.data.candidates[0].content.parts[0].text.trim();
+        let cleaned = raw;
+        if (cleaned.startsWith("```json")) {
+          cleaned = cleaned.replace(/^```json\n?/, "").replace(/```$/, "").trim();
+        } else if (cleaned.startsWith("```")) {
+          cleaned = cleaned.replace(/^```\n?/, "").replace(/```$/, "").trim();
         }
-      );
-
-      let content = deepseekResponse.data.choices[0].message.content.trim();
-      if (content.startsWith("```json")) {
-        content = content.replace(/^```json\n?/, "").replace(/```$/, "").trim();
-      } else if (content.startsWith("```")) {
-        content = content.replace(/^```\n?/, "").replace(/```$/, "").trim();
-      }
-
-      aiResult = JSON.parse(content);
-    } catch (dsError) {
-      logger.error("DeepSeek API call failed:", dsError.message);
-      if (dsError.response) {
-        logger.error(`DeepSeek returned status ${dsError.response.status}:`, dsError.response.data);
-      }
-      
-      if (geminiApiKey) {
-        logger.info(`Initiating fallback to Gemini (${GEMINI_MODEL})...`);
-        useGemini = true;
-      } else {
-        throw new Error(`DeepSeek failed and no GEMINI_API_KEY is available: ${dsError.message}`);
+        aiResult = JSON.parse(cleaned);
+        geminiSuccess = true;
+        break; // Success!
+      } catch (geminiError) {
+        logger.warn(`Gemini (${model}) call failed: ${geminiError.message}`);
+        lastError = geminiError;
       }
     }
+
+    if (!aiResult) {
+      logger.error("All Gemini model candidates failed.");
+      geminiErrorMsg = lastError ? lastError.message : "Gemini failed";
+    }
+  } else {
+    logger.warn("GEMINI_API_KEY is missing in backend environment.");
+    geminiErrorMsg = "GEMINI_API_KEY is missing";
   }
 
-  if (useGemini) {
-    if (!geminiApiKey) {
-      throw new Error("Both DeepSeek and Gemini API keys are un configured or failing.");
-    }
-    try {
-      logger.info(`Sending listing refinement prompt to Gemini (${GEMINI_MODEL})...`);
-      const aiPrompt = buildAIPrompt(cnnDetections, ocrTexts, userHint);
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`;
-
-      const response = await axios.post(
-        geminiUrl,
-        {
-          contents: [{
-            parts: [
-              { text: aiPrompt }
-            ]
-          }],
-          generationConfig: {
-            responseMimeType: "application/json"
-          }
-        },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-
-      const raw = response.data.candidates[0].content.parts[0].text.trim();
-      let cleaned = raw;
-      if (cleaned.startsWith("```json")) {
-        cleaned = cleaned.replace(/^```json\n?/, "").replace(/```$/, "").trim();
-      } else if (cleaned.startsWith("```")) {
-        cleaned = cleaned.replace(/^```\n?/, "").replace(/```$/, "").trim();
-      }
-      aiResult = JSON.parse(cleaned);
-    } catch (geminiError) {
-      logger.error(`Gemini (${GEMINI_MODEL}) fallback failed:`, geminiError.message);
-      throw new Error(`Listing analysis failed on both DeepSeek and Gemini: ${geminiError.message}`);
-    }
+  // Fallback defaults on AI failure
+  if (!aiResult) {
+    aiResult = {
+      title: topLabel || "Unnamed Item",
+      category: "Other",
+      subcategory: null,
+      confidence_notes: "AI analysis was unavailable.",
+      foodExpiryDays: null,
+      tags: cnnDetections.slice(0, 3).map(d => d.label) || [],
+      suggestedPrice: 0
+    };
   }
 
   let title = (aiResult && aiResult.title) || topLabel || "Unnamed Item";
@@ -323,12 +331,12 @@ async function processImageWithVisionAndAI({ imageUrl, imageBuffer, userHint }) 
   return {
     success: true,
     ocr: {
-      success: true,
+      success: visionSuccess,
       text: ocrTextCombined,
       confidence: 1.0
     },
     cnn: {
-      success: true,
+      success: visionSuccess,
       topPrediction: cnnDetections.length > 0 ? cnnDetections[0] : null,
       allPredictions: cnnDetections
     },
@@ -345,16 +353,24 @@ async function processImageWithVisionAndAI({ imageUrl, imageBuffer, userHint }) 
         suggestedPrice: (aiResult && Number(aiResult.suggestedPrice)) || 0,
         foodExpiryDays: (aiResult && aiResult.foodExpiryDays) || null
       }
+    },
+    apiHealth: {
+      googleVision: visionSuccess ? 'SUCCESS' : 'FAILED',
+      googleVisionError: visionError || null,
+      roboflow: rfResult ? 'SUCCESS' : 'FAILED',
+      gemini: geminiSuccess ? 'SUCCESS' : 'FAILED',
+      geminiError: geminiErrorMsg || null,
+      deepseek: 'DEPRECATED'
     }
   };
 }
 
 function buildAIPrompt(cnnDetections, ocrTexts, userHint) {
-  const cnnStr = JSON.stringify(cnnDetections.slice(0, 5));
-  const ocrStr = JSON.stringify(ocrTexts.slice(0, 20));
+  const cnnStr = cnnDetections && cnnDetections.length > 0 ? JSON.stringify(cnnDetections.slice(0, 5)) : 'None';
+  const ocrStr = ocrTexts && ocrTexts.length > 0 ? JSON.stringify(ocrTexts.slice(0, 20)) : 'None';
   const hintStr = userHint ? `User selected category hint: "${userHint}"` : '';
 
-  return `You are a Listing Intelligence Agent. Combine CNN labels and OCR text.
+  return `You are a Listing Intelligence Agent. Analyze the attached item image, along with any optional CNN labels and OCR text.
 
 CNN detections (label + confidence):
 ${cnnStr}
@@ -365,8 +381,8 @@ ${ocrStr}
 ${hintStr}
 
 Your task:
-1. Synthesize visual CNN descriptors and textual OCR elements to identify the specific item.
-2. In the "title", generate a clean, professional, and descriptive title (max 60 chars). Include key details like brand name, model, size, color if clear.
+1. Synthesize visual features of the item image, CNN labels, and OCR text to determine exactly what the item is.
+2. In the "title", generate a clean, professional, and descriptive title (max 60 chars). Include key details like brand name, model, size, color if clear from the image.
 3. Choose the most fitting category strictly from this list of database category IDs:
    - Electronic (Electronics, phones, computers, gadgets, TVs, keyboards, mouse, cameras, headsets, webcams)
    - House (Home decor, kitchenware, fans, refrigerators, microwaves, ovens, washing machines, home & living)
@@ -384,7 +400,7 @@ Your task:
 7. Generate 3 to 5 tags. Make sure the tags capture specific attributes like the brand, object name, color, and category.
 8. Provide a realistic suggested price in PHP (Philippine Pesos) if you can estimate it from the item name/brand/class. If not, default to 0.
 
-Output format:
+Output format (JSON):
 {
   "title": "string",
   "category": "Electronic|House|Books|Clothing|Food|Service|Furniture|Vehicles|Waste|Other",
@@ -395,10 +411,10 @@ Output format:
   "suggestedPrice": 0
 }
 
-
 Rules:
 - Max 5 tags.
-- No full sentences.
+- No full sentences in tags.
+- Output ONLY the raw JSON string structure, no markdown formatting.
 `;
 }
 

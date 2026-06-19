@@ -105,7 +105,7 @@ export default function GoogleMap({
         window.google.maps.event.removeListener(dragListener);
       };
     }
-  }, []);
+  }, [isMapLoaded]);
 
   // Update center/radius when props change
   useEffect(() => {

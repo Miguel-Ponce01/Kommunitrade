@@ -30,7 +30,7 @@ const safeJsonParse = (text) => {
 };
 
 // ─── Configurable Gemini Model ───────────────────────────────────────────────
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
 const GEMINI_URL = (key) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
@@ -44,58 +44,73 @@ async function verifyIdentityUnified({ idImage, selfieImage, geminiApiKey }) {
   const idMime        = getMime(idImage);
   const selfieMime    = getMime(selfieImage);
 
-  logger.info(`Sending unified verification prompt to Gemini (${GEMINI_MODEL})...`);
+  const modelCandidates = [
+    GEMINI_MODEL,
+    'gemini-1.5-flash',
+    'gemini-1.5-pro'
+  ];
 
   let response;
-  try {
-    response = await axios.post(
-      GEMINI_URL(geminiApiKey),
-      {
-        contents: [{
-          parts: [
-            {
-              text:
-                'You are an identity verification assistant. Analyze the two uploaded images:\n' +
-                'Image 1: A government-issued identity document.\n' +
-                'Image 2: A live user selfie.\n\n' +
-                'Tasks:\n' +
-                '1. Face Presence: Check if a face is clearly visible in both the ID card (Image 1) and the selfie (Image 2).\n' +
-                '2. Facial Similarity Assessment: Compare the facial features between the face in the ID card and the face in the selfie. Determine if they likely belong to the same person, and assign a similarity confidence score (0-100).\n' +
-                '3. Image Quality Assessment: Identify any heavy blur, excessive glare, cropping/cut-off edges, or severe darkness in either of the images.\n' +
-                '4. OCR Information Extraction: Extract the full name, ID number, and expiration date (if applicable) from the ID card (Image 1).\n\n' +
-                'Output MUST be a single, valid JSON object with the following exact keys:\n' +
-                '{\n' +
-                '  "verified": boolean (true only if faceMatch is true, idDetected is true, selfieDetected is true, confidence >= 80, and quality has no severe blur/darkness),\n' +
-                '  "confidence": number (similarity confidence score between 0 and 100),\n' +
-                '  "faceMatch": boolean (true if the faces belong to the same person based on facial similarity assessment),\n' +
-                '  "idDetected": boolean (true if a face is detected on the ID card),\n' +
-                '  "selfieDetected": boolean (true if a face is detected on the selfie),\n' +
-                '  "quality": {\n' +
-                '    "blur": boolean (true if either image is severely blurry),\n' +
-                '    "glare": boolean (true if either image has excessive glare),\n' +
-                '    "cropped": boolean (true if either image is cropped or cut off),\n' +
-                '    "dark": boolean (true if either image is too dark)\n' +
-                '  },\n' +
-                '  "reason": "a concise, detailed English sentence explaining the verification outcome (e.g. why it succeeded, or which specific quality/matching threshold failed)",\n' +
-                '  "extractedData": {\n' +
-                '    "fullName": "extracted full name, or null if not found",\n' +
-                '    "idNumber": "extracted ID number exactly as printed, or null if not found",\n' +
-                '    "expiryDate": "extracted expiry date in YYYY-MM-DD format, or null if not found/no expiry"\n' +
-                '  }\n' +
-                '}\n\n' +
-                'Do not include any markup other than the raw JSON.'
-            },
-            { inlineData: { mimeType: idMime,      data: cleanedId } },
-            { inlineData: { mimeType: selfieMime,   data: cleanedSelfie } }
-          ]
-        }],
-        generationConfig: {
-          responseMimeType: "application/json"
-        }
-      },
-      { headers: { 'Content-Type': 'application/json' }, timeout: 30000 }
-    );
-  } catch (err) {
+  let lastError = null;
+  for (const model of modelCandidates) {
+    try {
+      logger.info(`Sending unified verification prompt to Gemini (${model})...`);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+      response = await axios.post(
+        url,
+        {
+          contents: [{
+            parts: [
+              {
+                text:
+                  'You are an identity verification assistant. Analyze the two uploaded images:\n' +
+                  'Image 1: A government-issued identity document.\n' +
+                  'Image 2: A live user selfie.\n\n' +
+                  'Tasks:\n' +
+                  '1. Face Presence: Check if a face is clearly visible in both the ID card (Image 1) and the selfie (Image 2).\n' +
+                  '2. Facial Similarity Assessment: Compare the facial features between the face in the ID card and the face in the selfie. Determine if they likely belong to the same person, and assign a similarity confidence score (0-100).\n' +
+                  '3. Image Quality Assessment: Identify any heavy blur, excessive glare, cropping/cut-off edges, or severe darkness in either of the images.\n' +
+                  '4. OCR Information Extraction: Extract the full name, ID number, and expiration date (if applicable) from the ID card (Image 1).\n\n' +
+                  'Output MUST be a single, valid JSON object with the following exact keys:\n' +
+                  '{\n' +
+                  '  "verified": boolean (true only if faceMatch is true, idDetected is true, selfieDetected is true, confidence >= 80, and quality has no severe blur/darkness),\n' +
+                  '  "confidence": number (similarity confidence score between 0 and 100),\n' +
+                  '  "faceMatch": boolean (true if the faces belong to the same person based on facial similarity assessment),\n' +
+                  '  "idDetected": boolean (true if a face is detected on the ID card),\n' +
+                  '  "selfieDetected": boolean (true if a face is detected on the selfie),\n' +
+                  '  "quality": {\n' +
+                  '    "blur": boolean (true if either image is severely blurry),\n' +
+                  '    "glare": boolean (true if either image has excessive glare),\n' +
+                  '    "cropped": boolean (true if either image is cropped or cut off),\n' +
+                  '    "dark": boolean (true if either image is too dark)\n' +
+                  '  },\n' +
+                  '  "reason": "a concise, detailed English sentence explaining the verification outcome (e.g. why it succeeded, or which specific quality/matching threshold failed)",\n' +
+                  '  "extractedData": {\n' +
+                  '    "fullName": "extracted full name, or null if not found",\n' +
+                  '    "idNumber": "extracted ID number exactly as printed, or null if not found",\n' +
+                  '    "expiryDate": "extracted expiry date in YYYY-MM-DD format, or null if not found/no expiry"\n' +
+                  '  }\n' +
+                  '}\n\n' +
+                  'Do not include any markup other than the raw JSON.'
+              },
+              { inlineData: { mimeType: idMime,      data: cleanedId } },
+              { inlineData: { mimeType: selfieMime,   data: cleanedSelfie } }
+            ]
+          }],
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
+        },
+        { headers: { 'Content-Type': 'application/json' }, timeout: 30000 }
+      );
+      break; // Success!
+    } catch (err) {
+      logger.warn(`Gemini (${model}) verification call failed: ${err.message}`);
+      lastError = err;
+    }
+  }
+
+  if (!response) {
     try {
       const probe = await axios.get(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiApiKey}`);
       logger.info('Probe ListModels succeeded:', probe.data);
@@ -104,7 +119,7 @@ async function verifyIdentityUnified({ idImage, selfieImage, geminiApiKey }) {
       logger.error('Gemini key diagnostic failure:', probeDetails);
       throw new Error(`Gemini Key Diagnostic: ${probeDetails}`);
     }
-    const errorDetails = err.response?.data?.error?.message || err.message;
+    const errorDetails = lastError.response?.data?.error?.message || lastError.message;
     logger.error('Gemini unified verification API call failed:', errorDetails);
     throw new Error(`Gemini API Error: ${errorDetails}`);
   }

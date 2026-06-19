@@ -122,6 +122,13 @@ export default function EditItem() {
       addLog("Analyzing image content securely...", "primary");
       const result = await processListingImage(file, id, category || null);
       
+      if (result?.apiHealth) {
+        const { googleVision, roboflow, gemini } = result.apiHealth;
+        addLog(`API Diagnostics: Vision [${googleVision}] • Roboflow [${roboflow}] • Gemini [${gemini}]`, "primary");
+        if (googleVision === 'FAILED') addLog(`Vision Err: ${result.apiHealth.googleVisionError || 'unknown'}`, "error");
+        if (gemini === 'FAILED') addLog(`Gemini Err: ${result.apiHealth.geminiError || 'unknown'}`, "error");
+      }
+
       if (result?.ocr?.success && result.ocr.text) {
         addLog(`Extracted text: ${result.ocr.text.substring(0, 30)}...`, "primary");
         if (!description) {
