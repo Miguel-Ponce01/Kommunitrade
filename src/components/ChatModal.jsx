@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, User, Bot, AlertTriangle, ShieldCheck, Lock, Calendar, Clock, ShoppingBag, Check } from 'lucide-react';
+import { X, Send, User, Bot, AlertTriangle, ShieldCheck, Lock, Calendar, Clock, ShoppingBag, Check, XCircle, Info } from 'lucide-react';
 import { 
   db, 
   auth,
@@ -29,7 +29,12 @@ export default function ChatModal({ isOpen, onClose, item }) {
   const [reportReason, setReportReason] = useState('');
   const [showE2eeInfo, setShowE2eeInfo] = useState(false);
   const [peerFingerprint, setPeerFingerprint] = useState(null);
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
   const scrollRef = useRef(null);
+
+  const showAlert = (message, title = 'Notice', type = 'info') => {
+    setAlertModal({ isOpen: true, title, message, type });
+  };
 
   const currentUser = auth.currentUser;
 
@@ -266,10 +271,10 @@ export default function ChatModal({ isOpen, onClose, item }) {
 
       setIsReporting(false);
       setReportReason('');
-      alert("User has been reported to administration.");
+      showAlert('User has been reported to administration. Our team will review the case shortly.', 'Report Submitted', 'success');
     } catch (err) {
       console.error("Failed to report user:", err);
-      alert("Error reporting user.");
+      showAlert('Error reporting user. Please try again.', 'Error', 'error');
     }
   };
 
@@ -387,7 +392,7 @@ export default function ChatModal({ isOpen, onClose, item }) {
       setShowCheckout(false);
     } catch (err) {
       console.error("Failed to create agreement:", err);
-      alert("Error proposing transaction agreement.");
+      showAlert('Error proposing transaction agreement. Please try again.', 'Error', 'error');
     }
   };
 
@@ -434,7 +439,7 @@ export default function ChatModal({ isOpen, onClose, item }) {
       }
     } catch (err) {
       console.error("Failed to accept agreement:", err);
-      alert("Error confirming transaction.");
+      showAlert('Error confirming transaction. Please try again.', 'Error', 'error');
     }
   };
 
@@ -476,7 +481,7 @@ export default function ChatModal({ isOpen, onClose, item }) {
       }
     } catch (err) {
       console.error("Failed to decline agreement:", err);
-      alert("Error declining transaction.");
+      showAlert('Error declining transaction. Please try again.', 'Error', 'error');
     }
   };
 
@@ -1130,6 +1135,25 @@ export default function ChatModal({ isOpen, onClose, item }) {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Premium Alert Modal */}
+        {alertModal.isOpen && (
+          <div
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }}
+            onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+          >
+            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '2.5rem 2rem', width: '90%', maxWidth: '380px', textAlign: 'center', boxShadow: 'var(--shadow-premium)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'relative', zIndex: 1, width: '72px', height: '72px', borderRadius: '50%', background: alertModal.type === 'success' ? 'rgba(16,185,129,0.08)' : alertModal.type === 'error' ? 'rgba(239,68,68,0.08)' : 'rgba(59,130,246,0.08)', border: alertModal.type === 'success' ? '2px solid rgba(16,185,129,0.2)' : alertModal.type === 'error' ? '2px solid rgba(239,68,68,0.2)' : '2px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: alertModal.type === 'success' ? '#10B981' : alertModal.type === 'error' ? '#EF4444' : '#3B82F6' }}>
+                {alertModal.type === 'success' && <Check size={32} />}
+                {alertModal.type === 'error' && <XCircle size={32} />}
+                {alertModal.type === 'info' && <Info size={32} />}
+              </div>
+              <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.3rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '0.75rem' }}>{alertModal.title}</h3>
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2rem' }}>{alertModal.message}</p>
+              <button onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))} style={{ width: '100%', padding: '0.85rem', borderRadius: '100px', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', background: alertModal.type === 'error' ? '#EF4444' : 'var(--primary)', color: 'white', border: 'none' }}>Got it</button>
             </div>
           </div>
         )}

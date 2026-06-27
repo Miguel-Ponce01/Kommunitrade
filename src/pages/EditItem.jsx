@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Camera, Loader2, Save, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, Check, TrendingUp } from 'lucide-react';
+import { Camera, Loader2, Save, Sparkles, MapPin, Tag, Info, ShieldCheck, Terminal, Check, TrendingUp, XCircle, AlertTriangle } from 'lucide-react';
 import { MOCK_BARANGAYS, CATEGORIES } from '../data/mockData';
 import { db, storage, doc, getDoc, updateDoc } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from '../firebase';
@@ -19,6 +19,11 @@ export default function EditItem() {
   const [imageFile, setImageFile] = useState(null); // actual File for Storage upload
   const [isPublishing, setIsPublishing] = useState(false);
   const [debugLog, setDebugLog] = useState([]);
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+
+  const showAlert = (message, title = 'Notice', type = 'info') => {
+    setAlertModal({ isOpen: true, title, message, type });
+  };
   
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
@@ -53,7 +58,7 @@ export default function EditItem() {
           
           // Permission check
           if (currentUser.uid !== data.sellerId) {
-            alert("You don't have permission to edit this listing.");
+            showAlert("You don't have permission to edit this listing.", 'Access Denied', 'error');
             navigate('/app/profile');
             return;
           }
@@ -69,12 +74,12 @@ export default function EditItem() {
           setOriginalImageUrl(data.imageUrl || null);
           if (data.timeMark) setTimeMark(data.timeMark);
         } else {
-          alert("Listing not found.");
+          showAlert('Listing not found. It may have been removed.', 'Not Found', 'error');
           navigate('/app/profile');
         }
       } catch (err) {
         console.error("Fetch Error:", err);
-        alert("Failed to load listing.");
+        showAlert('Failed to load listing. Please check your connection.', 'Error', 'error');
         navigate('/app/profile');
       }
     }
@@ -212,7 +217,7 @@ export default function EditItem() {
   const handleSubmit = async (e) => {
     e?.preventDefault();
     if (!title || !price || !category || !barangay) {
-      alert("Please fill out the required fields!");
+      showAlert('Please fill out the required fields: Title, Category, Price, and Barangay.', 'Validation Error', 'error');
       return;
     }
 
@@ -265,12 +270,12 @@ export default function EditItem() {
 
       await updateDoc(listingRef, updateData);
 
-      alert("Listing updated successfully!");
+      showAlert('Listing updated successfully! Redirecting to your profile...', 'Success', 'success');
       navigate('/app/profile');
     } catch (error) {
       console.error("Update Error:", error);
       addLog(`Error: ${error.message}`, "error");
-      alert("Update Error. Check connection or Storage rules.");
+      showAlert('Update failed. Please check your connection or storage rules.', 'Error', 'error');
     } finally {
       setIsPublishing(false);
     }
@@ -621,6 +626,25 @@ export default function EditItem() {
           )}
         </div>
       </form>
+      {/* Premium Alert Modal */}
+      {alertModal.isOpen && (
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, animation: 'fadeIn 0.2s ease' }}
+          onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '2.5rem 2rem', width: '90%', maxWidth: '400px', textAlign: 'center', boxShadow: 'var(--shadow-premium)', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: '-15%', left: '50%', transform: 'translateX(-50%)', width: '200px', height: '200px', background: alertModal.type === 'success' ? 'radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)' : alertModal.type === 'error' ? 'radial-gradient(circle, rgba(239,68,68,0.12) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)', zIndex: 0, pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', zIndex: 1, width: '72px', height: '72px', borderRadius: '50%', background: alertModal.type === 'success' ? 'rgba(16,185,129,0.08)' : alertModal.type === 'error' ? 'rgba(239,68,68,0.08)' : 'rgba(59,130,246,0.08)', border: alertModal.type === 'success' ? '2px solid rgba(16,185,129,0.2)' : alertModal.type === 'error' ? '2px solid rgba(239,68,68,0.2)' : '2px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: alertModal.type === 'success' ? '#10B981' : alertModal.type === 'error' ? '#EF4444' : '#3B82F6' }}>
+              {alertModal.type === 'success' && <Check size={32} />}
+              {alertModal.type === 'error' && <XCircle size={32} />}
+              {alertModal.type === 'info' && <Info size={32} />}
+            </div>
+            <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.4rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '0.75rem', position: 'relative', zIndex: 1 }}>{alertModal.title}</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2rem', position: 'relative', zIndex: 1 }}>{alertModal.message}</p>
+            <button className="btn-primary" onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))} style={{ width: '100%', padding: '0.85rem', borderRadius: '100px', fontWeight: 700, fontSize: '0.95rem', position: 'relative', zIndex: 1, cursor: 'pointer', background: alertModal.type === 'error' ? '#EF4444' : 'var(--primary)', color: 'white', border: 'none' }}>Got it</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

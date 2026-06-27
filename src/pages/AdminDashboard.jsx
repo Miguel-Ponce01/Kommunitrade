@@ -22,7 +22,8 @@ import {
   X,
   Info,
   Check,
-  AlertCircle
+  AlertCircle,
+  XCircle
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { db, collection, getDocs, doc, deleteDoc, updateDoc, addDoc, serverTimestamp, query, where } from "../firebase";
@@ -54,6 +55,18 @@ export default function AdminDashboard() {
 
   // Transaction Audit Modal State
   const [viewingTx, setViewingTx] = useState(null);
+
+  // Alert / Confirm Modal State
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+
+  const showAlert = (message, title = 'Notice', type = 'info') => {
+    setAlertModal({ isOpen: true, title, message, type });
+  };
+
+  const showConfirm = (message, title = 'Confirm Action', onConfirm) => {
+    setConfirmModal({ isOpen: true, title, message, onConfirm });
+  };
 
   // Security Check: Redirect non-admins
   useEffect(() => {
@@ -179,7 +192,7 @@ export default function AdminDashboard() {
       // Refresh data to show new log in tab
       fetchData();
     } catch (e) {
-      alert("Failed to update verification: " + e.message);
+      showAlert('Failed to update verification: ' + e.message, 'Error', 'error');
     }
   };
 
@@ -212,10 +225,10 @@ export default function AdminDashboard() {
       
       setShowAdjustTrustModal(false);
       setAdjustingUser(null);
-      alert("Trust score adjusted and log recorded successfully.");
+      showAlert('Trust score adjusted and activity log recorded successfully.', 'Score Updated', 'success');
     } catch (err) {
       console.error("Adjustment failed:", err);
-      alert("Failed to adjust trust score: " + err.message);
+      showAlert('Failed to adjust trust score: ' + err.message, 'Error', 'error');
     } finally {
       setSubmittingAdjust(false);
     }
@@ -229,165 +242,175 @@ export default function AdminDashboard() {
       await updateDoc(userRef, { trustScore: nextScore });
       setUsersList(usersList.map(u => u.id === targetUser.id ? { ...u, trustScore: nextScore } : u));
     } catch (e) {
-      alert("Failed to update trust score: " + e.message);
+      showAlert('Failed to update trust score: ' + e.message, 'Error', 'error');
     }
   };
 
   // Delete User Profile
   const handleDeleteUser = async (targetUserId) => {
     if (targetUserId === userProfile?.uid) {
-      alert("You cannot delete your own admin account.");
+      showAlert('You cannot delete your own admin account.', 'Restricted Action', 'error');
       return;
     }
-    if (!window.confirm("Are you sure you want to delete this user profile? This action is permanent.")) return;
-
-    try {
-      await deleteDoc(doc(db, "users", targetUserId));
-      setUsersList(usersList.filter(u => u.id !== targetUserId));
-    } catch (e) {
-      alert("Failed to delete user document: " + e.message);
-    }
+    showConfirm(
+      'Are you sure you want to delete this user profile? This action is permanent and cannot be undone.',
+      'Delete User Profile',
+      async () => {
+        try {
+          await deleteDoc(doc(db, "users", targetUserId));
+          setUsersList(usersList.filter(u => u.id !== targetUserId));
+        } catch (e) {
+          showAlert('Failed to delete user document: ' + e.message, 'Error', 'error');
+        }
+      }
+    );
   };
 
   // Delete Listing
   const handleDeleteListing = async (listingId) => {
-    if (!window.confirm("Are you sure you want to delete this listing? This action is permanent.")) return;
-
-    try {
-      await deleteDoc(doc(db, "listings", listingId));
-      setListingsList(listingsList.filter(l => l.id !== listingId));
-    } catch (e) {
-      alert("Failed to delete listing: " + e.message);
-    }
+    showConfirm(
+      'Are you sure you want to delete this listing? This action is permanent.',
+      'Delete Listing',
+      async () => {
+        try {
+          await deleteDoc(doc(db, "listings", listingId));
+          setListingsList(listingsList.filter(l => l.id !== listingId));
+        } catch (e) {
+          showAlert('Failed to delete listing: ' + e.message, 'Error', 'error');
+        }
+      }
+    );
   };
 
   // Delete Feedback
   const handleDeleteFeedback = async (feedbackId) => {
-    if (!window.confirm("Are you sure you want to delete this feedback? This action is permanent.")) return;
-
-    try {
-      await deleteDoc(doc(db, "feedback", feedbackId));
-      setFeedbackList(feedbackList.filter(f => f.id !== feedbackId));
-    } catch (e) {
-      alert("Failed to delete feedback: " + e.message);
-    }
+    showConfirm(
+      'Are you sure you want to delete this feedback? This action is permanent.',
+      'Delete Feedback',
+      async () => {
+        try {
+          await deleteDoc(doc(db, "feedback", feedbackId));
+          setFeedbackList(feedbackList.filter(f => f.id !== feedbackId));
+        } catch (e) {
+          showAlert('Failed to delete feedback: ' + e.message, 'Error', 'error');
+        }
+      }
+    );
   };
 
   // Dismiss Report
   const handleDismissReport = async (reportId) => {
-    if (!window.confirm("Are you sure you want to dismiss this report?")) return;
-    try {
-      await deleteDoc(doc(db, "reports", reportId));
-      setReportsList(reportsList.filter(r => r.id !== reportId));
-    } catch (e) {
-      alert("Failed to dismiss report: " + e.message);
-    }
+    showConfirm(
+      'Are you sure you want to dismiss this report?',
+      'Dismiss Report',
+      async () => {
+        try {
+          await deleteDoc(doc(db, "reports", reportId));
+          setReportsList(reportsList.filter(r => r.id !== reportId));
+        } catch (e) {
+          showAlert('Failed to dismiss report: ' + e.message, 'Error', 'error');
+        }
+      }
+    );
   };
 
   // Dismiss Dispute
   const handleDismissDispute = async (dispute) => {
-    if (!window.confirm("Are you sure you want to dismiss this dispute? This will clear the dispute flag from the transaction.")) return;
-    try {
-      await deleteDoc(doc(db, "disputes", dispute.id));
-      
-      const txRef = doc(db, "transactions", dispute.transactionId);
-      await updateDoc(txRef, {
-        disputed: false,
-        disputeReason: ""
-      });
-      
-      setDisputesList(disputesList.filter(d => d.id !== dispute.id));
-      setTransactionsList(transactionsList.map(t => 
-        t.id === dispute.transactionId 
-          ? { ...t, disputed: false, disputeReason: "" } 
-          : t
-      ));
-      
-      alert("Dispute dismissed successfully.");
-    } catch (e) {
-      alert("Failed to dismiss dispute: " + e.message);
-    }
+    showConfirm(
+      'Are you sure you want to dismiss this dispute? This will clear the dispute flag from the transaction.',
+      'Dismiss Dispute',
+      async () => {
+        try {
+          await deleteDoc(doc(db, "disputes", dispute.id));
+          const txRef = doc(db, "transactions", dispute.transactionId);
+          await updateDoc(txRef, { disputed: false, disputeReason: "" });
+          setDisputesList(disputesList.filter(d => d.id !== dispute.id));
+          setTransactionsList(transactionsList.map(t =>
+            t.id === dispute.transactionId ? { ...t, disputed: false, disputeReason: "" } : t
+          ));
+          showAlert('Dispute dismissed successfully.', 'Dismissed', 'success');
+        } catch (e) {
+          showAlert('Failed to dismiss dispute: ' + e.message, 'Error', 'error');
+        }
+      }
+    );
   };
 
   // Uphold Dispute & Penalty
   const handleUpholdDispute = async (dispute) => {
-    if (!window.confirm("Are you sure you want to uphold this dispute? This will cancel the transaction, penalize the offender by -15% trust, write a trust log, and remove this dispute.")) return;
-    try {
-      // 1. Cancel transaction
-      const txRef = doc(db, "transactions", dispute.transactionId);
-      await updateDoc(txRef, {
-        status: "Cancelled",
-        disputed: true,
-        disputeReason: `Dispute upheld: ${dispute.reason}`
-      });
+    showConfirm(
+      'Are you sure you want to uphold this dispute? This will cancel the transaction, penalize the offender by -15 trust points, write a trust log, and remove this dispute.',
+      'Uphold Dispute',
+      async () => {
+        try {
+          const txRef = doc(db, "transactions", dispute.transactionId);
+          await updateDoc(txRef, {
+            status: "Cancelled",
+            disputed: true,
+            disputeReason: `Dispute upheld: ${dispute.reason}`
+          });
 
-      // 2. Penalize reported user (offender) by 15%
-      const offenderId = dispute.reportedUserId;
-      let currentScore = 100;
-      const offenderInList = usersList.find(u => u.id === offenderId);
-      if (offenderInList) {
-        currentScore = offenderInList.trustScore ?? 100;
+          const offenderId = dispute.reportedUserId;
+          let currentScore = 100;
+          const offenderInList = usersList.find(u => u.id === offenderId);
+          if (offenderInList) {
+            currentScore = offenderInList.trustScore ?? 100;
+          }
+          const nextScore = Math.max(0, currentScore - 15);
+          const offenderRef = doc(db, "users", offenderId);
+          await updateDoc(offenderRef, { trustScore: nextScore });
+
+          let ruleApplied = "Rule 101: General Conduct";
+          if (dispute.reason?.includes("303") || dispute.reason?.includes("Reliability")) ruleApplied = "Rule 303: Meetup Reliability";
+          else if (dispute.reason?.includes("202") || dispute.reason?.includes("Accuracy")) ruleApplied = "Rule 202: Listing Accuracy";
+          else if (dispute.reason?.includes("404") || dispute.reason?.includes("Authenticity")) ruleApplied = "Rule 404: Financial Authenticity";
+
+          await addDoc(collection(db, "trust_logs"), {
+            userId: offenderId,
+            change: -15,
+            newScore: nextScore,
+            event: "Dispute Penalty",
+            ruleApplied: ruleApplied,
+            reason: `Dispute upheld by admin: ${dispute.comments || dispute.reason}`,
+            timestamp: serverTimestamp()
+          });
+
+          await deleteDoc(doc(db, "disputes", dispute.id));
+
+          setDisputesList(disputesList.filter(d => d.id !== dispute.id));
+          setTransactionsList(transactionsList.map(t =>
+            t.id === dispute.transactionId
+              ? { ...t, status: "Cancelled", disputed: true, disputeReason: `Dispute upheld: ${dispute.reason}` }
+              : t
+          ));
+          setUsersList(usersList.map(u => u.id === offenderId ? { ...u, trustScore: nextScore } : u));
+
+          showAlert('Dispute upheld. Transaction cancelled and offender penalized with -15 trust points.', 'Dispute Upheld', 'success');
+        } catch (e) {
+          showAlert('Failed to uphold dispute: ' + e.message, 'Error', 'error');
+        }
       }
-      const nextScore = Math.max(0, currentScore - 15);
-      
-      const offenderRef = doc(db, "users", offenderId);
-      await updateDoc(offenderRef, {
-        trustScore: nextScore
-      });
-
-      // 3. Write trust log
-      let ruleApplied = "Rule 101: General Conduct";
-      if (dispute.reason?.includes("303") || dispute.reason?.includes("Reliability")) {
-        ruleApplied = "Rule 303: Meetup Reliability";
-      } else if (dispute.reason?.includes("202") || dispute.reason?.includes("Accuracy")) {
-        ruleApplied = "Rule 202: Listing Accuracy";
-      } else if (dispute.reason?.includes("404") || dispute.reason?.includes("Authenticity")) {
-        ruleApplied = "Rule 404: Financial Authenticity";
-      }
-
-      await addDoc(collection(db, "trust_logs"), {
-        userId: offenderId,
-        change: -15,
-        newScore: nextScore,
-        event: "Dispute Penalty",
-        ruleApplied: ruleApplied,
-        reason: `Dispute upheld by admin: ${dispute.comments || dispute.reason}`,
-        timestamp: serverTimestamp()
-      });
-
-      // 4. Delete dispute doc
-      await deleteDoc(doc(db, "disputes", dispute.id));
-
-      // Update states
-      setDisputesList(disputesList.filter(d => d.id !== dispute.id));
-      setTransactionsList(transactionsList.map(t => 
-        t.id === dispute.transactionId 
-          ? { ...t, status: "Cancelled", disputed: true, disputeReason: `Dispute upheld: ${dispute.reason}` } 
-          : t
-      ));
-      setUsersList(usersList.map(u => u.id === offenderId ? { ...u, trustScore: nextScore } : u));
-
-      alert("Dispute upheld successfully. Transaction cancelled and offender penalized.");
-    } catch (e) {
-      alert("Failed to uphold dispute: " + e.message);
-    }
+    );
   };
 
   // Cancel Transaction
   const handleCancelTransaction = async (txId) => {
-    if (!window.confirm("Are you sure you want to cancel this transaction agreement?")) return;
-    try {
-      const txRef = doc(db, "transactions", txId);
-      await updateDoc(txRef, {
-        status: "Cancelled"
-      });
-      setTransactionsList(transactionsList.map(t => 
-        t.id === txId ? { ...t, status: "Cancelled" } : t
-      ));
-      alert("Transaction cancelled successfully.");
-    } catch (e) {
-      alert("Failed to cancel transaction: " + e.message);
-    }
+    showConfirm(
+      'Are you sure you want to cancel this transaction agreement?',
+      'Cancel Transaction',
+      async () => {
+        try {
+          const txRef = doc(db, "transactions", txId);
+          await updateDoc(txRef, { status: "Cancelled" });
+          setTransactionsList(transactionsList.map(t =>
+            t.id === txId ? { ...t, status: "Cancelled" } : t
+          ));
+          showAlert('Transaction cancelled successfully.', 'Cancelled', 'info');
+        } catch (e) {
+          showAlert('Failed to cancel transaction: ' + e.message, 'Error', 'error');
+        }
+      }
+    );
   };
 
   const handleAuditDisputeReceipt = (dispute) => {
@@ -1607,6 +1630,46 @@ export default function AdminDashboard() {
               <button onClick={() => setViewingTx(null)} className="btn-secondary" style={{ padding: "0.5rem 1.25rem", borderRadius: "10px", fontWeight: 700 }}>
                 Close Audit Log
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Alert Modal */}
+      {alertModal.isOpen && (
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, animation: 'fadeIn 0.2s ease' }}
+          onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '2.5rem 2rem', width: '90%', maxWidth: '400px', textAlign: 'center', boxShadow: 'var(--shadow-premium)', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: '-15%', left: '50%', transform: 'translateX(-50%)', width: '200px', height: '200px', background: alertModal.type === 'success' ? 'radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)' : alertModal.type === 'error' ? 'radial-gradient(circle, rgba(239,68,68,0.12) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)', zIndex: 0, pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', zIndex: 1, width: '72px', height: '72px', borderRadius: '50%', background: alertModal.type === 'success' ? 'rgba(16,185,129,0.08)' : alertModal.type === 'error' ? 'rgba(239,68,68,0.08)' : 'rgba(59,130,246,0.08)', border: alertModal.type === 'success' ? '2px solid rgba(16,185,129,0.2)' : alertModal.type === 'error' ? '2px solid rgba(239,68,68,0.2)' : '2px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: alertModal.type === 'success' ? '#10B981' : alertModal.type === 'error' ? '#EF4444' : '#3B82F6' }}>
+              {alertModal.type === 'success' && <Check size={32} />}
+              {alertModal.type === 'error' && <XCircle size={32} />}
+              {alertModal.type === 'info' && <Info size={32} />}
+            </div>
+            <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.4rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '0.75rem', position: 'relative', zIndex: 1 }}>{alertModal.title}</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2rem', position: 'relative', zIndex: 1 }}>{alertModal.message}</p>
+            <button onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))} style={{ width: '100%', padding: '0.85rem', borderRadius: '100px', fontWeight: 700, fontSize: '0.95rem', position: 'relative', zIndex: 1, cursor: 'pointer', background: alertModal.type === 'error' ? '#EF4444' : 'var(--primary)', color: 'white', border: 'none' }}>Got it</button>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Confirm Modal */}
+      {confirmModal.isOpen && (
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}
+          onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '2.5rem 2rem', width: '90%', maxWidth: '400px', textAlign: 'center', boxShadow: 'var(--shadow-premium)' }}>
+            <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(239,68,68,0.08)', border: '2px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: '#EF4444' }}>
+              <AlertTriangle size={30} />
+            </div>
+            <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.4rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '0.75rem' }}>{confirmModal.title}</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2rem' }}>{confirmModal.message}</p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} className="btn-secondary" style={{ flex: 1, padding: '0.8rem', borderRadius: '12px', fontWeight: 700 }}>Cancel</button>
+              <button onClick={() => { setConfirmModal(prev => ({ ...prev, isOpen: false })); if (confirmModal.onConfirm) confirmModal.onConfirm(); }} style={{ flex: 1, padding: '0.8rem', borderRadius: '12px', background: '#EF4444', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer' }}>Confirm</button>
             </div>
           </div>
         </div>

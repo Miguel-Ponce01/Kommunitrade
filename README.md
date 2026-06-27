@@ -81,9 +81,7 @@
 
 # 1. EXECUTIVE SUMMARY
 
-KomuniTrade is a web-based hyperlocal marketplace system that leverages Artificial Intelligence to automate listing creation and enhance local buying and selling experiences within barangays and communities in the Philippines.
-
-Core Purpose: To enable safe, efficient, and intelligent peer-to-peer commerce within immediate geographic communities while addressing the limitations of existing platforms like Facebook Marketplace—specifically geographically irrelevant listings, manual listing creation, and fraudulent transactions.
+![alt text](image.png)
 
 ---
 
@@ -130,7 +128,7 @@ KomuniTrade provides a secure, intelligent, hyperlocal marketplace where:
 | 5 | Verify seller identity by comparing government ID and selfie images | Google Gemini 2.5 Flash multimodal API (Cloud Function, confidence threshold ≥ 80%) |
 | 6 | Provide authenticated access, listing management, and transaction tracking | Firebase Auth + Cloud Firestore + Storage |
 | 7 | Evaluate model performance | Accuracy, Precision, Recall, F1-Score |
-| 8 | Evaluate system usability | UAT, SUS, ISO/IEC 25010 standards |
+| 8 | Evaluate system usability | UAT, SUS surveys |
 
 ---
 
@@ -591,7 +589,6 @@ Level 1: KomuniTrade System Development
 |--------|---------|
 | User Acceptance Testing (UAT) | Validate functional requirements with end-users |
 | System Usability Scale (SUS) | Measure perceived usability (0-100 scale) |
-| ISO/IEC 25010 | Evaluate quality characteristics |
 | Task Completion Rate | Measure efficiency of core workflows |
 | Error Rate Analysis | Identify usability issues |
 
@@ -815,7 +812,6 @@ Stores reports submitted by users to flag bad actors during a chat.
 | June 20, 2026 | 12:11 AM | **Bug Fix — GoogleMap Blank Black Screen (Step 3 — Location & Publish)**: Fixed a runtime `TypeError: window.google.maps.Map is not a constructor` crash that rendered a blank black screen when advancing to the Location & Publish step in the listing wizard. Root cause: Google Identity Services (Sign-in SDK) initializes the global `window.google` object before the Google Maps API script finishes loading. The `GoogleMap.jsx` component was prematurely checking only `window.google` and calling `new window.google.maps.Map()` before `window.google.maps` was available. Fixed by strengthening all `useEffect` guards in `GoogleMap.jsx` to require both `window.google && window.google.maps` before proceeding. |
 | June 20, 2026 | 12:11 AM | **Bug Fix — Firestore Notifications Index**: Identified a missing Firestore composite index on the `notifications` collection (composite on `userId ASC`, `createdAt DESC`) causing a `FirebaseError: The query requires an index` on the live deployment. The Firestore Console link to auto-create the index is included in the error log. |
 | June 19, 2026 | 11:56 PM | **Documentation — Source Code Snippets Appendix (Appendix E)**: Created `SOURCE_CODE_SNIPPETS.md` documenting the exact implementation snippets for the 4 core algorithmic modules: CNN Classification (`mapRoboflowCategory` + `callRoboflowCategoryDetector`), OCR Extraction (Google Vision parallel label + text detection), Geohash Filtering (`encodeGeohash` + `getGeohashNeighbors`), and Facial Verification (`verifyIdentityUnified` Gemini multimodal pipeline). |
-| June 19, 2026 | 11:39 PM | **Documentation — ISO/IEC 25010 Quality Evaluation & SUS Results**: Created `ISO_25010_EVALUATION.md` documenting the ISO/IEC 25010 software quality evaluation results (Grand Mean: 4.74/5.00 — Outstanding) across all 8 quality characteristics evaluated by 5 IT Experts and 30 End-Users, plus the System Usability Scale (SUS) score of 84.50/100 (Grade: A — Excellent). |
 | June 19, 2026 | 11:29 PM | **Documentation — Functional Testing Appendix (Appendix D)**: Created `TESTING_DOCUMENTATION.md` covering 14 functional test cases (TC-001 to TC-014), real-time JSON execution logs for 8 core features (Registration, Image Upload, OCR, Listing Creation, Geohash Filtering, Chat, Facial Verification, Transaction Receipt), and the defect log (BUG-001 to BUG-003). |
 | June 19, 2026 | 03:27 PM | **Documentation — Model Performance Appendix (Appendix C)**: Created `MODEL_PERFORMANCE.md` with full classification metrics (Precision, Recall, F1-Score) per category, generated confusion matrix heatmap, precision-recall curves, and training history convergence chart. |
 | June 19, 2026 | 02:30 PM | **AI Pipeline Upgrade — Gemini 2.5 Flash**: Migrated both the listing intelligence agent (`visionProcessor.js`) and the identity verification module (`faceVerification.js`) from legacy model references to `gemini-2.5-flash` with a model candidate fallback list (`gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemini-flash-latest`). Listing intelligence now generates structured JSON (title, category, subcategory, confidence_notes, foodExpiryDays, tags, suggestedPrice). Verification confidence threshold raised to ≥ 80%. |
@@ -879,8 +875,7 @@ KomuniTrade/
 ├── DATABASE_DRAFT.md             # PostgreSQL relational schema comparison & migration DDL
 ├── MODEL_PERFORMANCE.md          # Appendix C — CNN classification metrics & performance charts
 ├── TESTING_DOCUMENTATION.md      # Appendix D — 14 functional test cases & execution logs
-├── ISO_25010_EVALUATION.md       # Appendix E — ISO/IEC 25010 quality evaluation results (4.74/5.00)
-├── SOURCE_CODE_SNIPPETS.md       # Appendix F — Core algorithmic module source code snippets
+├── SOURCE_CODE_SNIPPETS.md       # Appendix E — Core algorithmic module source code snippets
 ├── README.md                     # Main system documentation & manuscript guide
 ├── firebase.json                 # Firebase CLI deployment specifications
 ├── firestore.rules               # Firestore granular security & role rules

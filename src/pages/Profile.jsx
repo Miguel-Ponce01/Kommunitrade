@@ -19,7 +19,10 @@ import {
   Star,
   Shield,
   MessageCircle,
-  LogOut
+  LogOut,
+  Check,
+  AlertTriangle,
+  Info
 } from 'lucide-react';
 import ItemCard from '../components/ItemCard';
 import { db, auth, collection, query, where, onSnapshot, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from '../firebase';
@@ -32,6 +35,13 @@ export default function Profile() {
   const location = useLocation();
   const { lang, setLang, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('inventory');
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '', type: 'info', onClose: null });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+
+  const showAlert = (message, title = 'Notice', type = 'info', onClose = null) => {
+    setAlertModal({ isOpen: true, title, message, type, onClose });
+  };
+
   const queryParams = new URLSearchParams(location.search);
   const uidParam = queryParams.get('uid');
   const { currentUser, logout } = useAuth();
@@ -337,24 +347,30 @@ export default function Profile() {
       const listingRef = doc(db, 'listings', selectedListingForTransaction.id);
       await updateDoc(listingRef, { isSold: true });
 
-      alert("Transaction recorded successfully!");
+      showAlert('Transaction recorded successfully! The listing has been marked as sold.', 'Sale Recorded', 'success');
       setShowTransactionModal(false);
       setSelectedListingForTransaction(null);
     } catch (error) {
       console.error("Error recording transaction:", error);
-      alert("Failed to record transaction.");
+      showAlert('Failed to record transaction. Please check your connection and try again.', 'Error', 'error');
     }
   };
 
   const handleDelete = async (e, id) => {
     e.stopPropagation();
-    if (!window.confirm(t('prof_del_confirm'))) return;
-    
-    try {
-      await deleteDoc(doc(db, 'listings', id));
-    } catch (error) {
-      console.error("Delete Error:", error);
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Listing',
+      message: 'Are you sure you want to delete this listing? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'listings', id));
+        } catch (error) {
+          console.error('Delete Error:', error);
+          showAlert('Failed to delete listing. Please try again.', 'Error', 'error');
+        }
+      }
+    });
   };
 
   const handleShare = async () => {
@@ -368,7 +384,7 @@ export default function Profile() {
         });
       } else {
         await navigator.clipboard.writeText(shareUrl);
-        alert(t('prof_share_msg'));
+        showAlert('Profile link copied to clipboard! Share it with your network.', 'Link Copied', 'success');
       }
     } catch (err) {
       console.error("Share failed:", err);
@@ -610,7 +626,7 @@ export default function Profile() {
                 <button 
                   className="button-primary-pill" 
                   onClick={() => {
-                    alert("To start a secure chat, please click on one of the seller's active listings below and click 'Contact Seller'.");
+                    showAlert("To start a secure chat, please click on one of the seller's active listings below and tap 'Contact Seller'.", 'How to Message', 'info');
                   }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
@@ -678,7 +694,7 @@ export default function Profile() {
                 color: activeTab === 'ledger' ? 'var(--text-main)' : 'var(--text-muted)'
               }}
             >
-              Impact Ledger
+              Trade Stats
             </button>
           </div>
 
@@ -815,6 +831,9 @@ export default function Profile() {
 
           {activeTab === 'ledger' && (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <div style={{ padding: '1rem 1.5rem', background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: '16px', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                <strong style={{ color: 'var(--primary)' }}>📊 Your Trade Stats</strong> — A real-time snapshot of your trading activity, money saved by buying pre-owned instead of new, and your positive environmental impact.
+              </div>
               
               {/* Stat Cards Row */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
@@ -902,6 +921,55 @@ export default function Profile() {
                 <button type="submit" className="btn-primary" style={{ padding: '0.8rem 1.5rem', borderRadius: '12px' }}>Confirm Sale</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Alert Modal */}
+      {alertModal.isOpen && (
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, animation: 'fadeIn 0.2s ease' }}
+          onClick={() => { setAlertModal(prev => ({ ...prev, isOpen: false })); if (alertModal.onClose) alertModal.onClose(); }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '2.5rem 2rem', width: '90%', maxWidth: '400px', textAlign: 'center', boxShadow: 'var(--shadow-premium)', position: 'relative', overflow: 'hidden' }}
+          >
+            <div style={{ position: 'absolute', top: '-15%', left: '50%', transform: 'translateX(-50%)', width: '200px', height: '200px', background: alertModal.type === 'success' ? 'radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)' : alertModal.type === 'error' ? 'radial-gradient(circle, rgba(239,68,68,0.12) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)', zIndex: 0, pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', zIndex: 1, width: '72px', height: '72px', borderRadius: '50%', background: alertModal.type === 'success' ? 'rgba(16,185,129,0.08)' : alertModal.type === 'error' ? 'rgba(239,68,68,0.08)' : 'rgba(59,130,246,0.08)', border: alertModal.type === 'success' ? '2px solid rgba(16,185,129,0.2)' : alertModal.type === 'error' ? '2px solid rgba(239,68,68,0.2)' : '2px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: alertModal.type === 'success' ? '#10B981' : alertModal.type === 'error' ? '#EF4444' : '#3B82F6' }}>
+              {alertModal.type === 'success' && <Check size={32} />}
+              {alertModal.type === 'error' && <AlertTriangle size={32} />}
+              {alertModal.type === 'info' && <Info size={32} />}
+            </div>
+            <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.4rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '0.75rem', position: 'relative', zIndex: 1 }}>{alertModal.title}</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2rem', position: 'relative', zIndex: 1 }}>{alertModal.message}</p>
+            <button
+              className="btn-primary"
+              onClick={() => { setAlertModal(prev => ({ ...prev, isOpen: false })); if (alertModal.onClose) alertModal.onClose(); }}
+              style={{ width: '100%', padding: '0.85rem', borderRadius: '100px', fontWeight: 700, fontSize: '0.95rem', position: 'relative', zIndex: 1, cursor: 'pointer', background: alertModal.type === 'error' ? '#EF4444' : 'var(--primary)', color: 'white', border: 'none' }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Confirm Modal */}
+      {confirmModal.isOpen && (
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}
+          onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '2.5rem 2rem', width: '90%', maxWidth: '380px', textAlign: 'center', boxShadow: 'var(--shadow-premium)' }}>
+            <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(239,68,68,0.08)', border: '2px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: '#EF4444' }}>
+              <Trash2 size={30} />
+            </div>
+            <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.4rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '0.75rem' }}>{confirmModal.title}</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2rem' }}>{confirmModal.message}</p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} className="btn-secondary" style={{ flex: 1, padding: '0.8rem', borderRadius: '12px', fontWeight: 700 }}>Cancel</button>
+              <button onClick={() => { setConfirmModal(prev => ({ ...prev, isOpen: false })); if (confirmModal.onConfirm) confirmModal.onConfirm(); }} className="btn-primary" style={{ flex: 1, padding: '0.8rem', borderRadius: '12px', background: '#EF4444', color: 'white', border: 'none', fontWeight: 700 }}>Delete</button>
+            </div>
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { X, CheckCircle, MapPin, Calendar, Clock, Download, ShieldCheck } from 'lucide-react';
+import { X, CheckCircle, MapPin, Calendar, Clock, Download, ShieldCheck, XCircle, Check, Info } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, doc, updateDoc, addDoc, collection, getDoc, serverTimestamp } from '../firebase';
 import { encryptMessage } from '../utils/crypto';
@@ -33,6 +33,11 @@ export default function TransactionReceipt({ transaction, onClose }) {
   const [cancelReason, setCancelReason] = useState('Change of mind');
   const [cancelComments, setCancelComments] = useState('');
   const [submittingCancel, setSubmittingCancel] = useState(false);
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+
+  const showAlert = (message, title = 'Notice', type = 'info') => {
+    setAlertModal({ isOpen: true, title, message, type });
+  };
 
   const isSeller = currentUser?.uid === transaction?.sellerId;
   const isBuyer = currentUser?.uid === transaction?.buyerId;
@@ -89,7 +94,7 @@ export default function TransactionReceipt({ transaction, onClose }) {
       }
 
       setVerificationSuccess(true);
-      alert('Transaction completed successfully! Trust scores updated.');
+      showAlert('Transaction completed successfully! Trust scores have been updated for both parties.', 'Trade Complete', 'success');
       if (onClose) onClose();
     } catch (err) {
       console.error(err);
@@ -128,12 +133,12 @@ export default function TransactionReceipt({ transaction, onClose }) {
         disputeReason: disputeReason
       });
 
-      alert('Dispute has been filed and reported to moderation.');
+      showAlert('Dispute has been filed and reported to the moderation team.', 'Dispute Filed', 'success');
       setShowDisputeModal(false);
       if (onClose) onClose();
     } catch (err) {
       console.error(err);
-      alert('Failed to raise dispute: ' + err.message);
+      showAlert('Failed to raise dispute: ' + err.message, 'Error', 'error');
     } finally {
       setSubmittingDispute(false);
     }
@@ -222,12 +227,12 @@ export default function TransactionReceipt({ transaction, onClose }) {
         createdAt: serverTimestamp()
       });
 
-      alert('Deal cancelled successfully. Trust score adjusted.');
+      showAlert('Deal cancelled successfully. Trust score has been adjusted.', 'Deal Cancelled', 'info');
       setShowCancelModal(false);
       if (onClose) onClose();
     } catch (err) {
       console.error(err);
-      alert('Error cancelling deal: ' + err.message);
+      showAlert('Error cancelling deal: ' + err.message, 'Error', 'error');
     } finally {
       setSubmittingCancel(false);
     }
@@ -263,7 +268,7 @@ export default function TransactionReceipt({ transaction, onClose }) {
       link.click();
     } catch (error) {
       console.error("Error generating receipt:", error);
-      alert("Failed to generate receipt image.");
+      showAlert('Failed to generate receipt image. Please try again.', 'Error', 'error');
     }
   };
 
@@ -639,6 +644,25 @@ export default function TransactionReceipt({ transaction, onClose }) {
           </div>
         </div>
       )}
-     </div>
-   );
- }
+
+      {/* Premium Alert Modal */}
+      {alertModal.isOpen && (
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4000 }}
+          onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '2.5rem 2rem', width: '90%', maxWidth: '380px', textAlign: 'center', boxShadow: 'var(--shadow-premium)', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: alertModal.type === 'success' ? 'rgba(16,185,129,0.08)' : alertModal.type === 'error' ? 'rgba(239,68,68,0.08)' : 'rgba(59,130,246,0.08)', border: alertModal.type === 'success' ? '2px solid rgba(16,185,129,0.2)' : alertModal.type === 'error' ? '2px solid rgba(239,68,68,0.2)' : '2px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: alertModal.type === 'success' ? '#10B981' : alertModal.type === 'error' ? '#EF4444' : '#3B82F6' }}>
+              {alertModal.type === 'success' && <Check size={32} />}
+              {alertModal.type === 'error' && <XCircle size={32} />}
+              {alertModal.type === 'info' && <Info size={32} />}
+            </div>
+            <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.4rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '0.75rem' }}>{alertModal.title}</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2rem' }}>{alertModal.message}</p>
+            <button onClick={() => setAlertModal(prev => ({ ...prev, isOpen: false }))} style={{ width: '100%', padding: '0.85rem', borderRadius: '100px', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', background: alertModal.type === 'error' ? '#EF4444' : 'var(--primary)', color: 'white', border: 'none' }}>Got it</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

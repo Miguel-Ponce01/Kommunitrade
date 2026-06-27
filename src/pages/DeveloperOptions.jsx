@@ -706,7 +706,7 @@ export default function DeveloperOptions() {
                     num: "8",
                     title: "Evaluate System Usability",
                     tech: "UAT (User Acceptance Testing) & SUS (System Usability Scale) Surveys",
-                    desc: "Standard 10-question SUS questionnaire (0-100 score scale) and ISO/IEC 25010 metrics logged post-defense to gauge usability criteria.",
+                    desc: "Standard 10-question SUS questionnaire (0-100 score scale) logged post-defense to gauge usability criteria.",
                     status: "Evaluation Active"
                   }
                 ].map((obj) => (

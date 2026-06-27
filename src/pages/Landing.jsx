@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Shield, Lock, CheckCircle, Languages, X, MapPin, Star, Settings, Camera, ShieldCheck, Handshake, Download, Wifi, Zap, Smartphone } from 'lucide-react';
+import { ArrowRight, Shield, Lock, CheckCircle, Languages, X, MapPin, Star, Settings, Camera, ShieldCheck, Handshake, Download, Wifi, Zap, Smartphone, Loader2 } from 'lucide-react';
 import Auth from './Login';
 import { useLanguage } from '../hooks/useLanguage.jsx';
 import { db, collection, addDoc, getDocs } from '../firebase';
@@ -56,6 +56,11 @@ export default function Landing() {
   const [feedback, setFeedback] = useState([]);
   const [newFeedbackName, setNewFeedbackName] = useState('');
   const [newFeedbackMessage, setNewFeedbackMessage] = useState('');
+  const [newFeedbackRating, setNewFeedbackRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [feedbackSubmitSuccess, setFeedbackSubmitSuccess] = useState(false);
+  const [feedbackValidationError, setFeedbackValidationError] = useState('');
 
   // PWA install prompt
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -83,8 +88,11 @@ export default function Landing() {
         } else {
           // Seed database if empty
           const initial = [
-            { name: 'Juan Dela Cruz', message: 'Great platform! Very easy to use.', date: '2026-05-10' },
-            { name: 'Maria Santos', message: 'I found a great deal on a laptop here.', date: '2026-05-11' }
+            { name: 'Ramon from Buhangin', message: 'Traded my excess garden mangoes for a working router in under an hour. Clean local transaction!', rating: 5, date: '2026-06-12' },
+            { name: 'Sarah from Matina', message: 'The AI scanner auto-filled everything from my photo including a suggested price. Super smooth experience!', rating: 5, date: '2026-06-14' },
+            { name: 'Dave from Poblacion', message: 'Secure meetup receipts with pin verification are a game changer. No more flaky barter partners.', rating: 5, date: '2026-06-15' },
+            { name: 'Lani from Agdao', message: 'I love how easy it is to find pre-loved items near me. Saved ₱1,500 on textbooks already.', rating: 5, date: '2026-06-16' },
+            { name: 'Marco from Obrero', message: 'The face verification feature makes me feel safe meeting other local traders. Best local app ever!', rating: 5, date: '2026-06-18' }
           ];
           for (let item of initial) {
             await addDoc(collection(db, "feedback"), item);
@@ -146,6 +154,47 @@ export default function Landing() {
       deferredPrompt.prompt();
       await deferredPrompt.userChoice;
       setDeferredPrompt(null);
+    }
+  };
+
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    setFeedbackValidationError('');
+
+    if (!newFeedbackName.trim()) {
+      setFeedbackValidationError('Please enter your name.');
+      return;
+    }
+    if (!newFeedbackMessage.trim()) {
+      setFeedbackValidationError('Please enter a feedback message.');
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+
+    const newFB = {
+      name: newFeedbackName.trim(),
+      message: newFeedbackMessage.trim(),
+      rating: newFeedbackRating,
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    try {
+      await new Promise(r => setTimeout(r, 800)); // Soothing transition delay
+      const docRef = await addDoc(collection(db, "feedback"), newFB);
+      setFeedback(prev => [{ id: docRef.id, ...newFB }, ...prev]);
+      setNewFeedbackName('');
+      setNewFeedbackMessage('');
+      setNewFeedbackRating(5);
+      setFeedbackSubmitSuccess(true);
+      setTimeout(() => {
+        setFeedbackSubmitSuccess(false);
+      }, 4500);
+    } catch (err) {
+      console.error("Failed to submit feedback:", err);
+      setFeedbackValidationError('Failed to submit. Please try again.');
+    } finally {
+      setIsSubmittingFeedback(false);
     }
   };
 
@@ -993,7 +1042,17 @@ export default function Landing() {
                           </div>
                         </div>
                         <div className="kt-testimonial-stars">
-                          {[1,2,3,4,5].map(s => <Star key={s} size={14} fill="#FACC15" stroke="#FACC15" />)}
+                          {[1, 2, 3, 4, 5].map(s => {
+                            const isFilled = s <= (item.rating || 5);
+                            return (
+                              <Star 
+                                key={s} 
+                                size={14} 
+                                fill={isFilled ? "#FACC15" : "transparent"} 
+                                stroke={isFilled ? "#FACC15" : "rgba(255,255,255,0.3)"} 
+                              />
+                            );
+                          })}
                         </div>
                         <div className="kt-testimonial-msg">{item.message}</div>
                       </div>
@@ -1003,35 +1062,185 @@ export default function Landing() {
               </div>
             )}
 
-            {/* Feedback form */}
-            <div className="kt-reveal" style={{ marginTop: '1rem', background: 'var(--card-bg)', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-              <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontFamily: "'Outfit', sans-serif" }}>Leave a Feedback</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <input type="text" placeholder="Your Name" value={newFeedbackName} onChange={(e) => setNewFeedbackName(e.target.value)} style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)' }} />
-                <textarea placeholder="Your Feedback" value={newFeedbackMessage} onChange={(e) => setNewFeedbackMessage(e.target.value)} style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-main)', minHeight: '100px' }} />
-                <button 
-                  onClick={async () => { 
-                    if (newFeedbackName && newFeedbackMessage) { 
-                      const newFB = {
-                        name: newFeedbackName,
-                        message: newFeedbackMessage,
-                        date: new Date().toISOString().split('T')[0]
-                      };
-                      try {
-                        const docRef = await addDoc(collection(db, "feedback"), newFB);
-                        setFeedback([{ id: docRef.id, ...newFB }, ...feedback]);
-                        setNewFeedbackName('');
-                        setNewFeedbackMessage('');
-                      } catch (e) {
-                        alert("Failed to submit feedback: " + e.message);
-                      }
-                    } 
-                  }} 
-                  className="btn-primary" 
-                >
-                  Submit Feedback
-                </button>
-              </div>
+            {/* Premium Glassmorphic Feedback form */}
+            <div className="kt-reveal" style={{ 
+              marginTop: '1rem', 
+              background: 'rgba(255, 255, 255, 0.03)', 
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              padding: '2.5rem', 
+              borderRadius: '24px', 
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)'
+            }}>
+              {feedbackSubmitSuccess ? (
+                <div style={{
+                  padding: '1.5rem 0',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  animation: 'fadeIn 0.4s ease'
+                }}>
+                  <div style={{
+                    background: 'rgba(16, 185, 129, 0.08)',
+                    color: '#10B981',
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid rgba(16, 185, 129, 0.2)'
+                  }}>
+                    <CheckCircle size={30} />
+                  </div>
+                  <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--text-main)', margin: 0, fontFamily: "'Outfit', sans-serif" }}>Feedback Received!</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '320px', lineHeight: 1.55, margin: 0 }}>
+                    Thank you for sharing your experience. Your rating helps us make hyperlocal trading safer and more connected.
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handleFeedbackSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 850, marginBottom: '0.25rem', color: 'var(--text-main)', fontFamily: "'Outfit', sans-serif" }}>Share Your Experience</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>Your feedback is public and helps improve the Davao community trading space.</p>
+                  </div>
+
+                  {/* Star Rating Picker */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left' }}>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Overall Rating</label>
+                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                      {[1, 2, 3, 4, 5].map((s) => {
+                        const isHighlighted = s <= (hoverRating || newFeedbackRating);
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setNewFeedbackRating(s)}
+                            onMouseEnter={() => setHoverRating(s)}
+                            onMouseLeave={() => setHoverRating(0)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '2px',
+                              transition: 'transform 0.15s ease',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Star
+                              size={26}
+                              fill={isHighlighted ? "#FACC15" : "transparent"}
+                              stroke={isHighlighted ? "#FACC15" : "rgba(255,255,255,0.25)"}
+                              style={{ transition: 'fill 0.15s, stroke 0.15s' }}
+                            />
+                          </button>
+                        );
+                      })}
+                      <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#FACC15', marginLeft: '0.5rem' }}>
+                        {newFeedbackRating === 5 ? 'Excellent!' : newFeedbackRating === 4 ? 'Great!' : newFeedbackRating === 3 ? 'Good' : newFeedbackRating === 2 ? 'Fair' : 'Poor'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', textAlign: 'left' }}>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your Name / Alias</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g., Alex from Buhangin" 
+                        value={newFeedbackName} 
+                        onChange={(e) => setNewFeedbackName(e.target.value)} 
+                        style={{ 
+                          padding: '0.85rem 1rem', 
+                          borderRadius: '12px', 
+                          border: '1px solid rgba(255, 255, 255, 0.08)', 
+                          background: 'rgba(0, 0, 0, 0.2)', 
+                          color: 'var(--text-main)',
+                          outline: 'none',
+                          fontSize: '0.92rem',
+                          fontFamily: 'inherit',
+                          transition: 'border-color 0.2s'
+                        }} 
+                        onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
+                        onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', textAlign: 'left' }}>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feedback Message</label>
+                      <textarea 
+                        placeholder="Tell us what you think of KomuniTrade..." 
+                        value={newFeedbackMessage} 
+                        onChange={(e) => setNewFeedbackMessage(e.target.value)} 
+                        style={{ 
+                          padding: '0.85rem 1rem', 
+                          borderRadius: '12px', 
+                          border: '1px solid rgba(255, 255, 255, 0.08)', 
+                          background: 'rgba(0, 0, 0, 0.2)', 
+                          color: 'var(--text-main)',
+                          minHeight: '110px',
+                          outline: 'none',
+                          fontSize: '0.92rem',
+                          fontFamily: 'inherit',
+                          resize: 'vertical',
+                          transition: 'border-color 0.2s'
+                        }} 
+                        onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
+                        onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
+                      />
+                    </div>
+                  </div>
+
+                  {feedbackValidationError && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.85rem 1rem',
+                      background: 'rgba(239, 68, 68, 0.08)',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      borderRadius: '12px',
+                      color: '#ef4444',
+                      fontSize: '0.82rem',
+                      textAlign: 'left'
+                    }}>
+                      <span>⚠️ {feedbackValidationError}</span>
+                    </div>
+                  )}
+
+                  <button 
+                    type="submit"
+                    disabled={isSubmittingFeedback}
+                    className="btn-primary" 
+                    style={{
+                      padding: '0.9rem',
+                      borderRadius: '12px',
+                      fontWeight: 750,
+                      fontSize: '0.95rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      cursor: 'pointer',
+                      border: 'none',
+                      marginTop: '0.5rem'
+                    }}
+                  >
+                    {isSubmittingFeedback ? (
+                      <>
+                        <Loader2 className="animate-spin" size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                        <span>Submitting...</span>
+                      </>
+                    ) : (
+                      "Submit Feedback"
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
 
           </div>
