@@ -172,6 +172,7 @@ Flagging behavior and admin monitoring cases:
 
 * **June 2026**: Fixed a race condition in `GoogleMap.jsx` where Google Maps API script loaded slower than Google Identity SDK (resolved blank black screens on publish). Overhauled trust score timelines, midpoint hotspots recommendations, and PIN handshakes.
 * **May 2026**: Migrated Roboflow classifier and facial verification server-side to proxy API requests and secure credentials. Implemented local end-to-end encryption hooks and geohash neighbor scanning.
+developed by Anthon Miguel Ponce A223 along with Shelly Magdalan & Lynard Panares
 
 ---
 
